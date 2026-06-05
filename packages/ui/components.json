@@ -1,0 +1,24 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "radix-mira",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "stone",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@omnipaper/ui/components",
+    "utils": "@omnipaper/ui/lib/utils",
+    "ui": "@omnipaper/ui/components",
+    "hooks": "@omnipaper/ui/hooks",
+    "lib": "@omnipaper/ui/lib"
+  },
+  "iconLibrary": "hugeicons",
+  "menuColor": "inverted-translucent",
+  "menuAccent": "subtle",
+  "rtl": false
+}

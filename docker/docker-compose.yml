@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: omnipaper
+      POSTGRES_PASSWORD: omnipaper
+      POSTGRES_DB: omnipaper
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  app:
+    image: omnipaper:local # ← podmień na swój namespace z Docker Huba
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://omnipaper:omnipaper@postgres:5432/omnipaper
+      AUTH_SECRET: xmvqlyaHhunes0sKJ/RuL8Wr61pIZGtj4h12wBEW2LQ= # openssl rand -base64 32
+      ENCRYPTION_KEY: paGD3KYwZ6lhdw1H7PW7S/bnAXHc6hBR08r2Ezm8GCI= # openssl rand -base64 32
+
+volumes:
+  postgres-data:

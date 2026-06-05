@@ -1,0 +1,26 @@
+{
+  "name": "omnipaper",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Modern open-source document management with native S3-compatible storage support",
+  "license": "AGPL-3.0-or-later",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check --write .",
+    "typecheck": "bun run --filter='@omnipaper/*' typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/bun": "^1.2.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "bun": ">=1.2.0"
+  },
+  "packageManager": "bun@1.2.0"
+}

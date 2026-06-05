@@ -1,0 +1,31 @@
+{
+  "name": "@omnipaper/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./app": "./src/app.ts"
+  },
+  "scripts": {
+    "dev": "bun --watch --env-file=../../.env src/index.ts",
+    "start": "bun src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.8.0",
+    "@omnipaper/database": "workspace:*",
+    "@omnipaper/env": "workspace:*",
+    "@omnipaper/ocr": "workspace:*",
+    "@omnipaper/queue": "workspace:*",
+    "@omnipaper/settings": "workspace:*",
+    "@omnipaper/storage": "workspace:*",
+    "better-auth": "^1.6.12",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.23",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.7.0"
+  }
+}

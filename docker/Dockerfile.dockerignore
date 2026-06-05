@@ -1,0 +1,20 @@
+# deps — installed fresh inside the image
+node_modules
+**/node_modules
+
+# build artifacts — built fresh inside the image
+**/dist
+
+# secrets — never bake into a published image
+.env
+**/.env
+
+# vcs / local / docs
+.git
+.github
+docs
+*.log
+.DS_Store
+
+# docker build files — not needed inside the image
+docker

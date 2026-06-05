@@ -1,0 +1,25 @@
+{
+  "name": "@omnipaper/settings",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./settings": "./src/settings.ts",
+    "./storage-settings": "./src/storage-settings.ts",
+    "./ocr-settings": "./src/ocr-settings.ts",
+    "./secret": "./src/secret.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@omnipaper/database": "workspace:*",
+    "@omnipaper/env": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.7.0"
+  }
+}

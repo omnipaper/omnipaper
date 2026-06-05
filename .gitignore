@@ -1,0 +1,46 @@
+# dependencies
+node_modules/
+.bun/
+
+# build outputs
+dist/
+build/
+.output/
+out/
+.turbo/
+
+# typescript
+*.tsbuildinfo
+
+# env
+.env
+.env.local
+.env.*.local
+
+# logs
+logs/
+*.log
+npm-debug.log*
+bun-debug.log*
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# coverage / testing
+coverage/
+.nyc_output/
+
+# caches
+.cache/
+
+# generated
+*.generated.ts
+**/.generated/
+
+# local project notes
+docs/
