@@ -10,9 +10,10 @@ import {
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
-import { signUp } from "../../lib/auth-client";
-import { queryClient } from "../../lib/query-client";
+import { type SubmitEvent, useState } from "react";
+import { signUp } from "@/lib/auth-client";
+import { sessionKeys } from "@/lib/queries/session";
+import { queryClient } from "@/lib/query-client";
 
 export function SignUpForm() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export function SignUpForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     setError(null);
     setLoading(true);
@@ -36,7 +37,7 @@ export function SignUpForm() {
       return;
     }
 
-    queryClient.removeQueries({ queryKey: ["session"] });
+    queryClient.removeQueries({ queryKey: sessionKeys.all });
     navigate({ to: "/dashboard" });
   }
 

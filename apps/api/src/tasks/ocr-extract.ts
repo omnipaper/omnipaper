@@ -4,9 +4,11 @@ import {
   getDocumentById,
   markDocumentOcrProcessing,
 } from "@omnipaper/database/queries/documents";
-import { createMistralOcr } from "@omnipaper/ocr/mistral";
+import { getOcrDefinition } from "@omnipaper/ocr/resolve";
+import { extractText } from "@omnipaper/ocr/runner";
 import { defineTask } from "@omnipaper/queue/worker";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
+import { getProviderKeys } from "@omnipaper/settings/provider-settings";
 import { getStorageSettings } from "@omnipaper/settings/storage-settings";
 import { createS3Driver } from "@omnipaper/storage/s3";
 
@@ -25,17 +27,26 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }) =
     throw new Error("Storage is not configured");
   }
 
-  const ocrSettings = await getOcrSettings();
+  // Compose the OCR selection and the shared provider keys at the call site;
+  // the chosen definition's provider tells us which key the runner needs.
+  const ocr = await getOcrSettings();
+  const keys = await getProviderKeys();
+  const { provider } = getOcrDefinition(ocr.definitionId);
 
-  if (!ocrSettings) {
-    throw new Error("OCR is not configured");
+  if (!keys[provider]) {
+    throw new Error(`OCR is not configured: missing ${provider} API key`);
   }
 
   const storage = createS3Driver(storageSettings);
-  const ocr = createMistralOcr({ apiKey: ocrSettings.apiKey });
-
   const { url } = await storage.createDownloadUrl({ key: doc.storageKey });
-  const { text } = await ocr.extract({ documentUrl: url, mimeType: doc.mimeType });
+
+  const { text } = await extractText({
+    definitionId: ocr.definitionId,
+    model: ocr.model,
+    documentUrl: url,
+    mimeType: doc.mimeType,
+    keys,
+  });
 
   await completeDocumentOcr(db, {
     id: documentId,

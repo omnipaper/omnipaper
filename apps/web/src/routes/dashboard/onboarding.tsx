@@ -11,11 +11,11 @@ import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
-import { authClient } from "../../lib/auth-client";
-import { queryClient } from "../../lib/query-client";
-import { sessionQueryOptions } from "../../lib/session";
+import { authClient } from "@/lib/auth-client";
+import { sessionKeys, sessionQueryOptions } from "@/lib/queries/session";
+import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard/onboarding")({
   component: OnboardingPage,
@@ -28,7 +28,7 @@ function OnboardingPage() {
   const [name, setName] = useState(userName ? `${userName}'s workspace` : "My workspace");
   const [pending, setPending] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     setPending(true);
 
@@ -44,7 +44,7 @@ function OnboardingPage() {
       return;
     }
 
-    await queryClient.invalidateQueries({ queryKey: ["session"] });
+    await queryClient.invalidateQueries({ queryKey: sessionKeys.all });
     navigate({ to: "/dashboard/orgs/$orgId", params: { orgId: data.id } });
   }
 

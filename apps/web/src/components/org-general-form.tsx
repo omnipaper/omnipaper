@@ -19,37 +19,42 @@ import {
 } from "@omnipaper/ui/components/card";
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type SubmitEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { authClient } from "../lib/auth-client";
+import { authClient } from "@/lib/auth-client";
+import { isOrgOwner } from "@omnipaper/permissions";
+import { fullOrganizationQuery, organizationKeys, useOrgMember } from "@/lib/queries/organization";
 
-export function OrgGeneralForm() {
+export function OrgGeneralForm({ orgId }: { orgId: string }) {
   const queryClient = useQueryClient();
-  const { data: activeOrganization } = authClient.useActiveOrganization();
-  const { data: activeMember } = authClient.useActiveMember();
+  const { data: org } = useQuery(fullOrganizationQuery(orgId));
   const { data: organizations } = authClient.useListOrganizations();
+  const member = useOrgMember(orgId);
 
-  const isOwner = activeMember?.role === "owner";
+  const isOwner = isOrgOwner(member?.role);
   const isOnlyOrganization = (organizations?.length ?? 0) <= 1;
 
   const [name, setName] = useState("");
 
   useEffect(() => {
-    if (activeOrganization?.name) {
-      setName(activeOrganization.name);
+    if (org?.name) {
+      setName(org.name);
     }
-  }, [activeOrganization?.name]);
+  }, [org?.name]);
 
   const updateMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await authClient.organization.update({ data: { name } });
+      const { error } = await authClient.organization.update({
+        data: { name },
+        organizationId: orgId,
+      });
       if (error) {
         throw new Error(error.message ?? "Failed to update organization");
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["session"] });
+      queryClient.invalidateQueries({ queryKey: organizationKeys.full(orgId) });
       toast.success("Organization updated");
     },
     onError: (error) => toast.error(error.message),
@@ -57,29 +62,20 @@ export function OrgGeneralForm() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const organizationId = activeOrganization?.id;
-      if (!organizationId) {
-        throw new Error("No active organization");
-      }
-      const { error } = await authClient.organization.delete({ organizationId });
+      const { error } = await authClient.organization.delete({ organizationId: orgId });
       if (error) {
         throw new Error(error.message ?? "Failed to delete organization");
       }
-      return organizationId;
     },
-    onSuccess: async (deletedId) => {
-      const remaining = (organizations ?? []).filter((org) => org.id !== deletedId);
-      if (remaining[0]) {
-        await authClient.organization.setActive({ organizationId: remaining[0].id });
-      }
+    onSuccess: () => {
       toast.success("Organization deleted");
-      // Hard reload so the session/active-org state is rebuilt from scratch.
+      // Hard reload to /dashboard, which routes the user into their first remaining org.
       window.location.assign("/dashboard");
     },
     onError: (error) => toast.error(error.message),
   });
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     updateMutation.mutate();
   }

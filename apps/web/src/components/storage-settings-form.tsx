@@ -11,21 +11,13 @@ import { Label } from "@omnipaper/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type SubmitEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { api } from "../lib/api";
+import { api } from "@/lib/api";
+import { settingsKeys, storageSettingsQuery } from "@/lib/queries/settings";
 
 export function StorageSettingsForm() {
   const queryClient = useQueryClient();
 
-  const settingsQuery = useQuery({
-    queryKey: ["settings", "storage"],
-    queryFn: async () => {
-      const res = await api.settings.storage.$get();
-      if (!res.ok) {
-        throw new Error("Failed to load settings");
-      }
-      return res.json();
-    },
-  });
+  const settingsQuery = useQuery(storageSettingsQuery());
 
   const [bucket, setBucket] = useState("");
   const [region, setRegion] = useState("");
@@ -61,7 +53,7 @@ export function StorageSettingsForm() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings", "storage"] });
+      queryClient.invalidateQueries({ queryKey: settingsKeys.storage() });
       toast.success("Settings saved");
     },
     onError: () => {

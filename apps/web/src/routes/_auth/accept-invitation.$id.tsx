@@ -11,11 +11,12 @@ import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
-import { authClient, signIn, signOut, signUp, useSession } from "../../lib/auth-client";
-import { documentKeys } from "../../lib/queries/documents";
-import { queryClient } from "../../lib/query-client";
+import { authClient, signIn, signOut, signUp, useSession } from "@/lib/auth-client";
+import { documentKeys } from "@/lib/queries/documents";
+import { sessionKeys } from "@/lib/queries/session";
+import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/_auth/accept-invitation/$id")({
   validateSearch: (search: Record<string, unknown>): { email?: string; org?: string } => ({
@@ -67,13 +68,13 @@ function AcceptInvitationPage() {
     if (organizationId) {
       await authClient.organization.setActive({ organizationId });
     }
-    queryClient.removeQueries({ queryKey: ["session"] });
+    queryClient.removeQueries({ queryKey: sessionKeys.all });
     queryClient.removeQueries({ queryKey: documentKeys.root });
     toast.success("You've joined the organization");
     navigate({ to: "/dashboard" });
   }
 
-  async function handleAuthSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleAuthSubmit(event: SubmitEvent) {
     event.preventDefault();
     setError(null);
     setPending(true);
@@ -129,7 +130,7 @@ function AcceptInvitationPage() {
               variant="outline"
               onClick={async () => {
                 await signOut();
-                queryClient.removeQueries({ queryKey: ["session"] });
+                queryClient.removeQueries({ queryKey: sessionKeys.all });
               }}
             >
               Sign out

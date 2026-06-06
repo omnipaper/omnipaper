@@ -21,11 +21,14 @@ export function decryptSecret(encoded: string): string {
   const parts = encoded.split(":");
   const ivB64 = parts[0];
   const tagB64 = parts[1];
-  const dataB64 = parts[2];
 
-  if (!ivB64 || !tagB64 || !dataB64) {
+  // dataB64 may legitimately be empty (the ciphertext of an empty string), so validate the
+  // structure — 3 parts with iv + tag present — rather than the truthiness of the data segment.
+  if (parts.length !== 3 || !ivB64 || !tagB64) {
     throw new Error("Invalid ciphertext format");
   }
+
+  const dataB64 = parts[2] ?? "";
 
   const decipher = createDecipheriv("aes-256-gcm", getKey(), Buffer.from(ivB64, "base64"));
   decipher.setAuthTag(Buffer.from(tagB64, "base64"));

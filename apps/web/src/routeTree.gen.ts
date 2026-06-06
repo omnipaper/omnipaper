@@ -20,10 +20,12 @@ import { Route as AuthAcceptInvitationIdRouteImport } from './routes/_auth/accep
 import { Route as DashboardOrgsOrgIdRouteRouteImport } from './routes/dashboard/orgs/$orgId/route'
 import { Route as DashboardOrgsOrgIdIndexRouteImport } from './routes/dashboard/orgs/$orgId/index'
 import { Route as DashboardOrgsOrgIdSettingsIndexRouteImport } from './routes/dashboard/orgs/$orgId/settings/index'
+import { Route as DashboardOrgsOrgIdSettingsTagsRouteImport } from './routes/dashboard/orgs/$orgId/settings/tags'
 import { Route as DashboardOrgsOrgIdSettingsStorageRouteImport } from './routes/dashboard/orgs/$orgId/settings/storage'
 import { Route as DashboardOrgsOrgIdSettingsOcrRouteImport } from './routes/dashboard/orgs/$orgId/settings/ocr'
 import { Route as DashboardOrgsOrgIdSettingsMembersRouteImport } from './routes/dashboard/orgs/$orgId/settings/members'
 import { Route as DashboardOrgsOrgIdSettingsGeneralRouteImport } from './routes/dashboard/orgs/$orgId/settings/general'
+import { Route as DashboardOrgsOrgIdSettingsCustomPropertiesRouteImport } from './routes/dashboard/orgs/$orgId/settings/custom-properties'
 import { Route as DashboardOrgsOrgIdDocumentsIdRouteImport } from './routes/dashboard/orgs/$orgId/documents.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -81,6 +83,12 @@ const DashboardOrgsOrgIdSettingsIndexRoute =
     path: '/settings/',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
+const DashboardOrgsOrgIdSettingsTagsRoute =
+  DashboardOrgsOrgIdSettingsTagsRouteImport.update({
+    id: '/settings/tags',
+    path: '/settings/tags',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdSettingsStorageRoute =
   DashboardOrgsOrgIdSettingsStorageRouteImport.update({
     id: '/settings/storage',
@@ -105,6 +113,12 @@ const DashboardOrgsOrgIdSettingsGeneralRoute =
     path: '/settings/general',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
+const DashboardOrgsOrgIdSettingsCustomPropertiesRoute =
+  DashboardOrgsOrgIdSettingsCustomPropertiesRouteImport.update({
+    id: '/settings/custom-properties',
+    path: '/settings/custom-properties',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdDocumentsIdRoute =
   DashboardOrgsOrgIdDocumentsIdRouteImport.update({
     id: '/documents/$id',
@@ -123,10 +137,12 @@ export interface FileRoutesByFullPath {
   '/accept-invitation/$id': typeof AuthAcceptInvitationIdRoute
   '/dashboard/orgs/$orgId/': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
+  '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
   '/dashboard/orgs/$orgId/settings/': typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -138,10 +154,12 @@ export interface FileRoutesByTo {
   '/accept-invitation/$id': typeof AuthAcceptInvitationIdRoute
   '/dashboard/orgs/$orgId': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
+  '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
   '/dashboard/orgs/$orgId/settings': typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -157,10 +175,12 @@ export interface FileRoutesById {
   '/_auth/accept-invitation/$id': typeof AuthAcceptInvitationIdRoute
   '/dashboard/orgs/$orgId/': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
+  '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
   '/dashboard/orgs/$orgId/settings/': typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -176,10 +196,12 @@ export interface FileRouteTypes {
     | '/accept-invitation/$id'
     | '/dashboard/orgs/$orgId/'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
     | '/dashboard/orgs/$orgId/settings/ocr'
     | '/dashboard/orgs/$orgId/settings/storage'
+    | '/dashboard/orgs/$orgId/settings/tags'
     | '/dashboard/orgs/$orgId/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -191,10 +213,12 @@ export interface FileRouteTypes {
     | '/accept-invitation/$id'
     | '/dashboard/orgs/$orgId'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
     | '/dashboard/orgs/$orgId/settings/ocr'
     | '/dashboard/orgs/$orgId/settings/storage'
+    | '/dashboard/orgs/$orgId/settings/tags'
     | '/dashboard/orgs/$orgId/settings'
   id:
     | '__root__'
@@ -209,10 +233,12 @@ export interface FileRouteTypes {
     | '/_auth/accept-invitation/$id'
     | '/dashboard/orgs/$orgId/'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
     | '/dashboard/orgs/$orgId/settings/ocr'
     | '/dashboard/orgs/$orgId/settings/storage'
+    | '/dashboard/orgs/$orgId/settings/tags'
     | '/dashboard/orgs/$orgId/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -301,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsIndexRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
+    '/dashboard/orgs/$orgId/settings/tags': {
+      id: '/dashboard/orgs/$orgId/settings/tags'
+      path: '/settings/tags'
+      fullPath: '/dashboard/orgs/$orgId/settings/tags'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsTagsRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
     '/dashboard/orgs/$orgId/settings/storage': {
       id: '/dashboard/orgs/$orgId/settings/storage'
       path: '/settings/storage'
@@ -329,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsGeneralRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
+    '/dashboard/orgs/$orgId/settings/custom-properties': {
+      id: '/dashboard/orgs/$orgId/settings/custom-properties'
+      path: '/settings/custom-properties'
+      fullPath: '/dashboard/orgs/$orgId/settings/custom-properties'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsCustomPropertiesRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
     '/dashboard/orgs/$orgId/documents/$id': {
       id: '/dashboard/orgs/$orgId/documents/$id'
       path: '/documents/$id'
@@ -342,10 +382,12 @@ declare module '@tanstack/react-router' {
 interface DashboardOrgsOrgIdRouteRouteChildren {
   DashboardOrgsOrgIdIndexRoute: typeof DashboardOrgsOrgIdIndexRoute
   DashboardOrgsOrgIdDocumentsIdRoute: typeof DashboardOrgsOrgIdDocumentsIdRoute
+  DashboardOrgsOrgIdSettingsCustomPropertiesRoute: typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   DashboardOrgsOrgIdSettingsGeneralRoute: typeof DashboardOrgsOrgIdSettingsGeneralRoute
   DashboardOrgsOrgIdSettingsMembersRoute: typeof DashboardOrgsOrgIdSettingsMembersRoute
   DashboardOrgsOrgIdSettingsOcrRoute: typeof DashboardOrgsOrgIdSettingsOcrRoute
   DashboardOrgsOrgIdSettingsStorageRoute: typeof DashboardOrgsOrgIdSettingsStorageRoute
+  DashboardOrgsOrgIdSettingsTagsRoute: typeof DashboardOrgsOrgIdSettingsTagsRoute
   DashboardOrgsOrgIdSettingsIndexRoute: typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 
@@ -353,6 +395,8 @@ const DashboardOrgsOrgIdRouteRouteChildren: DashboardOrgsOrgIdRouteRouteChildren
   {
     DashboardOrgsOrgIdIndexRoute: DashboardOrgsOrgIdIndexRoute,
     DashboardOrgsOrgIdDocumentsIdRoute: DashboardOrgsOrgIdDocumentsIdRoute,
+    DashboardOrgsOrgIdSettingsCustomPropertiesRoute:
+      DashboardOrgsOrgIdSettingsCustomPropertiesRoute,
     DashboardOrgsOrgIdSettingsGeneralRoute:
       DashboardOrgsOrgIdSettingsGeneralRoute,
     DashboardOrgsOrgIdSettingsMembersRoute:
@@ -360,6 +404,7 @@ const DashboardOrgsOrgIdRouteRouteChildren: DashboardOrgsOrgIdRouteRouteChildren
     DashboardOrgsOrgIdSettingsOcrRoute: DashboardOrgsOrgIdSettingsOcrRoute,
     DashboardOrgsOrgIdSettingsStorageRoute:
       DashboardOrgsOrgIdSettingsStorageRoute,
+    DashboardOrgsOrgIdSettingsTagsRoute: DashboardOrgsOrgIdSettingsTagsRoute,
     DashboardOrgsOrgIdSettingsIndexRoute: DashboardOrgsOrgIdSettingsIndexRoute,
   }
 

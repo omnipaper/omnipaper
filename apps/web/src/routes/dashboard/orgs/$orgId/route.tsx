@@ -1,3 +1,10 @@
+import { NavUser } from "@/components/nav-user";
+import { OrgSwitcher } from "@/components/org-switcher";
+import { signOut } from "@/lib/auth-client";
+import { canManageOrg, isInstanceAdmin } from "@omnipaper/permissions";
+import { fullOrganizationQuery, useOrgMember } from "@/lib/queries/organization";
+import { sessionKeys, sessionQueryOptions } from "@/lib/queries/session";
+import { queryClient } from "@/lib/query-client";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Sidebar,
@@ -29,21 +36,18 @@ import {
   FileTextIcon,
   HardDriveIcon,
   KeyIcon,
+  SlidersHorizontalIcon,
+  TagIcon,
   UsersIcon,
 } from "lucide-react";
-import { NavUser } from "../../../../components/nav-user";
-import { OrgSwitcher } from "../../../../components/org-switcher";
-import { authClient, signOut } from "../../../../lib/auth-client";
-import { queryClient } from "../../../../lib/query-client";
-import { sessionQueryOptions } from "../../../../lib/session";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId")({
   beforeLoad: async ({ params }) => {
-    // The URL is the source of truth for the active org. Mirror it into better-auth's session so
-    // its useActiveOrganization/useActiveMember hooks (used here + in the settings guards) match.
-    // setActive throws when the user isn't a member → bounce to the dashboard picker.
+    // The URL's orgId is the source of truth. Prime the org query (shared with the layout + settings
+    // guards) and bounce non-members to the dashboard picker — getFullOrganization rejects for an org
+    // the user doesn't belong to.
     try {
-      await authClient.organization.setActive({ organizationId: params.orgId });
+      await queryClient.ensureQueryData(fullOrganizationQuery(params.orgId));
     } catch {
       throw redirect({ to: "/dashboard" });
     }
@@ -56,16 +60,15 @@ function OrgLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { data: session } = useQuery(sessionQueryOptions);
-  const isAdmin = session?.user?.role?.split(",").includes("admin") ?? false;
-  const { data: activeMember } = authClient.useActiveMember();
-  const orgRoles = (activeMember?.role ?? "").split(",");
-  const canManageOrg = orgRoles.includes("owner") || orgRoles.includes("admin");
+  const isAdmin = isInstanceAdmin(session?.user?.role);
+  const member = useOrgMember(orgId);
+  const canManage = canManageOrg(member?.role);
   const settingsBase = `/dashboard/orgs/${orgId}/settings`;
   const inSettings = pathname.startsWith(settingsBase);
 
   async function handleSignOut() {
     await signOut();
-    queryClient.removeQueries({ queryKey: ["session"] });
+    queryClient.removeQueries({ queryKey: sessionKeys.all });
     navigate({ to: "/sign-in" });
   }
 
@@ -87,13 +90,16 @@ function OrgLayout() {
               </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-              {canManageOrg ? (
+              {canManage ? (
                 <SidebarGroup>
                   <SidebarGroupLabel>Organization</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <SidebarMenu>
                       <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname === `${settingsBase}/general`}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === `${settingsBase}/general`}
+                        >
                           <Link to="/dashboard/orgs/$orgId/settings/general" params={{ orgId }}>
                             <Building2Icon />
                             <span>General</span>
@@ -101,10 +107,35 @@ function OrgLayout() {
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname === `${settingsBase}/members`}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === `${settingsBase}/members`}
+                        >
                           <Link to="/dashboard/orgs/$orgId/settings/members" params={{ orgId }}>
                             <UsersIcon />
                             <span>Members</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === `${settingsBase}/tags`}>
+                          <Link to="/dashboard/orgs/$orgId/settings/tags" params={{ orgId }}>
+                            <TagIcon />
+                            <span>Tags</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === `${settingsBase}/custom-properties`}
+                        >
+                          <Link
+                            to="/dashboard/orgs/$orgId/settings/custom-properties"
+                            params={{ orgId }}
+                          >
+                            <SlidersHorizontalIcon />
+                            <span>Properties</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -118,7 +149,10 @@ function OrgLayout() {
                   <SidebarGroupContent>
                     <SidebarMenu>
                       <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname === `${settingsBase}/storage`}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === `${settingsBase}/storage`}
+                        >
                           <Link to="/dashboard/orgs/$orgId/settings/storage" params={{ orgId }}>
                             <HardDriveIcon />
                             <span>Storage</span>
@@ -147,7 +181,7 @@ function OrgLayout() {
         ) : (
           <>
             <SidebarHeader>
-              <OrgSwitcher />
+              <OrgSwitcher orgId={orgId} />
             </SidebarHeader>
             <SidebarContent>
               <SidebarGroup>

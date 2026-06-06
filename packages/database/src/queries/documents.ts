@@ -125,7 +125,6 @@ export type CreateDocumentInput = {
   sizeBytes: number;
 };
 
-// Insert a document and record its creation event atomically — both commit, or neither does.
 export async function createDocument(db: Database, input: CreateDocumentInput) {
   await db.transaction(async (tx) => {
     await tx.insert(documents).values({

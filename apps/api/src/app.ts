@@ -5,22 +5,25 @@ import { HTTPException } from "hono/http-exception";
 import { auth } from "./auth";
 import type { Variables } from "./context";
 import { requireAuth, requireOrganization } from "./middleware";
-import { adminRoutes } from "./routes/admin";
+import { customPropertiesRoutes } from "./routes/custom-properties";
 import { documentsRoutes } from "./routes/documents";
 import { settingsRoutes } from "./routes/settings";
+import { tagsRoutes } from "./routes/tags";
 
 export function createApp() {
   // Org-scoped routes live under /orgs/:orgId. requireOrganization reads :orgId from the path
   // and verifies membership, so the active org comes from the URL, not from session state.
   const orgRoutes = new Hono<{ Variables: Variables }>()
-    .use("*", requireAuth)
     .use("*", requireOrganization)
-    .route("/documents", documentsRoutes);
+    .route("/documents", documentsRoutes)
+    .route("/tags", tagsRoutes)
+    .route("/custom-properties", customPropertiesRoutes);
 
   const apiRoutes = new Hono<{ Variables: Variables }>()
     .get("/me", (c) => c.json({ user: c.get("user") }))
-    .route("/admin", adminRoutes)
+    .use("/settings/*", requireAuth)
     .route("/settings", settingsRoutes)
+    .use("/orgs/:orgId/*", requireAuth)
     .route("/orgs/:orgId", orgRoutes);
 
   const app = new Hono<{ Variables: Variables }>()

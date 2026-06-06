@@ -1,8 +1,9 @@
+import { TagChip } from "@/components/tag-chip";
+import { documentsListQuery } from "@/lib/queries/documents";
 import { Input } from "@omnipaper/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Fragment, type ReactNode, useEffect, useState } from "react";
-import { documentsListQuery } from "../lib/queries/documents";
 
 function renderSnippet(snippet: string) {
   return snippet.split(/(<mark>.*?<\/mark>)/g).map((part, index) => {
@@ -64,6 +65,13 @@ export function DocumentList({ orgId }: { orgId: string }) {
                     ),
                   )}
                 </p>
+              ) : null}
+              {doc.tags.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {doc.tags.map((tag) => (
+                    <TagChip key={tag.id} name={tag.name} color={tag.color} />
+                  ))}
+                </div>
               ) : null}
             </Link>
           </li>

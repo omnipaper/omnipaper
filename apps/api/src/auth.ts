@@ -6,9 +6,9 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, organization } from "better-auth/plugins";
 import { count, eq } from "drizzle-orm";
-import { ac, roles } from "./permissions";
+import { ac, roles } from "@omnipaper/permissions";
 
-// Stripe-style prefixed IDs for better-auth's tables (our own tables use createId directly).
+// Stripe-style prefixed IDs
 const ID_PREFIXES: Record<string, string> = {
   user: "usr",
   session: "ses",
@@ -44,13 +44,11 @@ export const auth = betterAuth({
   },
   plugins: [
     admin({
-      ac,
-      roles,
       defaultRole: "user",
       adminRoles: ["admin"],
     }),
-    // No email infra yet, so don't gate invitation accept on a verified email.
-    organization({ requireEmailVerificationOnInvitation: false }),
+    // Organization plugin ACL (owner/admin/member) — separate from the global admin plugin above.
+    organization({ ac, roles, requireEmailVerificationOnInvitation: false }),
   ],
   databaseHooks: {
     user: {
@@ -61,9 +59,6 @@ export const auth = betterAuth({
 
           return { data: { ...userData, role: isFirstUser ? "admin" : "user" } };
         },
-        // No auto-created org: a user owning a workspace is a separate concern from a user
-        // existing. Self-signups create one via /dashboard/onboarding; invitees just join the
-        // org they were invited to (an auto "Personal" org would be junk for them).
       },
     },
     session: {

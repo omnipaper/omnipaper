@@ -25,16 +25,16 @@ import {
 } from "@omnipaper/ui/components/sidebar";
 import { useNavigate } from "@tanstack/react-router";
 import { Building2Icon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
-import { authClient } from "../lib/auth-client";
-import { queryClient } from "../lib/query-client";
+import { authClient } from "@/lib/auth-client";
+import { sessionKeys } from "@/lib/queries/session";
+import { queryClient } from "@/lib/query-client";
 
-export function OrgSwitcher() {
+export function OrgSwitcher({ orgId }: { orgId: string }) {
   const navigate = useNavigate();
   const { isMobile } = useSidebar();
   const { data: organizations } = authClient.useListOrganizations();
-  const { data: activeOrganization } = authClient.useActiveOrganization();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
@@ -44,7 +44,7 @@ export function OrgSwitcher() {
     navigate({ to: "/dashboard/orgs/$orgId", params: { orgId: organizationId } });
   }
 
-  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+  async function handleCreate(event: SubmitEvent) {
     event.preventDefault();
     setPending(true);
 
@@ -63,11 +63,11 @@ export function OrgSwitcher() {
     setPending(false);
     setCreateOpen(false);
     setName("");
-    await queryClient.invalidateQueries({ queryKey: ["session"] });
+    await queryClient.invalidateQueries({ queryKey: sessionKeys.all });
     navigate({ to: "/dashboard/orgs/$orgId", params: { orgId: data.id } });
   }
 
-  const current = activeOrganization ?? organizations?.[0];
+  const current = organizations?.find((org) => org.id === orgId) ?? organizations?.[0];
 
   if (!current) {
     return null;

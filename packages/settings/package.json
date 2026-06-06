@@ -7,6 +7,7 @@
     "./settings": "./src/settings.ts",
     "./storage-settings": "./src/storage-settings.ts",
     "./ocr-settings": "./src/ocr-settings.ts",
+    "./provider-settings": "./src/provider-settings.ts",
     "./secret": "./src/secret.ts"
   },
   "scripts": {
@@ -15,6 +16,7 @@
   "dependencies": {
     "@omnipaper/database": "workspace:*",
     "@omnipaper/env": "workspace:*",
+    "@omnipaper/ocr": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "zod": "^4.4.3"
   },

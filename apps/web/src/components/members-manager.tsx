@@ -16,41 +16,34 @@ import {
   SelectValue,
 } from "@omnipaper/ui/components/select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
-import { authClient } from "../lib/auth-client";
+import { authClient } from "@/lib/auth-client";
+import { isOrgOwner } from "@omnipaper/permissions";
+import { fullOrganizationQuery, organizationKeys, useOrgMember } from "@/lib/queries/organization";
 
 type OrgRole = "member" | "admin";
 
-export function MembersManager() {
+export function MembersManager({ orgId }: { orgId: string }) {
   const queryClient = useQueryClient();
-  const { data: activeOrganization } = authClient.useActiveOrganization();
-  const { data: activeMember } = authClient.useActiveMember();
-  const organizationId = activeOrganization?.id;
-  const currentMemberId = activeMember?.id;
-
-  const orgQuery = useQuery({
-    queryKey: ["organization", "full", organizationId],
-    queryFn: async () => {
-      const { data, error } = await authClient.organization.getFullOrganization();
-      if (error) {
-        throw new Error(error.message ?? "Failed to load organization");
-      }
-      return data;
-    },
-    enabled: Boolean(organizationId),
-  });
+  const orgQuery = useQuery(fullOrganizationQuery(orgId));
+  const currentMember = useOrgMember(orgId);
+  const currentMemberId = currentMember?.id;
 
   const [email, setEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<OrgRole>("member");
 
   function invalidate() {
-    queryClient.invalidateQueries({ queryKey: ["organization", "full", organizationId] });
+    queryClient.invalidateQueries({ queryKey: organizationKeys.full(orgId) });
   }
 
   const inviteMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await authClient.organization.inviteMember({ email, role: inviteRole });
+      const { error } = await authClient.organization.inviteMember({
+        email,
+        role: inviteRole,
+        organizationId: orgId,
+      });
       if (error) {
         throw new Error(error.message ?? "Invite failed");
       }
@@ -68,6 +61,7 @@ export function MembersManager() {
       const { error } = await authClient.organization.updateMemberRole({
         memberId: vars.memberId,
         role: vars.role,
+        organizationId: orgId,
       });
       if (error) {
         throw new Error(error.message ?? "Failed to update role");
@@ -82,7 +76,10 @@ export function MembersManager() {
 
   const removeMutation = useMutation({
     mutationFn: async (memberId: string) => {
-      const { error } = await authClient.organization.removeMember({ memberIdOrEmail: memberId });
+      const { error } = await authClient.organization.removeMember({
+        memberIdOrEmail: memberId,
+        organizationId: orgId,
+      });
       if (error) {
         throw new Error(error.message ?? "Failed to remove member");
       }
@@ -112,15 +109,15 @@ export function MembersManager() {
     // Carry the email (and org name) in the link so the accept page can prefill them
     // without a session — getInvitation requires one, the logged-out invitee has none.
     const params = new URLSearchParams({ email: invitation.email });
-    if (activeOrganization?.name) {
-      params.set("org", activeOrganization.name);
+    if (orgQuery.data?.name) {
+      params.set("org", orgQuery.data.name);
     }
     const url = `${window.location.origin}/accept-invitation/${invitation.id}?${params.toString()}`;
     await navigator.clipboard.writeText(url);
     toast.success("Invite link copied");
   }
 
-  function handleInvite(event: FormEvent<HTMLFormElement>) {
+  function handleInvite(event: SubmitEvent) {
     event.preventDefault();
     inviteMutation.mutate();
   }
@@ -139,7 +136,7 @@ export function MembersManager() {
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           {members.map((member) => {
-            const isOwnerRow = member.role === "owner";
+            const isOwnerRow = isOrgOwner(member.role);
             const isSelf = member.id === currentMemberId;
             const locked = isOwnerRow || isSelf;
 

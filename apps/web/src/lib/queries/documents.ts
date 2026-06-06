@@ -1,5 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-import { api } from "../api";
+import { api } from "@/lib/api";
 
 type DocumentRef = { orgId: string; id: string };
 
@@ -16,6 +16,8 @@ export const documentKeys = {
   detail: ({ orgId, id }: DocumentRef) => [...documentKeys.details(orgId), id] as const,
   activity: ({ orgId, id }: DocumentRef) =>
     [...documentKeys.detail({ orgId, id }), "activity"] as const,
+  download: ({ orgId, id }: DocumentRef) =>
+    [...documentKeys.detail({ orgId, id }), "download"] as const,
 };
 
 export function documentsListQuery({ orgId, query = "" }: { orgId: string; query?: string }) {
@@ -44,6 +46,23 @@ export function documentDetailQuery({ orgId, id }: DocumentRef) {
       }
       return res.json();
     },
+  });
+}
+
+export function documentDownloadQuery({ orgId, id }: DocumentRef) {
+  return queryOptions({
+    queryKey: documentKeys.download({ orgId, id }),
+    queryFn: async () => {
+      const res = await api.orgs[":orgId"].documents[":id"].download.$get({ param: { orgId, id } });
+      if (!res.ok) {
+        throw new Error("Failed to prepare preview");
+      }
+      return res.json();
+    },
+    // The /download route signs the URL for 1h; staying fresh for most of that window means a
+    // normal viewing session reuses one URL (no re-download), while a long-open page still
+    // refetches a new URL on the next focus/remount, well before the 1h expiry.
+    staleTime: 50 * 60 * 1000,
   });
 }
 

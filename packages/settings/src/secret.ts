@@ -3,5 +3,24 @@
 export const SECRET_MASK = "__omnipaper_secret_unchanged__";
 
 export function unmaskSecret(incoming: string, stored: string | undefined): string {
-  return incoming === SECRET_MASK ? (stored ?? incoming) : incoming;
+  // The mask means "unchanged" → keep the stored value. If nothing is stored there is no value
+  // to keep, so resolve to empty (callers treat blank as "clear/unset") instead of persisting
+  // the sentinel string itself as a real secret.
+  if (incoming === SECRET_MASK) {
+    return stored ?? "";
+  }
+
+  return incoming;
+}
+
+// Defensive: never echo secrets back inside an error message (n8n redactSecrets pattern).
+export function redactSecrets(message: string, ...secrets: (string | null | undefined)[]): string {
+  let redacted = message;
+
+  for (const secret of secrets) {
+    if (!secret) continue;
+    redacted = redacted.split(secret).join("****").split(encodeURIComponent(secret)).join("****");
+  }
+
+  return redacted;
 }

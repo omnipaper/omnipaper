@@ -2,13 +2,17 @@ import { type SQL, sql } from "drizzle-orm";
 import {
   boolean,
   customType,
+  date,
+  doublePrecision,
   index,
   integer,
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { organization, user } from "./auth-schema";
 import { createId } from "./id";
@@ -57,6 +61,152 @@ export const documents = pgTable(
 export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
 
+export const tags = pgTable(
+  "tags",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("tag")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color").notNull().default("#94a3b8"),
+    description: text("description"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("tags_org_name_idx").on(t.organizationId, t.name),
+    index("tags_organization_id_idx").on(t.organizationId),
+  ],
+);
+
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+
+export const documentsTags = pgTable(
+  "documents_tags",
+  {
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    tagId: text("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.documentId, t.tagId] }),
+    index("documents_tags_tag_id_idx").on(t.tagId),
+  ],
+);
+
+export type DocumentTag = typeof documentsTags.$inferSelect;
+export type NewDocumentTag = typeof documentsTags.$inferInsert;
+
+export const customPropertyTypeEnum = pgEnum("custom_property_type", [
+  "text",
+  "url",
+  "number",
+  "date",
+  "boolean",
+  "select",
+]);
+
+export const customPropertyDefinitions = pgTable(
+  "custom_property_definitions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("cpd")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    // Immutable after creation — changing the type would require migrating existing values.
+    type: customPropertyTypeEnum("type").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("custom_property_definitions_org_key_idx").on(t.organizationId, t.key),
+    uniqueIndex("custom_property_definitions_org_name_idx").on(t.organizationId, t.name),
+    index("custom_property_definitions_organization_id_idx").on(t.organizationId),
+  ],
+);
+
+export type CustomPropertyDefinition = typeof customPropertyDefinitions.$inferSelect;
+export type NewCustomPropertyDefinition = typeof customPropertyDefinitions.$inferInsert;
+
+export const customPropertySelectOptions = pgTable(
+  "custom_property_select_options",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("cpo")),
+    definitionId: text("definition_id")
+      .notNull()
+      .references(() => customPropertyDefinitions.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    color: text("color"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("custom_property_select_options_definition_label_idx").on(t.definitionId, t.label),
+    index("custom_property_select_options_definition_id_idx").on(t.definitionId),
+  ],
+);
+
+export type CustomPropertySelectOption = typeof customPropertySelectOptions.$inferSelect;
+export type NewCustomPropertySelectOption = typeof customPropertySelectOptions.$inferInsert;
+
+export const documentCustomPropertyValues = pgTable(
+  "document_custom_property_values",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("dcpv")),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    definitionId: text("definition_id")
+      .notNull()
+      .references(() => customPropertyDefinitions.id, { onDelete: "cascade" }),
+    valueText: text("value_text"),
+    valueNumber: doublePrecision("value_number"),
+    valueDate: date("value_date"),
+    valueBool: boolean("value_bool"),
+    selectOptionId: text("select_option_id").references(() => customPropertySelectOptions.id, {
+      onDelete: "cascade",
+    }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("document_custom_property_values_doc_def_idx").on(t.documentId, t.definitionId),
+    index("document_custom_property_values_definition_id_idx").on(t.definitionId),
+  ],
+);
+
+export type DocumentCustomPropertyValue = typeof documentCustomPropertyValues.$inferSelect;
+export type NewDocumentCustomPropertyValue = typeof documentCustomPropertyValues.$inferInsert;
+
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
@@ -84,21 +234,15 @@ export const activityEvents = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId("act")),
-    // Org keeps a real FK + cascade: deleting an org cleans up its audit trail.
     organizationId: text("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    // Polymorphic target — intentionally NO FK so an event outlives the resource it describes.
     resourceType: activityResourceTypeEnum("resource_type").notNull(),
     resourceId: text("resource_id").notNull(),
-    // Snapshot of the resource's label at event time (e.g. document title), so the feed stays
-    // readable after a rename/delete and without joining the resource table.
     resourceLabel: text("resource_label"),
     event: activityEventEnum("event").notNull(),
-    // Who acted: a user, or the system (OCR worker). userId is null for non-user actors.
     actorType: activityActorTypeEnum("actor_type").notNull().default("user"),
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
-    // Free-form context: diffs, metrics, etc. (e.g. { characters: 5123 }).
     data: jsonb("data").$type<Record<string, unknown>>(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },

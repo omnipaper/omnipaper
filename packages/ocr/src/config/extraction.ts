@@ -1,0 +1,3 @@
+export const LLM_TEXT_TIMEOUT_MS = 60_000;
+
+export const MISTRAL_DOCUMENT_PAGE_LIMIT = 64;

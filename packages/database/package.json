@@ -8,7 +8,9 @@
     "./auth-schema": "./src/auth-schema.ts",
     "./client": "./src/client.ts",
     "./activity": "./src/activity.ts",
+    "./queries/custom-properties": "./src/queries/custom-properties.ts",
     "./queries/documents": "./src/queries/documents.ts",
+    "./queries/tags": "./src/queries/tags.ts",
     "./id": "./src/id.ts",
     "./migrate": "./src/migrate.ts",
     "./wait": "./src/wait.ts"

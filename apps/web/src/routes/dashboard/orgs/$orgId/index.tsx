@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { DocumentList } from "../../../../components/document-list";
-import { UploadButton } from "../../../../components/upload-button";
+import { DocumentList } from "@/components/document-list";
+import { UploadButton } from "@/components/upload-button";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/")({
   component: DashboardHome,

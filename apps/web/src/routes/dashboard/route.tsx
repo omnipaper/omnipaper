@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
-import { queryClient } from "../../lib/query-client";
-import { sessionQueryOptions } from "../../lib/session";
+import { sessionQueryOptions } from "@/lib/queries/session";
+import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {

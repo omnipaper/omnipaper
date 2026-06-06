@@ -37,7 +37,7 @@ function useContainerWidth() {
   return { ref, width };
 }
 
-function PdfPreview({ url }: { url: string }) {
+function PdfPreview({ url, onRetry }: { url: string; onRetry?: () => void }) {
   const { ref, width } = useContainerWidth();
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
@@ -50,8 +50,17 @@ function PdfPreview({ url }: { url: string }) {
           setNumPages(total);
           setPage(1);
         }}
-        loading={<p className="text-sm text-muted-foreground">Ładowanie podglądu…</p>}
-        error={<p className="text-sm text-destructive">Nie udało się wczytać PDF.</p>}
+        loading={<p className="text-sm text-muted-foreground">Loading preview…</p>}
+        error={
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-sm text-destructive">Could not load PDF.</p>
+            {onRetry ? (
+              <Button variant="outline" size="sm" onClick={onRetry}>
+                Retry
+              </Button>
+            ) : null}
+          </div>
+        }
       >
         {width ? (
           <Page pageNumber={page} width={width} className="overflow-hidden rounded-md border" />
@@ -66,10 +75,10 @@ function PdfPreview({ url }: { url: string }) {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
           >
-            Poprzednia
+            Previous
           </Button>
           <span className="text-muted-foreground">
-            Strona {page} z {numPages}
+            Page {page} of {numPages}
           </span>
           <Button
             variant="outline"
@@ -77,7 +86,7 @@ function PdfPreview({ url }: { url: string }) {
             onClick={() => setPage((p) => Math.min(numPages, p + 1))}
             disabled={page >= numPages}
           >
-            Następna
+            Next
           </Button>
         </div>
       ) : null}
@@ -85,20 +94,32 @@ function PdfPreview({ url }: { url: string }) {
   );
 }
 
-export function DocumentPreview({ url, mimeType }: { url?: string; mimeType: string }) {
+export function DocumentPreview({
+  url,
+  mimeType,
+  title,
+  onRetry,
+}: {
+  url?: string;
+  mimeType: string;
+  title?: string;
+  onRetry?: () => void;
+}) {
   if (!url) {
-    return <p className="text-sm text-muted-foreground">Ładowanie podglądu…</p>;
+    return <p className="text-sm text-muted-foreground">Loading preview…</p>;
   }
 
   if (mimeType === "application/pdf") {
-    return <PdfPreview url={url} />;
+    // key={url} remounts on document/url change so page/numPages can't carry over from a
+    // previously viewed document (which would briefly render a page index out of bounds).
+    return <PdfPreview key={url} url={url} onRetry={onRetry} />;
   }
 
   if (mimeType.startsWith("image/")) {
     return (
       <img
         src={url}
-        alt="Podgląd dokumentu"
+        alt={title ? `Preview of ${title}` : "Document preview"}
         className="max-h-[70vh] w-full rounded-md border object-contain"
       />
     );
@@ -106,7 +127,7 @@ export function DocumentPreview({ url, mimeType }: { url?: string; mimeType: str
 
   return (
     <p className="text-sm text-muted-foreground">
-      Podgląd niedostępny dla tego typu pliku ({mimeType}). Użyj przycisku Pobierz.
+      Preview not available for this file type ({mimeType}). Use the Download button.
     </p>
   );
 }

@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1780564212621,
-      "tag": "0000_sticky_skaar",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1780617363755,
-      "tag": "0001_nifty_surge",
+      "when": 1780711485410,
+      "tag": "0000_sticky_mentor",
       "breakpoints": true
     }
   ]

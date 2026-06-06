@@ -44,3 +44,6 @@ coverage/
 
 # local project notes
 docs/
+
+**/.tanstack/tmp/
+.claude/*

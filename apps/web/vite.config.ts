@@ -5,6 +5,9 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
+  resolve: {
+    tsconfigPaths: true,
+  },
   server: {
     port: process.env.PORT ? Number(process.env.PORT) : 5173,
   },

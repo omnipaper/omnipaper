@@ -1,14 +1,14 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { authClient } from "../../../../../lib/auth-client";
-import { queryClient } from "../../../../../lib/query-client";
-import { sessionQueryOptions } from "../../../../../lib/session";
+import { ensureOrgRole } from "@/lib/queries/organization";
+import { canManageOrg, isInstanceAdmin } from "@omnipaper/permissions";
+import { sessionQueryOptions } from "@/lib/queries/session";
+import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/")({
   beforeLoad: async ({ params }) => {
-    const { data: member } = await authClient.organization.getActiveMember();
-    const orgRoles = (member?.role ?? "").split(",");
+    const role = await ensureOrgRole(params.orgId);
 
-    if (orgRoles.includes("owner") || orgRoles.includes("admin")) {
+    if (canManageOrg(role)) {
       throw redirect({
         to: "/dashboard/orgs/$orgId/settings/general",
         params: { orgId: params.orgId },
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/")({
     }
 
     const session = await queryClient.ensureQueryData(sessionQueryOptions);
-    const isAdmin = session?.user?.role?.split(",").includes("admin") ?? false;
+    const isAdmin = isInstanceAdmin(session?.user?.role);
 
     if (isAdmin) {
       throw redirect({

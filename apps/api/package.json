@@ -16,6 +16,7 @@
     "@omnipaper/database": "workspace:*",
     "@omnipaper/env": "workspace:*",
     "@omnipaper/ocr": "workspace:*",
+    "@omnipaper/permissions": "workspace:*",
     "@omnipaper/queue": "workspace:*",
     "@omnipaper/settings": "workspace:*",
     "@omnipaper/storage": "workspace:*",

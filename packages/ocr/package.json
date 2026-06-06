@@ -4,11 +4,18 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./adapter": "./src/adapter.ts",
-    "./mistral": "./src/adapters/mistral.ts"
+    "./runner": "./src/runner.ts",
+    "./registry": "./src/registry.ts",
+    "./resolve": "./src/resolve.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@omnipaper/settings": "workspace:*",
+    "@ai-sdk/google": "^3.0.80",
+    "@ai-sdk/mistral": "^3.0.37",
+    "ai": "^6.0.197"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",

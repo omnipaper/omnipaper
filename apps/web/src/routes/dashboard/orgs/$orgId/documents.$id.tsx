@@ -1,19 +1,24 @@
+import { CustomPropertyFields } from "@/components/custom-property-fields";
+import { DocumentPreview } from "@/components/document-preview";
+import { TagPicker } from "@/components/tag-picker";
+import { api } from "@/lib/api";
+import {
+  documentActivityQuery,
+  documentDetailQuery,
+  documentDownloadQuery,
+  documentKeys,
+} from "@/lib/queries/documents";
+import { useOrgMember } from "@/lib/queries/organization";
+import { hasOrgPermission } from "@omnipaper/permissions";
 import { Button } from "@omnipaper/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@omnipaper/ui/components/card";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { DocumentPreview } from "../../../../components/document-preview";
-import { api } from "../../../../lib/api";
-import {
-  documentActivityQuery,
-  documentDetailQuery,
-  documentKeys,
-} from "../../../../lib/queries/documents";
 
 const EVENT_LABEL: Record<string, string> = {
-  "document.created": "utworzył(a) dokument",
-  "document.ocr_completed": "zakończył(a) OCR",
+  "document.created": "created the document",
+  "document.ocr_completed": "completed OCR",
 };
 
 function timeAgo(value: string | Date) {
@@ -22,7 +27,7 @@ function timeAgo(value: string | Date) {
   const minutes = Math.round(seconds / 60);
   const hours = Math.round(minutes / 60);
   const days = Math.round(hours / 24);
-  const rtf = new Intl.RelativeTimeFormat("pl", { numeric: "auto" });
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
   if (Math.abs(seconds) < 60) return rtf.format(seconds, "second");
   if (Math.abs(minutes) < 60) return rtf.format(minutes, "minute");
   if (Math.abs(hours) < 24) return rtf.format(hours, "hour");
@@ -37,10 +42,21 @@ function DocumentDetail() {
   const { orgId, id } = Route.useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const member = useOrgMember(orgId);
+  const canDelete = hasOrgPermission(member?.role, { documents: ["delete"] });
 
   const { data, isPending, isError } = useQuery(documentDetailQuery({ orgId, id }));
 
   const { data: activityData } = useQuery(documentActivityQuery({ orgId, id }));
+
+  const { data: previewData, isError: isPreviewError } = useQuery(
+    documentDownloadQuery({ orgId, id }),
+  );
+
+  // The preview holds a presigned URL that eventually expires; on a load failure, drop it so the
+  // next render fetches a fresh one from the API.
+  const refreshPreview = () =>
+    queryClient.invalidateQueries({ queryKey: documentKeys.download({ orgId, id }) });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -81,7 +97,7 @@ function DocumentDetail() {
   const activities = activityData?.activities ?? [];
 
   return (
-    <div className="flex max-w-2xl flex-col gap-4">
+    <div className="flex max-w-4xl flex-col gap-4">
       <Card>
         <CardHeader>
           <CardTitle>{doc.title}</CardTitle>
@@ -89,6 +105,10 @@ function DocumentDetail() {
         <CardContent className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">Type: {doc.mimeType}</p>
           <p className="text-sm text-muted-foreground">OCR status: {doc.ocrStatus}</p>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm text-muted-foreground">Tags</p>
+            <TagPicker orgId={orgId} documentId={id} tags={doc.tags} />
+          </div>
           {doc.ocrText ? (
             <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-sm">
               {doc.ocrText}
@@ -98,14 +118,36 @@ function DocumentDetail() {
           )}
           <div className="mt-4 flex gap-3">
             <Button onClick={handleDownload}>Download</Button>
-            <Button
-              variant="destructive"
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-            >
-              Delete
-            </Button>
+            {canDelete ? (
+              <Button
+                variant="destructive"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+              >
+                Delete
+              </Button>
+            ) : null}
           </div>
+        </CardContent>
+      </Card>
+
+      <CustomPropertyFields orgId={orgId} documentId={id} values={doc.customProperties} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Preview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isPreviewError ? (
+            <p className="text-sm text-destructive">Could not prepare preview.</p>
+          ) : (
+            <DocumentPreview
+              url={previewData?.downloadUrl}
+              mimeType={doc.mimeType}
+              title={doc.title}
+              onRetry={refreshPreview}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -130,7 +172,7 @@ function DocumentDetail() {
                         <span className="font-medium">{actor}</span>{" "}
                         {EVENT_LABEL[a.event] ?? a.event}
                         {chars !== null ? (
-                          <span className="text-muted-foreground"> ({chars} znaków)</span>
+                          <span className="text-muted-foreground"> ({chars} characters)</span>
                         ) : null}
                       </span>
                       <span
