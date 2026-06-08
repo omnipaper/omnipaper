@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
+import { recordEvent } from "@omnipaper/database/activity";
 import { db } from "@omnipaper/database/client";
-import { createId } from "@omnipaper/database/id";
 import {
   clearDocumentPropertyValue,
   getDocumentPropertyValues,
@@ -10,7 +10,6 @@ import {
 } from "@omnipaper/database/queries/custom-properties";
 import { getOrgDocumentType } from "@omnipaper/database/queries/document-types";
 import {
-  createDocument,
   deleteDocument,
   getDocumentActivity,
   getDocuments,
@@ -31,17 +30,15 @@ import { z } from "zod";
 import type { Variables } from "../context";
 import { customPropertyRegistry } from "../custom-properties/registry";
 import { errors } from "../errors";
+import { ingestDocument } from "../lib/ingest";
 import { getStorageDriver } from "../lib/storage";
 import { requireOrgPermission } from "../middleware";
 import { shapeDocumentProperties } from "../serializers/custom-property";
-import { toDocumentDto } from "../serializers/document";
+import { toDocumentDetailDto, toDocumentListItemDto } from "../serializers/document";
+import { toTagRefDto } from "../serializers/tag";
 
-const createDocumentSchema = z.object({
-  title: z.string().min(1),
-  filename: z.string().min(1),
-  mimeType: z.string().min(1),
-  sizeBytes: z.number().int().positive(),
-});
+// Uploads are buffered in memory to hash before storing, so cap the size to bound peak memory.
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
 const listDocumentsQuerySchema = z.object({
   q: z.string().optional(),
@@ -77,47 +74,49 @@ const updateOcrTextSchema = z.object({
 });
 
 export const documentsRoutes = new Hono<{ Variables: Variables }>()
-  .post(
-    "/",
-    requireOrgPermission({ documents: ["create"] }),
-    zValidator("json", createDocumentSchema),
-    async (c) => {
-      const user = c.get("user");
+  .post("/", requireOrgPermission({ documents: ["create"] }), async (c) => {
+    const user = c.get("user");
 
-      if (!user) {
-        // typescript: the middleware ensures user is present, but we need to satisfy the type checker
-        throw errors.unauthorized();
-      }
+    if (!user) {
+      // typescript: the middleware ensures user is present, but we need to satisfy the type checker
+      throw errors.unauthorized();
+    }
 
-      const organizationId = c.get("organizationId");
-      const values = c.req.valid("json");
-      const driver = await getStorageDriver();
+    const organizationId = c.get("organizationId");
+    const driver = await getStorageDriver();
 
-      if (!driver) {
-        throw errors.badRequest("storage_not_configured", "Storage is not configured");
-      }
+    if (!driver) {
+      throw errors.badRequest("storage_not_configured", "Storage is not configured");
+    }
 
-      const id = createId("doc");
-      const storageKey = `${organizationId}/${id}`;
+    const body = await c.req.parseBody();
+    const file = body.file;
 
-      const { url } = await driver.createUploadUrl({
-        key: storageKey,
-        contentType: values.mimeType,
-      });
+    if (!(file instanceof File) || file.size === 0) {
+      throw errors.badRequest("file_required", "A file is required");
+    }
 
-      await createDocument(db, {
-        id,
-        organizationId,
-        createdBy: user.id,
-        title: values.title,
-        storageKey,
-        mimeType: values.mimeType,
-        sizeBytes: values.sizeBytes,
-      });
+    if (file.size > MAX_UPLOAD_BYTES) {
+      throw errors.badRequest(
+        "file_too_large",
+        `File exceeds the ${MAX_UPLOAD_BYTES / 1024 / 1024}MB upload limit`,
+      );
+    }
 
-      return c.json({ documentId: id, uploadUrl: url });
-    },
-  )
+    const bytes = new Uint8Array(await file.arrayBuffer());
+
+    const result = await ingestDocument({
+      db,
+      driver,
+      organizationId,
+      createdBy: user.id,
+      bytes,
+      filename: file.name,
+      mimeType: file.type || "application/octet-stream",
+    });
+
+    return c.json(result);
+  })
   .get("/", zValidator("query", listDocumentsQuerySchema), async (c) => {
     const organizationId = c.get("organizationId");
     const { q, storagePathId, unfiled } = c.req.valid("query");
@@ -129,15 +128,15 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
     });
 
     const tagRows = await getTagsByDocumentIds(db, { documentIds: rows.map((d) => d.id) });
-    const tagsByDocument = new Map<string, { id: string; name: string; color: string }[]>();
+    const tagsByDocument = new Map<string, ReturnType<typeof toTagRefDto>[]>();
 
     for (const row of tagRows) {
       const list = tagsByDocument.get(row.documentId) ?? [];
-      list.push({ id: row.id, name: row.name, color: row.color });
+      list.push(toTagRefDto(row));
       tagsByDocument.set(row.documentId, list);
     }
 
-    const documents = rows.map((d) => ({ ...d, tags: tagsByDocument.get(d.id) ?? [] }));
+    const documents = rows.map((d) => toDocumentListItemDto(d, tagsByDocument.get(d.id) ?? []));
 
     return c.json({ documents });
   })
@@ -150,14 +149,14 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
     }
 
     const tagRows = await getTagsByDocumentIds(db, { documentIds: [doc.id] });
-    const tags = tagRows.map((row) => ({ id: row.id, name: row.name, color: row.color }));
+    const tags = tagRows.map(toTagRefDto);
 
     const definitions = await getOrgPropertyDefinitions(db, { organizationId });
     const valueRows = await getDocumentPropertyValues(db, { documentId: doc.id });
     const customProperties = shapeDocumentProperties(definitions, valueRows);
 
     // Resolve the assigned type/path so the detail is self-contained (the picker needs the id,
-    // the UI shows the name/path) — same shape as the embedded tags above.
+    // the UI shows the name/path). The serializer owns the embedded shape.
     const documentType = doc.documentTypeId
       ? await getOrgDocumentType(db, { organizationId, id: doc.documentTypeId })
       : null;
@@ -166,13 +165,13 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
       : null;
 
     return c.json({
-      document: {
-        ...toDocumentDto(doc),
+      document: toDocumentDetailDto({
+        document: doc,
         tags,
         customProperties,
-        documentType: documentType ? { id: documentType.id, name: documentType.name } : null,
-        storagePath: storagePath ? { id: storagePath.id, path: storagePath.path } : null,
-      },
+        documentType,
+        storagePath,
+      }),
     });
   })
   .patch(
@@ -190,8 +189,6 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
 
       const values = c.req.valid("json");
 
-      // Verify referenced taxonomy belongs to this org (a null clears the field — no check needed),
-      // mirroring the tag-ownership check so a caller can't attach another tenant's type/path.
       if (values.documentTypeId) {
         const found = await getOrgDocumentType(db, { organizationId, id: values.documentTypeId });
         if (!found) {
@@ -212,6 +209,14 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
       }
 
       await updateDocument(db, { organizationId, id, ...values });
+
+      await recordEvent(db, {
+        organizationId,
+        resource: { type: "document", id, label: doc.title },
+        event: "document.metadata_updated",
+        actor: { type: "user", id: c.get("user")?.id },
+        data: { updatedFields: Object.keys(values) },
+      });
 
       return c.json({ ok: true });
     },
@@ -281,22 +286,41 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
 
       const tagIds = [...new Set(c.req.valid("json").tagIds)];
 
-      if (tagIds.length > 0) {
-        // Verify every id is one of this org's tags, so a caller can't attach another tenant's tag.
-        const owned = await getOrgTagsByIds(db, { organizationId, ids: tagIds });
+      // Verify every id is one of this org's tags, so a caller can't attach another tenant's tag.
+      const owned =
+        tagIds.length > 0 ? await getOrgTagsByIds(db, { organizationId, ids: tagIds }) : [];
 
-        if (owned.length !== tagIds.length) {
-          throw errors.badRequest(
-            "invalid_tags",
-            "One or more tags do not belong to this organization",
-          );
-        }
+      if (owned.length !== tagIds.length) {
+        throw errors.badRequest(
+          "invalid_tags",
+          "One or more tags do not belong to this organization",
+        );
       }
+
+      const currentTagRows = await getTagsByDocumentIds(db, { documentIds: [documentId] });
+      const currentTagIdSet = new Set(currentTagRows.map((t) => t.id));
+      const newTagIdSet = new Set(tagIds);
 
       await setDocumentTags(db, { documentId, tagIds });
 
       const tagRows = await getTagsByDocumentIds(db, { documentIds: [documentId] });
-      const tags = tagRows.map((row) => ({ id: row.id, name: row.name, color: row.color }));
+      const tags = tagRows.map(toTagRefDto);
+
+      const addedTags = owned.filter((t) => !currentTagIdSet.has(t.id));
+      const removedTags = currentTagRows.filter((t) => !newTagIdSet.has(t.id));
+
+      if (addedTags.length > 0 || removedTags.length > 0) {
+        await recordEvent(db, {
+          organizationId,
+          resource: { type: "document", id: documentId, label: doc.title },
+          event: "document.tags_updated",
+          actor: { type: "user", id: c.get("user")?.id },
+          data: {
+            added: addedTags.map((t) => ({ tagId: t.id, tagName: t.name })),
+            removed: removedTags.map((t) => ({ tagId: t.id, tagName: t.name })),
+          },
+        });
+      }
 
       return c.json({ tags });
     },
@@ -343,6 +367,14 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
         values: definition.toDb(parsed.data),
       });
 
+      await recordEvent(db, {
+        organizationId,
+        resource: { type: "document", id: documentId, label: doc.title },
+        event: "document.property_updated",
+        actor: { type: "user", id: c.get("user")?.id },
+        data: { updatedDefinitions: [definitionId] },
+      });
+
       return c.json({ ok: true });
     },
   )
@@ -352,15 +384,21 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
     async (c) => {
       const organizationId = c.get("organizationId");
       const documentId = c.req.param("id");
+      const definitionId = c.req.param("definitionId");
       const doc = await getOrgDocument(db, { organizationId, id: documentId });
 
       if (!doc) {
         throw errors.notFound("Document not found");
       }
 
-      await clearDocumentPropertyValue(db, {
-        documentId,
-        definitionId: c.req.param("definitionId"),
+      await clearDocumentPropertyValue(db, { documentId, definitionId });
+
+      await recordEvent(db, {
+        organizationId,
+        resource: { type: "document", id: documentId, label: doc.title },
+        event: "document.property_updated",
+        actor: { type: "user", id: c.get("user")?.id },
+        data: { updatedDefinitions: [definitionId] },
       });
 
       return c.json({ ok: true });

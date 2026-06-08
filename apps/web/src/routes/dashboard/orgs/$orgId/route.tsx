@@ -1,9 +1,3 @@
-import { signOut } from "@/features/auth/auth-client";
-import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
-import { NavUser } from "@/features/organization/components/nav-user";
-import { OrgSwitcher } from "@/features/organization/components/org-switcher";
-import { fullOrganizationQuery, useOrgMember } from "@/features/organization/queries/organization";
-import { queryClient } from "@/lib/query-client";
 import { canManageOrg, isInstanceAdmin } from "@omnipaper/permissions";
 import { Button } from "@omnipaper/ui/components/button";
 import {
@@ -23,9 +17,9 @@ import {
 } from "@omnipaper/ui/components/sidebar";
 import { useQuery } from "@tanstack/react-query";
 import {
+  createFileRoute,
   Link,
   Outlet,
-  createFileRoute,
   redirect,
   useLocation,
   useNavigate,
@@ -43,6 +37,14 @@ import {
   UserPlusIcon,
   UsersIcon,
 } from "lucide-react";
+import { signOut } from "@/features/auth/auth-client";
+import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
+import { GlobalDropArea } from "@/features/documents/components/global-drop-area";
+import { useUploadDocuments } from "@/features/documents/queries/upload";
+import { NavUser } from "@/features/organization/components/nav-user";
+import { OrgSwitcher } from "@/features/organization/components/org-switcher";
+import { fullOrganizationQuery, useOrgMember } from "@/features/organization/queries/organization";
+import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId")({
   beforeLoad: async ({ params }) => {
@@ -80,6 +82,7 @@ const orgViews = [
 
 function OrgLayout() {
   const { orgId } = Route.useParams();
+  const { upload } = useUploadDocuments(orgId);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { data: session } = useQuery(sessionQueryOptions);
@@ -100,6 +103,7 @@ function OrgLayout() {
 
   return (
     <SidebarProvider className="h-svh overflow-hidden">
+      <GlobalDropArea onFilesDrop={upload} />
       <Sidebar>
         {inSettings ? (
           <>

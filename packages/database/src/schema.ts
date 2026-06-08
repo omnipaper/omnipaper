@@ -96,6 +96,7 @@ export const documents = pgTable(
     storageKey: text("storage_key").notNull(),
     mimeType: text("mime_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
+    sha256: text("sha256").notNull(),
     ocrStatus: ocrStatusEnum("ocr_status").notNull().default("pending"),
     ocrText: text("ocr_text"),
     ocrMetadata: jsonb("ocr_metadata").$type<Record<string, unknown>>(),
@@ -119,6 +120,7 @@ export const documents = pgTable(
   (t) => [
     index("documents_search_idx").using("gin", t.searchVector),
     index("documents_organization_id_idx").on(t.organizationId),
+    uniqueIndex("documents_org_sha256_unique").on(t.organizationId, t.sha256),
     index("documents_org_document_type_id_idx").on(t.organizationId, t.documentTypeId),
     index("documents_org_storage_path_id_idx").on(t.organizationId, t.storagePathId),
     index("documents_org_document_date_idx").on(t.organizationId, t.documentDate),
@@ -289,6 +291,9 @@ export type Setting = typeof settings.$inferSelect;
 export const activityEventEnum = pgEnum("activity_event", [
   "document.created",
   "document.ocr_completed",
+  "document.metadata_updated",
+  "document.tags_updated",
+  "document.property_updated",
 ]);
 
 export const activityActorTypeEnum = pgEnum("activity_actor_type", ["user", "system"]);

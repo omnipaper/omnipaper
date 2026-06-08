@@ -1,5 +1,5 @@
 import { env } from "@omnipaper/env";
-import { type WorkerUtils, makeWorkerUtils, runMigrations } from "graphile-worker";
+import { makeWorkerUtils, runMigrations, type WorkerUtils } from "graphile-worker";
 import { type JobName, type JobPayload, jobSchemas } from "./jobs";
 
 let utilsPromise: Promise<WorkerUtils> | null = null;

@@ -1,17 +1,8 @@
-import { OcrStatusBadge } from "@/features/documents/components/ocr-status-badge";
-import { TagChip } from "@/features/tags/components/tag-chip";
 import { Link } from "@tanstack/react-router";
 import { Fragment } from "react";
-
-// One document list-item shape, shared by the list view and the folder views. Kept structural so
-// the wider row returned by the documents API (mimeType, sizeBytes, …) assigns without mapping.
-export type DocumentRow = {
-  id: string;
-  title: string;
-  ocrStatus: string;
-  snippet: string | null;
-  tags: { id: string; name: string; color: string }[];
-};
+import { OcrStatusBadge } from "@/features/documents/components/ocr-status-badge";
+import type { DocumentRow } from "@/features/documents/queries/documents";
+import { TagChip } from "@/features/tags/components/tag-chip";
 
 function renderSnippet(snippet: string) {
   return snippet.split(/(<mark>.*?<\/mark>)/g).map((part, index) => {

@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@omnipaper/settings": "workspace:*",
+    "@omnipaper/shared": "workspace:*",
     "@ai-sdk/google": "3.0.80",
     "@ai-sdk/mistral": "3.0.37",
     "ai": "6.0.197"

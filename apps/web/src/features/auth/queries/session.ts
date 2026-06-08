@@ -1,5 +1,5 @@
-import { authClient } from "@/features/auth/auth-client";
 import { queryOptions } from "@tanstack/react-query";
+import { authClient } from "@/features/auth/auth-client";
 
 // Query-key factory + read for the session domain. Session is a singleton (the current user's
 // session), so the key factory has a single `all` entry — every consumer that invalidates or

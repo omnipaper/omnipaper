@@ -1,5 +1,5 @@
-import { DocumentDetail } from "@/features/documents/components/document-detail/document-detail";
 import { createFileRoute } from "@tanstack/react-router";
+import { DocumentDetail } from "@/features/documents/components/document-detail/document-detail";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/documents/$id")({
   component: DocumentDetailRoute,

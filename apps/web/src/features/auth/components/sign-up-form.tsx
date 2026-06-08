@@ -1,6 +1,3 @@
-import { signUp } from "@/features/auth/auth-client";
-import { sessionKeys } from "@/features/auth/queries/session";
-import { queryClient } from "@/lib/query-client";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Card,
@@ -15,6 +12,9 @@ import { Label } from "@omnipaper/ui/components/label";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
+import { signUp } from "@/features/auth/auth-client";
+import { sessionKeys } from "@/features/auth/queries/session";
+import { queryClient } from "@/lib/query-client";
 
 export function SignUpForm() {
   const navigate = useNavigate();

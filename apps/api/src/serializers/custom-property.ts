@@ -8,9 +8,9 @@ import type {
 } from "@omnipaper/database/schema";
 import {
   type CustomPropertyType,
+  customPropertyRegistry,
   type FromDbContext,
   type SelectOptionDto,
-  customPropertyRegistry,
 } from "../custom-properties/registry";
 
 export function toPropertyDefinitionDto(input: {

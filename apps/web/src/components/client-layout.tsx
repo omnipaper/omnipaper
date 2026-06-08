@@ -5,7 +5,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors theme="light" />
     </>
   );
 }

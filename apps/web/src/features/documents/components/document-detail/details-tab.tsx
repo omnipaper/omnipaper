@@ -1,9 +1,9 @@
+import { Separator } from "@omnipaper/ui/components/separator";
+import { useQuery } from "@tanstack/react-query";
 import { CustomPropertyFields } from "@/features/custom-properties/components/custom-property-fields";
 import { orgPropertyDefinitionsQuery } from "@/features/custom-properties/queries/custom-properties";
 import { DocumentMetadataPanel } from "@/features/documents/components/document-metadata-panel";
 import { TagPicker } from "@/features/tags/components/tag-picker";
-import { Separator } from "@omnipaper/ui/components/separator";
-import { useQuery } from "@tanstack/react-query";
 
 type Props = {
   orgId: string;

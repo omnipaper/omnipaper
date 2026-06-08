@@ -1,5 +1,5 @@
 import { env } from "@omnipaper/env";
-import { type Runner, type Task, type TaskList, run } from "graphile-worker";
+import { type Runner, run, type Task, type TaskList } from "graphile-worker";
 import { type JobName, type JobPayload, jobSchemas } from "./jobs";
 
 export function defineTask<TName extends JobName>(

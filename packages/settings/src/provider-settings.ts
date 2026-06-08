@@ -1,14 +1,13 @@
+import type { ProviderKeys } from "@omnipaper/shared/provider";
 import { z } from "zod";
 import { deleteSetting, getSetting, setSetting } from "./settings";
 
-// Provider API keys are shared per-provider (used by OCR now, and a future AI section later),
-// so they live under their own `providers.*` namespace rather than under any one feature.
 export const providerKeysSchema = z.object({
   mistral: z.string().optional(),
   google: z.string().optional(),
-});
+}) satisfies z.ZodType<ProviderKeys>;
 
-export type ProviderKeys = z.infer<typeof providerKeysSchema>;
+export type { ProviderKeys };
 
 export const providerTestSchema = z.object({
   provider: z.enum(["mistral", "google"]),

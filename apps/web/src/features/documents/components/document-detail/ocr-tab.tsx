@@ -1,6 +1,3 @@
-import { OcrStatusBadge } from "@/features/documents/components/ocr-status-badge";
-import { documentKeys } from "@/features/documents/queries/documents";
-import { api } from "@/lib/api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,10 +11,10 @@ import {
 } from "@omnipaper/ui/components/alert-dialog";
 import { Button } from "@omnipaper/ui/components/button";
 import { Textarea } from "@omnipaper/ui/components/textarea";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { OcrStatusBadge } from "@/features/documents/components/ocr-status-badge";
+import { useReprocessDocument, useUpdateOcrText } from "@/features/documents/queries/documents";
 
 type Props = {
   orgId: string;
@@ -27,31 +24,10 @@ type Props = {
 };
 
 export function OcrTab({ orgId, documentId, ocrStatus, ocrText }: Props) {
-  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const inProgress = ocrStatus === "pending" || ocrStatus === "processing";
 
-  const rerunMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.orgs[":orgId"].documents[":id"].process.$post({
-        param: { orgId, id: documentId },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to re-run OCR");
-      }
-    },
-    onSuccess: () => {
-      // The route reset status to "pending"; refetch the detail (its refetchInterval then polls
-      // until the worker settles) and the activity log so the new run shows up.
-      queryClient.invalidateQueries({
-        queryKey: documentKeys.detail({ orgId, id: documentId }),
-        exact: true,
-      });
-      queryClient.invalidateQueries({ queryKey: documentKeys.activity({ orgId, id: documentId }) });
-      toast.success("OCR re-run started");
-    },
-    onError: () => toast.error("Failed to re-run OCR"),
-  });
+  const rerun = useReprocessDocument(orgId, documentId);
 
   async function handleCopy() {
     if (!ocrText) {
@@ -76,7 +52,7 @@ export function OcrTab({ orgId, documentId, ocrStatus, ocrText }: Props) {
           ) : null}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" disabled={inProgress || rerunMutation.isPending}>
+              <Button variant="outline" size="sm" disabled={inProgress || rerun.isPending}>
                 <RefreshCwIcon className={inProgress ? "animate-spin" : undefined} />
                 Re-run OCR
               </Button>
@@ -91,7 +67,7 @@ export function OcrTab({ orgId, documentId, ocrStatus, ocrText }: Props) {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => rerunMutation.mutate()}>Re-run</AlertDialogAction>
+                <AlertDialogAction onClick={() => rerun.mutate()}>Re-run</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -123,39 +99,17 @@ function OcrTextEditor({
   initial: string;
   disabled: boolean;
 }) {
-  const queryClient = useQueryClient();
   const [draft, setDraft] = useState(initial);
   const dirty = draft !== initial;
 
-  const saveMutation = useMutation({
-    mutationFn: async (text: string) => {
-      const res = await api.orgs[":orgId"].documents[":id"]["ocr-text"].$put({
-        param: { orgId, id: documentId },
-        json: { ocrText: text },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to save text");
-      }
-    },
-    onSuccess: () => {
-      // exact: only the detail JSON — not the nested download (signed URL), which would remount the
-      // PDF preview. Editing text re-indexes search server-side (generated column).
-      queryClient.invalidateQueries({
-        queryKey: documentKeys.detail({ orgId, id: documentId }),
-        exact: true,
-      });
-      queryClient.invalidateQueries({ queryKey: documentKeys.lists(orgId) });
-      toast.success("Text saved");
-    },
-    onError: () => toast.error("Failed to save text"),
-  });
+  const save = useUpdateOcrText(orgId, documentId);
 
   return (
     <div className="flex flex-col gap-2">
       <Textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        disabled={disabled || saveMutation.isPending}
+        disabled={disabled || save.isPending}
         placeholder={
           disabled
             ? "OCR is running…"
@@ -165,18 +119,14 @@ function OcrTextEditor({
       />
       {dirty ? (
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={() => saveMutation.mutate(draft)}
-            disabled={saveMutation.isPending}
-          >
-            {saveMutation.isPending ? "Saving…" : "Save"}
+          <Button size="sm" onClick={() => save.mutate(draft)} disabled={save.isPending}>
+            {save.isPending ? "Saving…" : "Save"}
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setDraft(initial)}
-            disabled={saveMutation.isPending}
+            disabled={save.isPending}
           >
             Cancel
           </Button>

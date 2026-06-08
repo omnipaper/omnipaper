@@ -1,11 +1,11 @@
-import { redactSecrets } from "@omnipaper/settings/secret";
+import { redactSecrets } from "@omnipaper/shared/redact";
 import { extractWithLlm, testLlmProvider } from "./engines/llm-text-engine";
 import { extractWithMistralOcr, testMistralConnection } from "./engines/mistral-ocr-engine";
 import type { OcrDefinition, OcrDefinitionId, Provider } from "./registry";
 import {
-  OcrError,
   getOcrDefinition,
   listOcrDefinitions,
+  OcrError,
   resolveModel,
   supportsMime,
 } from "./resolve";

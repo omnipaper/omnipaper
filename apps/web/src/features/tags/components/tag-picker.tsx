@@ -1,14 +1,12 @@
-import { documentKeys } from "@/features/documents/queries/documents";
-import { TagChip } from "@/features/tags/components/tag-chip";
-import { orgTagsQuery, tagKeys } from "@/features/tags/queries/tags";
-import { api } from "@/lib/api";
 import { Button } from "@omnipaper/ui/components/button";
 import { Input } from "@omnipaper/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@omnipaper/ui/components/popover";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Check, Plus } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { useSetDocumentTags } from "@/features/documents/queries/documents";
+import { TagChip } from "@/features/tags/components/tag-chip";
+import { orgTagsQuery, useCreateTag } from "@/features/tags/queries/tags";
 
 type Tag = { id: string; name: string; color: string };
 
@@ -20,7 +18,6 @@ type TagPickerProps = {
 };
 
 export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -29,50 +26,22 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
 
   const selectedIds = new Set(tags.map((t) => t.id));
 
-  function invalidate() {
-    // exact: refetch only the detail JSON, not the nested download/activity (which would remount
-    // the PDF preview). The list is a separate branch and only refetches when it's next viewed.
-    queryClient.invalidateQueries({
-      queryKey: documentKeys.detail({ orgId, id: documentId }),
-      exact: true,
-    });
-    queryClient.invalidateQueries({ queryKey: documentKeys.lists(orgId) });
-  }
-
   // Whole tag set is replaced on every change (the API is a replace-set PUT), so each toggle/remove
-  // sends the full next set. Server truth is re-read via invalidate rather than tracked locally.
-  const setTagsMutation = useMutation({
-    mutationFn: async (tagIds: string[]) => {
-      const res = await api.orgs[":orgId"].documents[":id"].tags.$put({
-        param: { orgId, id: documentId },
-        json: { tagIds },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to update tags");
-      }
-      return res.json();
-    },
-    onSuccess: invalidate,
-    onError: () => toast.error("Failed to update tags"),
-  });
+  // sends the full next set. Server truth is re-read via the hook's invalidation, not tracked locally.
+  const setTags = useSetDocumentTags(orgId, documentId);
+  const createTag = useCreateTag(orgId);
 
-  const createTagMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const res = await api.orgs[":orgId"].tags.$post({ param: { orgId }, json: { name } });
-      if (!res.ok) {
-        throw new Error("Failed to create tag");
-      }
-      return res.json();
-    },
-    onSuccess: ({ tag }) => {
-      queryClient.invalidateQueries({ queryKey: tagKeys.lists(orgId) });
-      setTagsMutation.mutate([...selectedIds, tag.id]);
-      setSearch("");
-    },
-    onError: () => toast.error("Failed to create tag"),
-  });
+  const pending = setTags.isPending || createTag.isPending;
 
-  const pending = setTagsMutation.isPending || createTagMutation.isPending;
+  // Quick-create then attach the new tag to this document, and clear the search box.
+  function createAndAttach(name: string) {
+    createTag.mutate(name, {
+      onSuccess: ({ tag }) => {
+        setTags.mutate([...selectedIds, tag.id]);
+        setSearch("");
+      },
+    });
+  }
 
   function toggle(tagId: string) {
     const next = new Set(selectedIds);
@@ -81,11 +50,11 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
     } else {
       next.add(tagId);
     }
-    setTagsMutation.mutate([...next]);
+    setTags.mutate([...next]);
   }
 
   function remove(tagId: string) {
-    setTagsMutation.mutate(tags.filter((t) => t.id !== tagId).map((t) => t.id));
+    setTags.mutate(tags.filter((t) => t.id !== tagId).map((t) => t.id));
   }
 
   const query = search.trim().toLowerCase();
@@ -124,7 +93,7 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
                 // PUT is in flight — otherwise a concurrent toggle could be lost (last-write-wins).
                 if (e.key === "Enter" && canCreate && !pending) {
                   e.preventDefault();
-                  createTagMutation.mutate(search.trim());
+                  createAndAttach(search.trim());
                 }
               }}
             />
@@ -152,7 +121,7 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
             {canCreate ? (
               <button
                 type="button"
-                onClick={() => createTagMutation.mutate(search.trim())}
+                onClick={() => createAndAttach(search.trim())}
                 disabled={pending}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
               >

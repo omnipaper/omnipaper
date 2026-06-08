@@ -47,3 +47,4 @@ docs/
 
 **/.tanstack/tmp/
 .claude/*
+/docker/docker-compose.dev.yml

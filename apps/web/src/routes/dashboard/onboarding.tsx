@@ -1,6 +1,3 @@
-import { authClient } from "@/features/auth/auth-client";
-import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
-import { queryClient } from "@/lib/query-client";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Card,
@@ -16,6 +13,9 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
+import { authClient } from "@/features/auth/auth-client";
+import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
+import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard/onboarding")({
   component: OnboardingPage,

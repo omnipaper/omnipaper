@@ -1,9 +1,3 @@
-import { authClient } from "@/features/auth/auth-client";
-import {
-  fullOrganizationQuery,
-  organizationKeys,
-  useOrgMember,
-} from "@/features/organization/queries/organization";
 import { isOrgOwner } from "@omnipaper/permissions";
 import {
   AlertDialog,
@@ -26,15 +20,22 @@ import {
 } from "@omnipaper/ui/components/card";
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { type SubmitEvent, useEffect, useState } from "react";
-import { toast } from "sonner";
+import { authClient } from "@/features/auth/auth-client";
+import {
+  fullOrganizationQuery,
+  useDeleteOrg,
+  useOrgMember,
+  useUpdateOrg,
+} from "@/features/organization/queries/organization";
 
 export function OrgGeneralForm({ orgId }: { orgId: string }) {
-  const queryClient = useQueryClient();
   const { data: org } = useQuery(fullOrganizationQuery(orgId));
   const { data: organizations } = authClient.useListOrganizations();
   const member = useOrgMember(orgId);
+  const updateMutation = useUpdateOrg(orgId);
+  const deleteMutation = useDeleteOrg(orgId);
 
   const isOwner = isOrgOwner(member?.role);
   const isOnlyOrganization = (organizations?.length ?? 0) <= 1;
@@ -47,41 +48,9 @@ export function OrgGeneralForm({ orgId }: { orgId: string }) {
     }
   }, [org?.name]);
 
-  const updateMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await authClient.organization.update({
-        data: { name },
-        organizationId: orgId,
-      });
-      if (error) {
-        throw new Error(error.message ?? "Failed to update organization");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: organizationKeys.full(orgId) });
-      toast.success("Organization updated");
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await authClient.organization.delete({ organizationId: orgId });
-      if (error) {
-        throw new Error(error.message ?? "Failed to delete organization");
-      }
-    },
-    onSuccess: () => {
-      toast.success("Organization deleted");
-      // Hard reload to /dashboard, which routes the user into their first remaining org.
-      window.location.assign("/dashboard");
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
-    updateMutation.mutate();
+    updateMutation.mutate(name);
   }
 
   return (
@@ -137,7 +106,14 @@ export function OrgGeneralForm({ orgId }: { orgId: string }) {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteMutation.mutate()}>
+                    <AlertDialogAction
+                      onClick={() =>
+                        deleteMutation.mutate(undefined, {
+                          // Hard reload to /dashboard, which routes the user into their first remaining org.
+                          onSuccess: () => window.location.assign("/dashboard"),
+                        })
+                      }
+                    >
                       Delete
                     </AlertDialogAction>
                   </AlertDialogFooter>

@@ -1,8 +1,8 @@
-import { DocumentRows } from "@/features/documents/components/document-rows";
-import { documentsListQuery } from "@/features/documents/queries/documents";
 import { Input } from "@omnipaper/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { DocumentRows } from "@/features/documents/components/document-rows";
+import { documentsListQuery } from "@/features/documents/queries/documents";
 
 // The flat list view: full-text search + every document, newest first. Search is debounced; each
 // committed value is also reported via `onSearchCommit` so the route can mirror it to `?q` (the

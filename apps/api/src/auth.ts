@@ -1,4 +1,4 @@
-import { member, user as userTable } from "@omnipaper/database/auth-schema";
+import { invitation, member, user as userTable } from "@omnipaper/database/auth-schema";
 import { db } from "@omnipaper/database/client";
 import { createId } from "@omnipaper/database/id";
 import { env } from "@omnipaper/env";
@@ -8,7 +8,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization } from "better-auth/plugins";
-import { count, eq } from "drizzle-orm";
+import { and, count, eq, gt } from "drizzle-orm";
 
 const ID_PREFIXES: Record<string, string> = {
   user: "usr",
@@ -69,6 +69,23 @@ export const auth = betterAuth({
       // Closed, but allow the bootstrap of the first-ever account.
       const [row] = await db.select({ value: count() }).from(userTable);
       if ((row?.value ?? 0) === 0) {
+        return;
+      }
+
+      // Allow sign-up when there's a valid pending invitation for this email.
+      const [pendingInvitation] = await db
+        .select({ id: invitation.id })
+        .from(invitation)
+        .where(
+          and(
+            eq(invitation.email, ctx.body.email),
+            eq(invitation.status, "pending"),
+            gt(invitation.expiresAt, new Date()),
+          ),
+        )
+        .limit(1);
+
+      if (pendingInvitation) {
         return;
       }
 

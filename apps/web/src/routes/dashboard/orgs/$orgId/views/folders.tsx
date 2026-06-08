@@ -1,11 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronRightIcon, FolderIcon, InboxIcon } from "lucide-react";
+import { Fragment } from "react";
 import { DocumentRows } from "@/features/documents/components/document-rows";
 import { documentsListQuery } from "@/features/documents/queries/documents";
 import { orgStoragePathsQuery } from "@/features/storage-paths/queries/storage-paths";
-import { type FolderChild, buildFolderNode } from "@/features/storage-paths/storage-path-tree";
-import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { ChevronRightIcon, FolderIcon, InboxIcon } from "lucide-react";
-import { Fragment } from "react";
+import { buildFolderNode, type FolderChild } from "@/features/storage-paths/storage-path-tree";
 
 // Built-in view: Google-Drive-style folder browser over the `storage_paths` taxonomy. All view
 // state is the single `?storagePath` param (URL = single source of truth — see plan):

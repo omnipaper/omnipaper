@@ -1,6 +1,6 @@
 import { and, asc, count, eq } from "drizzle-orm";
 import type { Database } from "../client";
-import { documentTypes, documents } from "../schema";
+import { documents, documentTypes } from "../schema";
 
 // Data access for the `document_types` taxonomy. Mirrors the tags queries: db-first so it works
 // from a route, worker, or test, and can be handed a transaction.
@@ -9,8 +9,6 @@ export type GetOrgDocumentTypesParams = {
   organizationId: string;
 };
 
-// List an org's document types with how many documents each is assigned to. leftJoin keeps unused
-// ones (count 0); GROUP BY the PK lets Postgres select the other columns without aggregating.
 export async function getOrgDocumentTypes(db: Database, params: GetOrgDocumentTypesParams) {
   return db
     .select({

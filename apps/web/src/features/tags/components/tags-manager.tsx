@@ -1,11 +1,3 @@
-import {
-  RowActions,
-  SettingsTableToolbar,
-  TableEmptyRow,
-} from "@/components/settings/settings-table";
-import { documentKeys } from "@/features/documents/queries/documents";
-import { orgTagsQuery, tagKeys } from "@/features/tags/queries/tags";
-import { api } from "@/lib/api";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Dialog,
@@ -26,10 +18,15 @@ import {
   TableHeader,
   TableRow,
 } from "@omnipaper/ui/components/table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { toast } from "sonner";
+import {
+  RowActions,
+  SettingsTableToolbar,
+  TableEmptyRow,
+} from "@/components/settings/settings-table";
+import { orgTagsQuery, useDeleteTag, useUpsertTag } from "@/features/tags/queries/tags";
 
 // New-tag colour starts on a random hue (matching the server default) instead of a flat grey.
 const TAG_COLORS = [
@@ -53,28 +50,12 @@ type TagRow = { id: string; name: string; color: string; description: string | n
 const COLUMN_COUNT = 4;
 
 export function TagsManager({ orgId }: { orgId: string }) {
-  const queryClient = useQueryClient();
   const { data, isPending, isError } = useQuery(orgTagsQuery({ orgId }));
+  const deleteTag = useDeleteTag(orgId);
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TagRow | null>(null);
-
-  // Rename/recolor/delete change how a tag renders on documents, so refresh those views too.
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await api.orgs[":orgId"].tags[":id"].$delete({ param: { orgId, id } });
-      if (!res.ok) {
-        throw new Error("Failed to delete tag");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tagKeys.lists(orgId) });
-      queryClient.invalidateQueries({ queryKey: documentKeys.all(orgId) });
-      toast.success("Tag deleted");
-    },
-    onError: (error) => toast.error(error.message),
-  });
 
   function openCreate() {
     setEditing(null);
@@ -123,8 +104,8 @@ export function TagsManager({ orgId }: { orgId: string }) {
         <TableCell className="text-right">
           <RowActions
             onEdit={() => openEdit(tag)}
-            onDelete={() => deleteMutation.mutate(tag.id)}
-            disabled={deleteMutation.isPending}
+            onDelete={() => deleteTag.mutate(tag.id)}
+            disabled={deleteTag.isPending}
             deleteTitle={`Delete “${tag.name}”?`}
             deleteDescription={
               tag.documentCount > 0
@@ -186,44 +167,11 @@ function TagDialogBody({
   editing: TagRow | null;
   onDone: () => void;
 }) {
-  const queryClient = useQueryClient();
   const [name, setName] = useState(editing?.name ?? "");
   const [color, setColor] = useState(editing?.color ?? randomTagColor());
   const [description, setDescription] = useState(editing?.description ?? "");
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const trimmedName = name.trim();
-      const trimmedDescription = description.trim();
-      const res = editing
-        ? await api.orgs[":orgId"].tags[":id"].$patch({
-            param: { orgId, id: editing.id },
-            json: { name: trimmedName, color, description: trimmedDescription || null },
-          })
-        : await api.orgs[":orgId"].tags.$post({
-            param: { orgId },
-            json: { name: trimmedName, color, description: trimmedDescription || undefined },
-          });
-      if (!res.ok) {
-        throw new Error(
-          res.status === 400
-            ? "A tag with this name already exists"
-            : editing
-              ? "Failed to update tag"
-              : "Failed to create tag",
-        );
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tagKeys.lists(orgId) });
-      if (editing) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.all(orgId) });
-      }
-      toast.success(editing ? "Tag updated" : "Tag created");
-      onDone();
-    },
-    onError: (error) => toast.error(error.message),
-  });
+  const upsert = useUpsertTag(orgId);
 
   return (
     <>
@@ -239,7 +187,15 @@ function TagDialogBody({
         onSubmit={(event) => {
           event.preventDefault();
           if (name.trim()) {
-            mutation.mutate();
+            upsert.mutate(
+              {
+                id: editing?.id,
+                name: name.trim(),
+                color,
+                description: description.trim() || null,
+              },
+              { onSuccess: onDone },
+            );
           }
         }}
         className="flex flex-col gap-4"
@@ -280,8 +236,8 @@ function TagDialogBody({
               Cancel
             </Button>
           </DialogClose>
-          <Button type="submit" disabled={mutation.isPending || !name.trim()}>
-            {mutation.isPending ? "Saving…" : editing ? "Save changes" : "Add tag"}
+          <Button type="submit" disabled={upsert.isPending || !name.trim()}>
+            {upsert.isPending ? "Saving…" : editing ? "Save changes" : "Add tag"}
           </Button>
         </DialogFooter>
       </form>

@@ -1,7 +1,7 @@
-import { ensureOrgRole } from "@/features/organization/queries/organization";
-import { StoragePathsManager } from "@/features/storage-paths/components/storage-paths-manager";
 import { canManageOrg } from "@omnipaper/permissions";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { ensureOrgRole } from "@/features/organization/queries/organization";
+import { StoragePathsManager } from "@/features/storage-paths/components/storage-paths-manager";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/storage-paths")({
   beforeLoad: async ({ params }) => {

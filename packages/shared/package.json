@@ -1,0 +1,17 @@
+{
+  "name": "@omnipaper/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./redact": "./src/redact.ts",
+    "./provider": "./src/provider.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

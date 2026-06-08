@@ -17,7 +17,6 @@ export type S3Config = {
   forcePathStyle?: boolean;
 };
 
-const DEFAULT_UPLOAD_EXPIRY_SECONDS = 600;
 const DEFAULT_DOWNLOAD_EXPIRY_SECONDS = 600;
 
 function isNotFoundError(error: unknown): boolean {
@@ -42,18 +41,15 @@ export const createS3Driver = (config: S3Config): StorageDriver => {
   return {
     name: "s3",
 
-    createUploadUrl: async ({ key, contentType, expiresInSeconds }) => {
-      const command = new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        ContentType: contentType,
-      });
-
-      const url = await getSignedUrl(client, command, {
-        expiresIn: expiresInSeconds ?? DEFAULT_UPLOAD_EXPIRY_SECONDS,
-      });
-
-      return { url };
+    putObject: async ({ key, body, contentType }) => {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: body,
+          ContentType: contentType,
+        }),
+      );
     },
 
     createDownloadUrl: async ({ key, expiresInSeconds }) => {

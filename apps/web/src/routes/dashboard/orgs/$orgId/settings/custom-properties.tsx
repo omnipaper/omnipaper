@@ -1,7 +1,7 @@
-import { CustomPropertiesManager } from "@/features/custom-properties/components/custom-properties-manager";
-import { ensureOrgRole } from "@/features/organization/queries/organization";
 import { canManageOrg } from "@omnipaper/permissions";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { CustomPropertiesManager } from "@/features/custom-properties/components/custom-properties-manager";
+import { ensureOrgRole } from "@/features/organization/queries/organization";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/custom-properties")({
   beforeLoad: async ({ params }) => {

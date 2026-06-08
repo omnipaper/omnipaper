@@ -1,8 +1,8 @@
+import { isInstanceAdmin } from "@omnipaper/permissions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { sessionQueryOptions } from "@/features/auth/queries/session";
 import { RegistrationSettingsForm } from "@/features/settings/components/registration-settings-form";
 import { queryClient } from "@/lib/query-client";
-import { isInstanceAdmin } from "@omnipaper/permissions";
-import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/registration")({
   beforeLoad: async ({ params }) => {

@@ -1,9 +1,3 @@
-import {
-  ocrSettingsQuery,
-  providerSettingsQuery,
-  settingsKeys,
-} from "@/features/settings/queries/settings";
-import { api } from "@/lib/api";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Card,
@@ -21,19 +15,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@omnipaper/ui/components/select";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { InferRequestType } from "hono/client";
+import { useQuery } from "@tanstack/react-query";
 import { type SubmitEvent, useEffect, useState } from "react";
-import { toast } from "sonner";
-
-// The valid definition ids come from the API contract (the registry enum), not a local union.
-type OcrDefinitionId = InferRequestType<typeof api.settings.ocr.$put>["json"]["definitionId"];
+import {
+  type OcrDefinitionId,
+  ocrSettingsQuery,
+  providerSettingsQuery,
+  useSaveOcrSettings,
+  useTestProviderConnection,
+} from "@/features/settings/queries/settings";
 
 export function OcrSettingsForm() {
-  const queryClient = useQueryClient();
-
   const ocrQuery = useQuery(ocrSettingsQuery());
   const providersQuery = useQuery(providerSettingsQuery());
+  const saveMutation = useSaveOcrSettings();
+  const testMutation = useTestProviderConnection();
 
   const definitions = ocrQuery.data?.definitions ?? [];
 
@@ -70,64 +66,15 @@ export function OcrSettingsForm() {
     }
   }
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const providersRes = await api.settings.providers.$put({
-        json: { mistral: mistralKey, google: googleKey },
-      });
-      if (!providersRes.ok) {
-        throw new Error("Failed to save provider keys");
-      }
-
-      const ocrRes = await api.settings.ocr.$put({
-        json: {
-          definitionId: definitionId as OcrDefinitionId,
-          model: selected?.modelEditable ? model : undefined,
-        },
-      });
-      if (!ocrRes.ok) {
-        throw new Error("Failed to save OCR settings");
-      }
-      return ocrRes.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: settingsKeys.ocr() });
-      queryClient.invalidateQueries({ queryKey: settingsKeys.providers() });
-      toast.success("OCR settings saved");
-    },
-    onError: () => {
-      toast.error("Save failed");
-    },
-  });
-
-  const testMutation = useMutation({
-    mutationFn: async () => {
-      if (!selected) {
-        throw new Error("Select an engine first");
-      }
-      const res = await api.settings.providers.test.$post({
-        json: { provider: selected.provider, apiKey: requiredKey },
-      });
-      if (!res.ok) {
-        throw new Error("Test failed");
-      }
-      return res.json();
-    },
-    onSuccess: (result) => {
-      if (result.ok) {
-        toast.success("Connection successful");
-      } else {
-        toast.error(result.error ?? "Connection failed");
-      }
-    },
-    onError: () => {
-      toast.error("Test failed");
-    },
-  });
-
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
-    saveMutation.mutate();
+    saveMutation.mutate({
+      providers: { mistral: mistralKey, google: googleKey },
+      ocr: {
+        definitionId: definitionId as OcrDefinitionId,
+        model: selected?.modelEditable ? model : undefined,
+      },
+    });
   }
 
   return (
@@ -200,7 +147,10 @@ export function OcrSettingsForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => testMutation.mutate()}
+              onClick={() =>
+                selected &&
+                testMutation.mutate({ provider: selected.provider, apiKey: requiredKey })
+              }
               disabled={testMutation.isPending || !selected}
             >
               {testMutation.isPending ? "Testing…" : "Test connection"}

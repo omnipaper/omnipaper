@@ -19,6 +19,7 @@
     "@omnipaper/permissions": "workspace:*",
     "@omnipaper/queue": "workspace:*",
     "@omnipaper/settings": "workspace:*",
+    "@omnipaper/shared": "workspace:*",
     "@omnipaper/storage": "workspace:*",
     "better-auth": "catalog:",
     "drizzle-orm": "catalog:",

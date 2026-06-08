@@ -1,9 +1,12 @@
-import { documentActivityQuery } from "@/features/documents/queries/documents";
 import { useQuery } from "@tanstack/react-query";
+import { documentActivityQuery } from "@/features/documents/queries/documents";
 
 const EVENT_LABEL: Record<string, string> = {
   "document.created": "created the document",
   "document.ocr_completed": "completed OCR",
+  "document.metadata_updated": "updated document metadata",
+  "document.tags_updated": "updated document tags",
+  "document.property_updated": "updated document properties",
 };
 
 function timeAgo(value: string | Date) {

@@ -1,15 +1,4 @@
 import {
-  RowActions,
-  SettingsTableToolbar,
-  TableEmptyRow,
-} from "@/components/settings/settings-table";
-import {
-  customPropertyKeys,
-  orgPropertyDefinitionsQuery,
-} from "@/features/custom-properties/queries/custom-properties";
-import { documentKeys } from "@/features/documents/queries/documents";
-import { api } from "@/lib/api";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -46,10 +35,22 @@ import {
   TableHeader,
   TableRow,
 } from "@omnipaper/ui/components/table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { PlusIcon, XIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
+import {
+  RowActions,
+  SettingsTableToolbar,
+  TableEmptyRow,
+} from "@/components/settings/settings-table";
+import {
+  orgPropertyDefinitionsQuery,
+  useAddPropertyOption,
+  useDeletePropertyDefinition,
+  useDeletePropertyOption,
+  useUpsertPropertyDefinition,
+} from "@/features/custom-properties/queries/custom-properties";
 
 const DEFAULT_COLOR = "#94a3b8";
 
@@ -71,29 +72,12 @@ const TYPE_LABEL: Record<string, string> = Object.fromEntries(
 const COLUMN_COUNT = 5;
 
 export function CustomPropertiesManager({ orgId }: { orgId: string }) {
-  const queryClient = useQueryClient();
   const { data, isPending, isError } = useQuery(orgPropertyDefinitionsQuery({ orgId }));
+  const deleteDefinition = useDeletePropertyDefinition(orgId);
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await api.orgs[":orgId"]["custom-properties"][":id"].$delete({
-        param: { orgId, id },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to delete property");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: customPropertyKeys.lists(orgId) });
-      queryClient.invalidateQueries({ queryKey: documentKeys.all(orgId) });
-      toast.success("Property deleted");
-    },
-    onError: (error) => toast.error(error.message),
-  });
 
   function openCreate() {
     setEditingId(null);
@@ -153,8 +137,8 @@ export function CustomPropertiesManager({ orgId }: { orgId: string }) {
         <TableCell className="text-right">
           <RowActions
             onEdit={() => openEdit(definition.id)}
-            onDelete={() => deleteMutation.mutate(definition.id)}
-            disabled={deleteMutation.isPending}
+            onDelete={() => deleteDefinition.mutate(definition.id)}
+            disabled={deleteDefinition.isPending}
             deleteTitle={`Delete “${definition.name}”?`}
             deleteDescription={
               definition.documentCount > 0
@@ -219,7 +203,6 @@ function PropertyDialogBody({
   editingId: string | null;
   onDone: () => void;
 }) {
-  const queryClient = useQueryClient();
   // Read the live definition (not a snapshot) so its select options stay in sync as they're
   // added/removed without closing the dialog.
   const { data } = useQuery(orgPropertyDefinitionsQuery({ orgId }));
@@ -231,82 +214,45 @@ function PropertyDialogBody({
   const [type, setType] = useState<PropertyType>((editing?.type as PropertyType) ?? "text");
   const [description, setDescription] = useState(editing?.description ?? "");
   const [optionToRemove, setOptionToRemove] = useState<{ id: string; label: string } | null>(null);
+  // Create mode collects select options here and saves them together with the property in one
+  // atomic POST. Edit mode uses the live `editing.options` + their own add/remove endpoints.
+  const [draftOptions, setDraftOptions] = useState<{ label: string; color: string }[]>([]);
 
-  function invalidateProperties() {
-    queryClient.invalidateQueries({ queryKey: customPropertyKeys.lists(orgId) });
+  const upsert = useUpsertPropertyDefinition(orgId);
+  // Option hooks only fire in edit mode (create collects draftOptions locally), so binding them to
+  // the editing id — empty otherwise — is safe.
+  const addOption = useAddPropertyOption(orgId, editing?.id ?? "");
+  const deleteOption = useDeletePropertyOption(orgId, editing?.id ?? "");
+
+  const optionsPending = addOption.isPending || deleteOption.isPending;
+  const isSelect = type === "select";
+
+  // One options list for both modes: live (edit) or local draft (create).
+  const displayOptions = editing
+    ? (editing.options ?? []).map((o) => ({
+        key: o.id,
+        label: o.label,
+        color: o.color ?? DEFAULT_COLOR,
+        onRemove: () => setOptionToRemove({ id: o.id, label: o.label }),
+      }))
+    : draftOptions.map((o, index) => ({
+        key: `${o.label}-${index}`,
+        label: o.label,
+        color: o.color,
+        onRemove: () => setDraftOptions((prev) => prev.filter((_, i) => i !== index)),
+      }));
+
+  function handleAddOption(label: string, color: string) {
+    if (editing) {
+      addOption.mutate({ label, color });
+      return;
+    }
+    if (draftOptions.some((o) => o.label.toLowerCase() === label.toLowerCase())) {
+      toast.error("An option with this label already exists");
+      return;
+    }
+    setDraftOptions((prev) => [...prev, { label, color }]);
   }
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const trimmedName = name.trim();
-      const trimmedDescription = description.trim();
-      const res = editing
-        ? await api.orgs[":orgId"]["custom-properties"][":id"].$patch({
-            param: { orgId, id: editing.id },
-            json: { name: trimmedName, description: trimmedDescription || null },
-          })
-        : await api.orgs[":orgId"]["custom-properties"].$post({
-            param: { orgId },
-            json: { name: trimmedName, type, description: trimmedDescription || undefined },
-          });
-      if (!res.ok) {
-        throw new Error(
-          res.status === 400
-            ? "A property with this name already exists"
-            : editing
-              ? "Failed to update property"
-              : "Failed to create property",
-        );
-      }
-    },
-    onSuccess: () => {
-      // A rename only touches the catalog query; documents read property names from it, so no need
-      // to refetch every document here (delete handles that separately).
-      invalidateProperties();
-      toast.success(editing ? "Property updated" : "Property created");
-      onDone();
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  const addOptionMutation = useMutation({
-    mutationFn: async (vars: { label: string; color: string }) => {
-      if (!editing) return;
-      const res = await api.orgs[":orgId"]["custom-properties"][":id"].options.$post({
-        param: { orgId, id: editing.id },
-        json: { label: vars.label, color: vars.color },
-      });
-      if (!res.ok) {
-        throw new Error(
-          res.status === 400 ? "An option with this label already exists" : "Failed to add option",
-        );
-      }
-    },
-    onSuccess: invalidateProperties,
-    onError: (error) => toast.error(error.message),
-  });
-
-  const deleteOptionMutation = useMutation({
-    mutationFn: async (optionId: string) => {
-      if (!editing) return;
-      const res = await api.orgs[":orgId"]["custom-properties"][":id"].options[":optionId"].$delete(
-        {
-          param: { orgId, id: editing.id, optionId },
-        },
-      );
-      if (!res.ok) {
-        throw new Error("Failed to remove option");
-      }
-    },
-    onSuccess: () => {
-      invalidateProperties();
-      queryClient.invalidateQueries({ queryKey: documentKeys.all(orgId) });
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  const optionsPending = addOptionMutation.isPending || deleteOptionMutation.isPending;
-  const options = editing?.options ?? [];
 
   return (
     <>
@@ -322,7 +268,16 @@ function PropertyDialogBody({
         onSubmit={(event) => {
           event.preventDefault();
           if (name.trim()) {
-            saveMutation.mutate();
+            upsert.mutate(
+              {
+                id: editing?.id,
+                name: name.trim(),
+                type,
+                description: description.trim() || null,
+                options: draftOptions,
+              },
+              { onSuccess: onDone },
+            );
           }
         }}
         className="flex flex-col gap-4"
@@ -357,11 +312,6 @@ function PropertyDialogBody({
               ))}
             </SelectContent>
           </Select>
-          {!editing && type === "select" ? (
-            <p className="text-muted-foreground text-xs">
-              Add options after creating the property.
-            </p>
-          ) : null}
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="property-description">Description (optional)</Label>
@@ -373,28 +323,28 @@ function PropertyDialogBody({
           />
         </div>
 
-        {editing && editing.type === "select" ? (
+        {isSelect ? (
           <div className="flex flex-col gap-2 border-t pt-3">
             <Label>Options</Label>
             <div className="flex flex-wrap gap-1.5">
-              {options.length === 0 ? (
+              {displayOptions.length === 0 ? (
                 <span className="text-muted-foreground text-xs">No options yet.</span>
               ) : (
-                options.map((option) => (
+                displayOptions.map((option) => (
                   <span
-                    key={option.id}
+                    key={option.key}
                     className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-foreground text-xs"
                   >
                     <span
                       className="size-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: option.color ?? DEFAULT_COLOR }}
+                      style={{ backgroundColor: option.color }}
                     />
                     {option.label}
                     <button
                       type="button"
                       disabled={optionsPending}
                       aria-label={`Remove ${option.label}`}
-                      onClick={() => setOptionToRemove({ id: option.id, label: option.label })}
+                      onClick={option.onRemove}
                       className="-mr-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
                     >
                       <XIcon className="size-3" />
@@ -403,10 +353,7 @@ function PropertyDialogBody({
                 ))
               )}
             </div>
-            <AddOptionForm
-              disabled={optionsPending}
-              onAdd={(label, color) => addOptionMutation.mutate({ label, color })}
-            />
+            <AddOptionForm disabled={optionsPending} onAdd={handleAddOption} />
           </div>
         ) : null}
 
@@ -416,8 +363,8 @@ function PropertyDialogBody({
               {editing ? "Done" : "Cancel"}
             </Button>
           </DialogClose>
-          <Button type="submit" disabled={saveMutation.isPending || !name.trim()}>
-            {saveMutation.isPending ? "Saving…" : editing ? "Save changes" : "Add property"}
+          <Button type="submit" disabled={upsert.isPending || !name.trim()}>
+            {upsert.isPending ? "Saving…" : editing ? "Save changes" : "Add property"}
           </Button>
         </DialogFooter>
       </form>
@@ -441,7 +388,7 @@ function PropertyDialogBody({
               variant="destructive"
               onClick={() => {
                 if (optionToRemove) {
-                  deleteOptionMutation.mutate(optionToRemove.id);
+                  deleteOption.mutate(optionToRemove.id);
                 }
                 setOptionToRemove(null);
               }}

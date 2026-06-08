@@ -1,6 +1,3 @@
-import { orgPropertyDefinitionsQuery } from "@/features/custom-properties/queries/custom-properties";
-import { documentKeys } from "@/features/documents/queries/documents";
-import { api } from "@/lib/api";
 import { Input } from "@omnipaper/ui/components/input";
 import {
   Select,
@@ -10,8 +7,12 @@ import {
   SelectValue,
 } from "@omnipaper/ui/components/select";
 import { Switch } from "@omnipaper/ui/components/switch";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { orgPropertyDefinitionsQuery } from "@/features/custom-properties/queries/custom-properties";
+import {
+  useClearDocumentPropertyValue,
+  useSetDocumentPropertyValue,
+} from "@/features/documents/queries/documents";
 
 // "None" can't be an empty string in a radix Select item, so use a sentinel that maps to clearing.
 const NONE_VALUE = "__none__";
@@ -162,55 +163,12 @@ export function CustomPropertyFields({
   documentId,
   values = [],
 }: CustomPropertyFieldsProps) {
-  const queryClient = useQueryClient();
   const { data } = useQuery(orgPropertyDefinitionsQuery({ orgId }));
   const definitions = data?.definitions ?? [];
   const valueByDefinition = new Map(values.map((v) => [v.definitionId, v.value]));
 
-  function invalidate() {
-    // exact: refetch only the detail JSON, not the nested download/activity (which would remount
-    // the PDF preview). Editing a property only changes the detail payload.
-    queryClient.invalidateQueries({
-      queryKey: documentKeys.detail({ orgId, id: documentId }),
-      exact: true,
-    });
-  }
-
-  const setValueMutation = useMutation({
-    mutationFn: async (vars: { definitionId: string; value: unknown }) => {
-      const res = await api.orgs[":orgId"].documents[":id"]["custom-properties"][
-        ":definitionId"
-      ].$put({
-        param: { orgId, id: documentId, definitionId: vars.definitionId },
-        json: { value: vars.value },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to save property");
-      }
-    },
-    onSuccess: invalidate,
-    // Revert the uncontrolled field to server truth instead of leaving a typed-but-unsaved value.
-    onError: () => {
-      invalidate();
-      toast.error("Failed to save property");
-    },
-  });
-
-  const clearValueMutation = useMutation({
-    mutationFn: async (definitionId: string) => {
-      const res = await api.orgs[":orgId"].documents[":id"]["custom-properties"][
-        ":definitionId"
-      ].$delete({ param: { orgId, id: documentId, definitionId } });
-      if (!res.ok) {
-        throw new Error("Failed to clear property");
-      }
-    },
-    onSuccess: invalidate,
-    onError: () => {
-      invalidate();
-      toast.error("Failed to clear property");
-    },
-  });
+  const setValue = useSetDocumentPropertyValue(orgId, documentId);
+  const clearValue = useClearDocumentPropertyValue(orgId, documentId);
 
   // Properties are defined in settings; with none defined there's nothing to edit here.
   if (definitions.length === 0) {
@@ -223,9 +181,8 @@ export function CustomPropertyFields({
         // Disable only the field whose save is in flight, so editing another field meanwhile
         // isn't swallowed.
         const fieldPending =
-          (setValueMutation.isPending &&
-            setValueMutation.variables?.definitionId === definition.id) ||
-          (clearValueMutation.isPending && clearValueMutation.variables === definition.id);
+          (setValue.isPending && setValue.variables?.definitionId === definition.id) ||
+          (clearValue.isPending && clearValue.variables === definition.id);
 
         return (
           <div key={definition.id} className="flex items-center gap-3">
@@ -235,8 +192,8 @@ export function CustomPropertyFields({
                 definition={definition}
                 value={valueByDefinition.get(definition.id)}
                 disabled={fieldPending}
-                onSet={(value) => setValueMutation.mutate({ definitionId: definition.id, value })}
-                onClear={() => clearValueMutation.mutate(definition.id)}
+                onSet={(value) => setValue.mutate({ definitionId: definition.id, value })}
+                onClear={() => clearValue.mutate(definition.id)}
               />
             </div>
           </div>

@@ -12,15 +12,3 @@ export function unmaskSecret(incoming: string, stored: string | undefined): stri
 
   return incoming;
 }
-
-// Defensive: never echo secrets back inside an error message (n8n redactSecrets pattern).
-export function redactSecrets(message: string, ...secrets: (string | null | undefined)[]): string {
-  let redacted = message;
-
-  for (const secret of secrets) {
-    if (!secret) continue;
-    redacted = redacted.split(secret).join("****").split(encodeURIComponent(secret)).join("****");
-  }
-
-  return redacted;
-}

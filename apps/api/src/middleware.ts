@@ -1,6 +1,6 @@
 import { member } from "@omnipaper/database/auth-schema";
 import { db } from "@omnipaper/database/client";
-import { type OrgPermissions, hasOrgPermission, isInstanceAdmin } from "@omnipaper/permissions";
+import { hasOrgPermission, isInstanceAdmin, type OrgPermissions } from "@omnipaper/permissions";
 import { and, eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 import type { Variables } from "./context";

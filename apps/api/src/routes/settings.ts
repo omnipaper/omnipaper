@@ -17,12 +17,13 @@ import {
   providerTestSchema,
   setProviderKeys,
 } from "@omnipaper/settings/provider-settings";
-import { SECRET_MASK, redactSecrets, unmaskSecret } from "@omnipaper/settings/secret";
+import { SECRET_MASK, unmaskSecret } from "@omnipaper/settings/secret";
 import {
   getStorageSettings,
   setStorageSettings,
   storageSettingsSchema,
 } from "@omnipaper/settings/storage-settings";
+import { redactSecrets } from "@omnipaper/shared/redact";
 import { createS3Driver } from "@omnipaper/storage/s3";
 import { Hono } from "hono";
 import type { Variables } from "../context";

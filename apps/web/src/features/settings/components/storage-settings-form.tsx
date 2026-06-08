@@ -1,5 +1,3 @@
-import { settingsKeys, storageSettingsQuery } from "@/features/settings/queries/settings";
-import { api } from "@/lib/api";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Card,
@@ -10,14 +8,18 @@ import {
 } from "@omnipaper/ui/components/card";
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { type SubmitEvent, useEffect, useState } from "react";
-import { toast } from "sonner";
+import {
+  storageSettingsQuery,
+  useSaveStorageSettings,
+  useTestStorageConnection,
+} from "@/features/settings/queries/settings";
 
 export function StorageSettingsForm() {
-  const queryClient = useQueryClient();
-
   const settingsQuery = useQuery(storageSettingsQuery());
+  const saveMutation = useSaveStorageSettings();
+  const testMutation = useTestStorageConnection();
 
   const [bucket, setBucket] = useState("");
   const [region, setRegion] = useState("");
@@ -36,62 +38,17 @@ export function StorageSettingsForm() {
     }
   }, [settingsQuery.data]);
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.settings.storage.$put({
-        json: {
-          bucket,
-          region,
-          endpoint: endpoint || undefined,
-          accessKeyId,
-          secretAccessKey,
-        },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to save settings");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: settingsKeys.storage() });
-      toast.success("Settings saved");
-    },
-    onError: () => {
-      toast.error("Save failed");
-    },
-  });
-
-  const testMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.settings.storage.test.$post({
-        json: {
-          bucket,
-          region,
-          endpoint: endpoint || undefined,
-          accessKeyId,
-          secretAccessKey,
-        },
-      });
-      if (!res.ok) {
-        throw new Error("Test failed");
-      }
-      return res.json();
-    },
-    onSuccess: (result) => {
-      if (result.ok) {
-        toast.success("Connection successful");
-      } else {
-        toast.error(result.error ?? "Connection failed");
-      }
-    },
-    onError: () => {
-      toast.error("Test failed");
-    },
-  });
+  const credentials = {
+    bucket,
+    region,
+    endpoint: endpoint || undefined,
+    accessKeyId,
+    secretAccessKey,
+  };
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    saveMutation.mutate();
+    saveMutation.mutate(credentials);
   }
 
   return (
@@ -160,7 +117,7 @@ export function StorageSettingsForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => testMutation.mutate()}
+              onClick={() => testMutation.mutate(credentials)}
               disabled={testMutation.isPending}
             >
               {testMutation.isPending ? "Testing…" : "Test connection"}

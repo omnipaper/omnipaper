@@ -1,6 +1,3 @@
-import { authClient } from "@/features/auth/auth-client";
-import { sessionKeys } from "@/features/auth/queries/session";
-import { queryClient } from "@/lib/query-client";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Dialog,
@@ -30,6 +27,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { Building2Icon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
+import { authClient } from "@/features/auth/auth-client";
+import { sessionKeys } from "@/features/auth/queries/session";
+import { queryClient } from "@/lib/query-client";
 
 export function OrgSwitcher({ orgId }: { orgId: string }) {
   const navigate = useNavigate();

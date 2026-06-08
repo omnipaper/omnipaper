@@ -1,6 +1,6 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { DocumentList } from "@/features/documents/components/document-list";
 import { UploadButton } from "@/features/documents/components/upload-button";
-import { createFileRoute } from "@tanstack/react-router";
 
 // Built-in view: flat list of all documents, full-text searchable. The search term lives in `?q`
 // (URL = single source of truth for view state — see plan), so it's deep-linkable and shareable.

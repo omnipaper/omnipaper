@@ -1,16 +1,9 @@
 export type StorageDriver = {
   name: string;
 
-  createUploadUrl: (args: {
-    key: string;
-    contentType: string;
-    expiresInSeconds?: number;
-  }) => Promise<{ url: string }>;
+  putObject: (args: { key: string; body: Uint8Array; contentType: string }) => Promise<void>;
 
-  createDownloadUrl: (args: {
-    key: string;
-    expiresInSeconds?: number;
-  }) => Promise<{ url: string }>;
+  createDownloadUrl: (args: { key: string; expiresInSeconds?: number }) => Promise<{ url: string }>;
 
   deleteObject: (args: { key: string }) => Promise<void>;
 

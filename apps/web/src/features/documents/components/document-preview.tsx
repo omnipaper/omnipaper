@@ -15,9 +15,15 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 // fine; if we ever hit CJK or non-embedded standard fonts we can point those at the
 // bundled pdfjs-dist assets.
 
-function useContainerWidth() {
+// Render width that fits a normal (A4 portrait) page within the viewport height, so the whole page
+// shows by default without an inner scrollbar. Capped by the container width so it never overflows
+// horizontally; pages taller than A4 simply let the surrounding pane scroll.
+function useFitWidth() {
   const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState<number>();
+  const [containerWidth, setContainerWidth] = useState<number>();
+  const [viewportHeight, setViewportHeight] = useState(() =>
+    typeof window === "undefined" ? 0 : window.innerHeight,
+  );
 
   useEffect(() => {
     const el = ref.current;
@@ -27,23 +33,74 @@ function useContainerWidth() {
     const observer = new ResizeObserver((entries) => {
       const next = entries[0]?.contentRect.width;
       if (next) {
-        setWidth(next);
+        setContainerWidth(next);
       }
     });
     observer.observe(el);
-    return () => observer.disconnect();
+
+    const onResize = () => setViewportHeight(window.innerHeight);
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", onResize);
+    };
   }, []);
+
+  if (containerWidth === undefined) {
+    return { ref, width: undefined };
+  }
+
+  // ~200px leaves room for the app header, the two page-nav bars and padding. A4 aspect = √2.
+  const heightBudget = Math.max(viewportHeight - 200, 360);
+  const width = Math.min(containerWidth, Math.round(heightBudget / Math.SQRT2));
 
   return { ref, width };
 }
 
+function PageNav({
+  page,
+  numPages,
+  onChange,
+}: {
+  page: number;
+  numPages: number;
+  onChange: (page: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onChange(Math.max(1, page - 1))}
+        disabled={page <= 1}
+      >
+        Previous
+      </Button>
+      <span className="text-muted-foreground">
+        Page {page} of {numPages}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onChange(Math.min(numPages, page + 1))}
+        disabled={page >= numPages}
+      >
+        Next
+      </Button>
+    </div>
+  );
+}
+
 function PdfPreview({ url, onRetry }: { url: string; onRetry?: () => void }) {
-  const { ref, width } = useContainerWidth();
+  const { ref, width } = useFitWidth();
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
+  const hasPages = numPages > 1;
 
   return (
     <div ref={ref} className="flex flex-col items-center gap-3">
+      {hasPages ? <PageNav page={page} numPages={numPages} onChange={setPage} /> : null}
       <Document
         file={url}
         onLoadSuccess={({ numPages: total }) => {
@@ -62,34 +119,10 @@ function PdfPreview({ url, onRetry }: { url: string; onRetry?: () => void }) {
           </div>
         }
       >
-        {width ? (
-          <Page pageNumber={page} width={width} className="overflow-hidden rounded-md border" />
-        ) : null}
+        {width ? <Page pageNumber={page} width={width} className="rounded-md border" /> : null}
       </Document>
 
-      {numPages > 1 ? (
-        <div className="flex items-center gap-3 text-sm">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-          >
-            Previous
-          </Button>
-          <span className="text-muted-foreground">
-            Page {page} of {numPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.min(numPages, p + 1))}
-            disabled={page >= numPages}
-          >
-            Next
-          </Button>
-        </div>
-      ) : null}
+      {hasPages ? <PageNav page={page} numPages={numPages} onChange={setPage} /> : null}
     </div>
   );
 }

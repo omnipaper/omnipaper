@@ -128,6 +128,21 @@ export async function getDocumentActivity(db: Database, params: GetDocumentActiv
     .limit(50);
 }
 
+export async function getDocumentByHash(
+  db: Database,
+  params: { organizationId: string; sha256: string },
+) {
+  const [doc] = await db
+    .select()
+    .from(documents)
+    .where(
+      and(eq(documents.organizationId, params.organizationId), eq(documents.sha256, params.sha256)),
+    )
+    .limit(1);
+
+  return doc;
+}
+
 export type CreateDocumentInput = {
   id: string;
   organizationId: string;
@@ -136,6 +151,7 @@ export type CreateDocumentInput = {
   storageKey: string;
   mimeType: string;
   sizeBytes: number;
+  sha256: string;
 };
 
 export async function createDocument(db: Database, input: CreateDocumentInput) {
@@ -148,6 +164,7 @@ export async function createDocument(db: Database, input: CreateDocumentInput) {
       storageKey: input.storageKey,
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
+      sha256: input.sha256,
     });
 
     await recordEvent(tx, {

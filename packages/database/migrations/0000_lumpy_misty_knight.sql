@@ -1,5 +1,5 @@
 CREATE TYPE "public"."activity_actor_type" AS ENUM('user', 'system');--> statement-breakpoint
-CREATE TYPE "public"."activity_event" AS ENUM('document.created', 'document.ocr_completed');--> statement-breakpoint
+CREATE TYPE "public"."activity_event" AS ENUM('document.created', 'document.ocr_completed', 'document.metadata_updated', 'document.tags_updated', 'document.property_updated');--> statement-breakpoint
 CREATE TYPE "public"."activity_resource_type" AS ENUM('document');--> statement-breakpoint
 CREATE TYPE "public"."custom_property_type" AS ENUM('text', 'url', 'number', 'date', 'boolean', 'select');--> statement-breakpoint
 CREATE TYPE "public"."ocr_status" AS ENUM('pending', 'processing', 'completed', 'failed');--> statement-breakpoint
@@ -49,6 +49,15 @@ CREATE TABLE "document_custom_property_values" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "document_types" (
+	"id" text PRIMARY KEY NOT NULL,
+	"organization_id" text NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "documents" (
 	"id" text PRIMARY KEY NOT NULL,
 	"organization_id" text NOT NULL,
@@ -57,9 +66,13 @@ CREATE TABLE "documents" (
 	"storage_key" text NOT NULL,
 	"mime_type" text NOT NULL,
 	"size_bytes" integer NOT NULL,
+	"sha256" text NOT NULL,
 	"ocr_status" "ocr_status" DEFAULT 'pending' NOT NULL,
 	"ocr_text" text,
 	"ocr_metadata" jsonb,
+	"document_date" date,
+	"document_type_id" text,
+	"storage_path_id" text,
 	"search_vector" "tsvector" GENERATED ALWAYS AS (setweight(to_tsvector('simple', "documents"."title"), 'A') || setweight(to_tsvector('simple', coalesce("documents"."ocr_text", '')), 'B')) STORED,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
@@ -76,6 +89,15 @@ CREATE TABLE "settings" (
 	"key" text PRIMARY KEY NOT NULL,
 	"value" text NOT NULL,
 	"encrypted" boolean DEFAULT false NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "storage_paths" (
+	"id" text PRIMARY KEY NOT NULL,
+	"organization_id" text NOT NULL,
+	"path" text NOT NULL,
+	"description" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
@@ -179,10 +201,14 @@ ALTER TABLE "custom_property_select_options" ADD CONSTRAINT "custom_property_sel
 ALTER TABLE "document_custom_property_values" ADD CONSTRAINT "document_custom_property_values_document_id_documents_id_fk" FOREIGN KEY ("document_id") REFERENCES "public"."documents"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "document_custom_property_values" ADD CONSTRAINT "document_custom_property_values_definition_id_custom_property_definitions_id_fk" FOREIGN KEY ("definition_id") REFERENCES "public"."custom_property_definitions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "document_custom_property_values" ADD CONSTRAINT "document_custom_property_values_select_option_id_custom_property_select_options_id_fk" FOREIGN KEY ("select_option_id") REFERENCES "public"."custom_property_select_options"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "document_types" ADD CONSTRAINT "document_types_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "documents" ADD CONSTRAINT "documents_document_type_id_document_types_id_fk" FOREIGN KEY ("document_type_id") REFERENCES "public"."document_types"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "documents" ADD CONSTRAINT "documents_storage_path_id_storage_paths_id_fk" FOREIGN KEY ("storage_path_id") REFERENCES "public"."storage_paths"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents_tags" ADD CONSTRAINT "documents_tags_document_id_documents_id_fk" FOREIGN KEY ("document_id") REFERENCES "public"."documents"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents_tags" ADD CONSTRAINT "documents_tags_tag_id_tags_id_fk" FOREIGN KEY ("tag_id") REFERENCES "public"."tags"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "storage_paths" ADD CONSTRAINT "storage_paths_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tags" ADD CONSTRAINT "tags_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -199,9 +225,17 @@ CREATE UNIQUE INDEX "custom_property_select_options_definition_label_idx" ON "cu
 CREATE INDEX "custom_property_select_options_definition_id_idx" ON "custom_property_select_options" USING btree ("definition_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "document_custom_property_values_doc_def_idx" ON "document_custom_property_values" USING btree ("document_id","definition_id");--> statement-breakpoint
 CREATE INDEX "document_custom_property_values_definition_id_idx" ON "document_custom_property_values" USING btree ("definition_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "document_types_org_name_idx" ON "document_types" USING btree ("organization_id","name");--> statement-breakpoint
+CREATE INDEX "document_types_organization_id_idx" ON "document_types" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "documents_search_idx" ON "documents" USING gin ("search_vector");--> statement-breakpoint
 CREATE INDEX "documents_organization_id_idx" ON "documents" USING btree ("organization_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "documents_org_sha256_unique" ON "documents" USING btree ("organization_id","sha256");--> statement-breakpoint
+CREATE INDEX "documents_org_document_type_id_idx" ON "documents" USING btree ("organization_id","document_type_id");--> statement-breakpoint
+CREATE INDEX "documents_org_storage_path_id_idx" ON "documents" USING btree ("organization_id","storage_path_id");--> statement-breakpoint
+CREATE INDEX "documents_org_document_date_idx" ON "documents" USING btree ("organization_id","document_date");--> statement-breakpoint
 CREATE INDEX "documents_tags_tag_id_idx" ON "documents_tags" USING btree ("tag_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "storage_paths_org_path_idx" ON "storage_paths" USING btree ("organization_id","path");--> statement-breakpoint
+CREATE INDEX "storage_paths_organization_id_idx" ON "storage_paths" USING btree ("organization_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "tags_org_name_idx" ON "tags" USING btree ("organization_id","name");--> statement-breakpoint
 CREATE INDEX "tags_organization_id_idx" ON "tags" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "account_userId_idx" ON "account" USING btree ("user_id");--> statement-breakpoint

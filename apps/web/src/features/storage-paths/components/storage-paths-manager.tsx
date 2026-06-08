@@ -1,15 +1,3 @@
-import {
-  RowActions,
-  SettingsTableToolbar,
-  TableEmptyRow,
-} from "@/components/settings/settings-table";
-import { documentKeys } from "@/features/documents/queries/documents";
-import { STORAGE_PATH_PATTERN as PATH_PATTERN } from "@/features/storage-paths/path-format";
-import {
-  orgStoragePathsQuery,
-  storagePathKeys,
-} from "@/features/storage-paths/queries/storage-paths";
-import { api } from "@/lib/api";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Dialog,
@@ -30,39 +18,32 @@ import {
   TableHeader,
   TableRow,
 } from "@omnipaper/ui/components/table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { toast } from "sonner";
+import {
+  RowActions,
+  SettingsTableToolbar,
+  TableEmptyRow,
+} from "@/components/settings/settings-table";
+import { STORAGE_PATH_PATTERN as PATH_PATTERN } from "@/features/storage-paths/path-format";
+import {
+  orgStoragePathsQuery,
+  useDeleteStoragePath,
+  useUpsertStoragePath,
+} from "@/features/storage-paths/queries/storage-paths";
 
 type StoragePathRow = { id: string; path: string; description: string | null };
 
 const COLUMN_COUNT = 3;
 
 export function StoragePathsManager({ orgId }: { orgId: string }) {
-  const queryClient = useQueryClient();
   const { data, isPending, isError } = useQuery(orgStoragePathsQuery({ orgId }));
+  const deleteStoragePath = useDeleteStoragePath(orgId);
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<StoragePathRow | null>(null);
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await api.orgs[":orgId"]["storage-paths"][":id"].$delete({
-        param: { orgId, id },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to delete storage path");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: storagePathKeys.lists(orgId) });
-      queryClient.invalidateQueries({ queryKey: documentKeys.all(orgId) });
-      toast.success("Storage path deleted");
-    },
-    onError: (error) => toast.error(error.message),
-  });
 
   function openCreate() {
     setEditing(null);
@@ -107,8 +88,8 @@ export function StoragePathsManager({ orgId }: { orgId: string }) {
         <TableCell className="text-right">
           <RowActions
             onEdit={() => openEdit(storagePath)}
-            onDelete={() => deleteMutation.mutate(storagePath.id)}
-            disabled={deleteMutation.isPending}
+            onDelete={() => deleteStoragePath.mutate(storagePath.id)}
+            disabled={deleteStoragePath.isPending}
             deleteTitle={`Delete “${storagePath.path}”?`}
             deleteDescription={
               storagePath.documentCount > 0
@@ -171,7 +152,6 @@ function StoragePathDialogBody({
   editing: StoragePathRow | null;
   onDone: () => void;
 }) {
-  const queryClient = useQueryClient();
   const [path, setPath] = useState(editing?.path ?? "");
   const [description, setDescription] = useState(editing?.description ?? "");
 
@@ -179,38 +159,7 @@ function StoragePathDialogBody({
   const pathValid = PATH_PATTERN.test(trimmedPath);
   const showPathError = trimmedPath.length > 0 && !pathValid;
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const trimmedDescription = description.trim();
-      const res = editing
-        ? await api.orgs[":orgId"]["storage-paths"][":id"].$patch({
-            param: { orgId, id: editing.id },
-            json: { path: trimmedPath, description: trimmedDescription || null },
-          })
-        : await api.orgs[":orgId"]["storage-paths"].$post({
-            param: { orgId },
-            json: { path: trimmedPath, description: trimmedDescription || undefined },
-          });
-      if (!res.ok) {
-        throw new Error(
-          res.status === 400
-            ? "Invalid path, or a storage path with this value already exists"
-            : editing
-              ? "Failed to update storage path"
-              : "Failed to create storage path",
-        );
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: storagePathKeys.lists(orgId) });
-      if (editing) {
-        queryClient.invalidateQueries({ queryKey: documentKeys.all(orgId) });
-      }
-      toast.success(editing ? "Storage path updated" : "Storage path created");
-      onDone();
-    },
-    onError: (error) => toast.error(error.message),
-  });
+  const upsert = useUpsertStoragePath(orgId);
 
   return (
     <>
@@ -226,7 +175,10 @@ function StoragePathDialogBody({
         onSubmit={(event) => {
           event.preventDefault();
           if (pathValid) {
-            mutation.mutate();
+            upsert.mutate(
+              { id: editing?.id, path: trimmedPath, description: description.trim() || null },
+              { onSuccess: onDone },
+            );
           }
         }}
         className="flex flex-col gap-4"
@@ -266,8 +218,8 @@ function StoragePathDialogBody({
               Cancel
             </Button>
           </DialogClose>
-          <Button type="submit" disabled={mutation.isPending || !pathValid}>
-            {mutation.isPending ? "Saving…" : editing ? "Save changes" : "Add storage path"}
+          <Button type="submit" disabled={upsert.isPending || !pathValid}>
+            {upsert.isPending ? "Saving…" : editing ? "Save changes" : "Add storage path"}
           </Button>
         </DialogFooter>
       </form>

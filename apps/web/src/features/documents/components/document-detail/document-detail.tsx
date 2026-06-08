@@ -1,14 +1,3 @@
-import { ActivityTab } from "@/features/documents/components/document-detail/activity-tab";
-import { DetailsTab } from "@/features/documents/components/document-detail/details-tab";
-import { OcrTab } from "@/features/documents/components/document-detail/ocr-tab";
-import { DocumentPreview } from "@/features/documents/components/document-preview";
-import {
-  documentDetailQuery,
-  documentDownloadQuery,
-  documentKeys,
-} from "@/features/documents/queries/documents";
-import { useOrgMember } from "@/features/organization/queries/organization";
-import { api } from "@/lib/api";
 import { hasOrgPermission } from "@omnipaper/permissions";
 import {
   AlertDialog,
@@ -23,10 +12,22 @@ import {
 } from "@omnipaper/ui/components/alert-dialog";
 import { Button } from "@omnipaper/ui/components/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@omnipaper/ui/components/tabs";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeftIcon, DownloadIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
+import { ActivityTab } from "@/features/documents/components/document-detail/activity-tab";
+import { DetailsTab } from "@/features/documents/components/document-detail/details-tab";
+import { OcrTab } from "@/features/documents/components/document-detail/ocr-tab";
+import { DocumentPreview } from "@/features/documents/components/document-preview";
+import {
+  documentDetailQuery,
+  documentDownloadQuery,
+  documentKeys,
+  useDeleteDocument,
+} from "@/features/documents/queries/documents";
+import { useOrgMember } from "@/features/organization/queries/organization";
+import { api } from "@/lib/api";
 
 export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
   const navigate = useNavigate();
@@ -44,22 +45,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
   const refreshPreview = () =>
     queryClient.invalidateQueries({ queryKey: documentKeys.download({ orgId, id }) });
 
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.orgs[":orgId"].documents[":id"].$delete({ param: { orgId, id } });
-      if (!res.ok) {
-        throw new Error("Delete failed");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: documentKeys.lists(orgId) });
-      toast.success("Document deleted");
-      navigate({ to: "/dashboard/orgs/$orgId/views/list", params: { orgId } });
-    },
-    onError: () => {
-      toast.error("Delete failed");
-    },
-  });
+  const deleteDocument = useDeleteDocument(orgId);
 
   async function handleDownload() {
     const res = await api.orgs[":orgId"].documents[":id"].download.$get({ param: { orgId, id } });
@@ -105,7 +91,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                       variant="destructive"
                       size="sm"
                       aria-label="Delete document"
-                      disabled={deleteMutation.isPending}
+                      disabled={deleteDocument.isPending}
                     >
                       <Trash2Icon />
                     </Button>
@@ -120,7 +106,17 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteMutation.mutate()}>
+                      <AlertDialogAction
+                        onClick={() =>
+                          deleteDocument.mutate(id, {
+                            onSuccess: () =>
+                              navigate({
+                                to: "/dashboard/orgs/$orgId/views/list",
+                                params: { orgId },
+                              }),
+                          })
+                        }
+                      >
                         Delete
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -140,8 +136,8 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
         <Tabs defaultValue="details" className="flex flex-col gap-0 lg:min-h-0 lg:flex-1">
           <TabsList className="mx-4 mt-3 grid grid-cols-3">
             <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="ocr">OCR</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
           <div className="p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <TabsContent value="details">
@@ -156,9 +152,6 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                 customProperties={doc.customProperties}
               />
             </TabsContent>
-            <TabsContent value="activity">
-              <ActivityTab orgId={orgId} documentId={id} />
-            </TabsContent>
             <TabsContent value="ocr">
               <OcrTab
                 orgId={orgId}
@@ -166,6 +159,9 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                 ocrStatus={doc.ocrStatus}
                 ocrText={doc.ocrText}
               />
+            </TabsContent>
+            <TabsContent value="activity">
+              <ActivityTab orgId={orgId} documentId={id} />
             </TabsContent>
           </div>
         </Tabs>

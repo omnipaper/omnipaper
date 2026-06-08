@@ -4,7 +4,10 @@
   "version": "0.0.0",
   "description": "Modern open-source document management with native S3-compatible storage support",
   "license": "AGPL-3.0-or-later",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "catalog": {
     "@types/bun": "1.3.14",
     "@types/react": "19.2.15",
@@ -26,7 +29,7 @@
     "typecheck": "bun run --filter='@omnipaper/*' typecheck"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.4.16",
     "@types/bun": "catalog:",
     "typescript": "catalog:"
   },

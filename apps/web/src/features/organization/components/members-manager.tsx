@@ -1,10 +1,3 @@
-import { SettingsTableToolbar, TableEmptyRow } from "@/components/settings/settings-table";
-import { authClient } from "@/features/auth/auth-client";
-import {
-  fullOrganizationQuery,
-  organizationKeys,
-  useOrgMember,
-} from "@/features/organization/queries/organization";
 import { isOrgOwner } from "@omnipaper/permissions";
 import {
   AlertDialog,
@@ -50,10 +43,19 @@ import {
   TableHeader,
   TableRow,
 } from "@omnipaper/ui/components/table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { MailIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
+import { SettingsTableToolbar, TableEmptyRow } from "@/components/settings/settings-table";
+import {
+  fullOrganizationQuery,
+  useCancelInvitation,
+  useInviteMember,
+  useOrgMember,
+  useRemoveMember,
+  useUpdateMemberRole,
+} from "@/features/organization/queries/organization";
 
 type OrgRole = "member" | "admin";
 
@@ -89,7 +91,6 @@ function GroupHeaderRow({ children }: { children: ReactNode }) {
 }
 
 export function MembersManager({ orgId }: { orgId: string }) {
-  const queryClient = useQueryClient();
   const orgQuery = useQuery(fullOrganizationQuery(orgId));
   const currentMember = useOrgMember(orgId);
   const currentMemberId = currentMember?.id;
@@ -98,58 +99,9 @@ export function MembersManager({ orgId }: { orgId: string }) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<{ id: string; name: string } | null>(null);
 
-  function invalidate() {
-    queryClient.invalidateQueries({ queryKey: organizationKeys.full(orgId) });
-  }
-
-  const updateRoleMutation = useMutation({
-    mutationFn: async (vars: { memberId: string; role: OrgRole }) => {
-      const { error } = await authClient.organization.updateMemberRole({
-        memberId: vars.memberId,
-        role: vars.role,
-        organizationId: orgId,
-      });
-      if (error) {
-        throw new Error(error.message ?? "Failed to update role");
-      }
-    },
-    onSuccess: () => {
-      invalidate();
-      toast.success("Role updated");
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  const removeMutation = useMutation({
-    mutationFn: async (memberId: string) => {
-      const { error } = await authClient.organization.removeMember({
-        memberIdOrEmail: memberId,
-        organizationId: orgId,
-      });
-      if (error) {
-        throw new Error(error.message ?? "Failed to remove member");
-      }
-    },
-    onSuccess: () => {
-      invalidate();
-      toast.success("Member removed");
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  const cancelInviteMutation = useMutation({
-    mutationFn: async (invitationId: string) => {
-      const { error } = await authClient.organization.cancelInvitation({ invitationId });
-      if (error) {
-        throw new Error(error.message ?? "Failed to cancel invitation");
-      }
-    },
-    onSuccess: () => {
-      invalidate();
-      toast.success("Invitation cancelled");
-    },
-    onError: (error) => toast.error(error.message),
-  });
+  const updateRoleMutation = useUpdateMemberRole(orgId);
+  const removeMutation = useRemoveMember(orgId);
+  const cancelInviteMutation = useCancelInvitation(orgId);
 
   async function copyInviteLink(invitation: { id: string; email: string }) {
     // Carry the email (and org name) in the link so the accept page can prefill them
@@ -388,28 +340,10 @@ export function MembersManager({ orgId }: { orgId: string }) {
 }
 
 function InviteDialogBody({ orgId, onDone }: { orgId: string; onDone: () => void }) {
-  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<OrgRole>("member");
 
-  const inviteMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await authClient.organization.inviteMember({
-        email: email.trim(),
-        role,
-        organizationId: orgId,
-      });
-      if (error) {
-        throw new Error(error.message ?? "Invite failed");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: organizationKeys.full(orgId) });
-      toast.success("Invitation created — copy its link from the list");
-      onDone();
-    },
-    onError: (error) => toast.error(error.message),
-  });
+  const inviteMutation = useInviteMember(orgId);
 
   return (
     <>
@@ -424,7 +358,7 @@ function InviteDialogBody({ orgId, onDone }: { orgId: string; onDone: () => void
         onSubmit={(event) => {
           event.preventDefault();
           if (email.trim()) {
-            inviteMutation.mutate();
+            inviteMutation.mutate({ email: email.trim(), role }, { onSuccess: onDone });
           }
         }}
         className="flex flex-col gap-4"
