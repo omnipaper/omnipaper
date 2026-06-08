@@ -16,6 +16,7 @@ services:
       DATABASE_URL: postgres://omnipaper:omnipaper@postgres:5432/omnipaper
       AUTH_SECRET: # openssl rand -base64 32
       ENCRYPTION_KEY: # openssl rand -base64 32
+      # APP_URL: https://omnipaper.yourdomain.com # optional
 
 volumes:
   postgres-data:
