@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./settings": "./src/settings.ts",
+    "./auth-settings": "./src/auth-settings.ts",
     "./storage-settings": "./src/storage-settings.ts",
     "./ocr-settings": "./src/ocr-settings.ts",
     "./provider-settings": "./src/provider-settings.ts",
@@ -17,11 +18,11 @@
     "@omnipaper/database": "workspace:*",
     "@omnipaper/env": "workspace:*",
     "@omnipaper/ocr": "workspace:*",
-    "drizzle-orm": "^0.45.2",
-    "zod": "^4.4.3"
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.14",
-    "typescript": "^5.7.0"
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
   }
 }

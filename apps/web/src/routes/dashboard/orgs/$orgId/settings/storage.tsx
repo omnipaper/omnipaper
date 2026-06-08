@@ -1,8 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { StorageSettingsForm } from "@/components/storage-settings-form";
-import { isInstanceAdmin } from "@omnipaper/permissions";
-import { sessionQueryOptions } from "@/lib/queries/session";
+import { sessionQueryOptions } from "@/features/auth/queries/session";
+import { StorageSettingsForm } from "@/features/settings/components/storage-settings-form";
 import { queryClient } from "@/lib/query-client";
+import { isInstanceAdmin } from "@omnipaper/permissions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/storage")({
   beforeLoad: async ({ params }) => {

@@ -10,11 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@t3-oss/env-core": "^0.13.11",
-    "zod": "^4.4.3"
+    "@t3-oss/env-core": "0.13.11",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.14",
-    "typescript": "^5.7.0"
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
   }
 }

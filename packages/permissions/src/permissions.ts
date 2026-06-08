@@ -27,10 +27,11 @@ import {
 
 export const statement = {
   ...defaultStatements,
-  documents: ["read", "create", "delete"],
-  // Org taxonomy (Settings) — members read to tag/fill docs; only owner/admin curate.
+  documents: ["read", "create", "update", "delete"],
   tags: ["read", "create", "update", "delete"],
   properties: ["read", "create", "update", "delete"],
+  documentTypes: ["read", "create", "update", "delete"],
+  storagePaths: ["read", "create", "update", "delete"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -39,21 +40,27 @@ export const ac = createAccessControl(statement);
 export const roles = {
   owner: ac.newRole({
     ...ownerAc.statements,
-    documents: ["read", "create", "delete"],
+    documents: ["read", "create", "update", "delete"],
     tags: ["read", "create", "update", "delete"],
     properties: ["read", "create", "update", "delete"],
+    documentTypes: ["read", "create", "update", "delete"],
+    storagePaths: ["read", "create", "update", "delete"],
   }),
   admin: ac.newRole({
     ...adminAc.statements,
-    documents: ["read", "create", "delete"],
+    documents: ["read", "create", "update", "delete"],
     tags: ["read", "create", "update", "delete"],
     properties: ["read", "create", "update", "delete"],
+    documentTypes: ["read", "create", "update", "delete"],
+    storagePaths: ["read", "create", "update", "delete"],
   }),
   member: ac.newRole({
     ...memberAc.statements,
-    documents: ["read", "create"],
+    documents: ["read", "create", "update"],
     tags: ["read"],
     properties: ["read"],
+    documentTypes: ["read"],
+    storagePaths: ["read"],
   }),
 };
 

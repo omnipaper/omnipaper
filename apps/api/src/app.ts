@@ -6,8 +6,10 @@ import { auth } from "./auth";
 import type { Variables } from "./context";
 import { requireAuth, requireOrganization } from "./middleware";
 import { customPropertiesRoutes } from "./routes/custom-properties";
+import { documentTypesRoutes } from "./routes/document-types";
 import { documentsRoutes } from "./routes/documents";
 import { settingsRoutes } from "./routes/settings";
+import { storagePathsRoutes } from "./routes/storage-paths";
 import { tagsRoutes } from "./routes/tags";
 
 export function createApp() {
@@ -16,6 +18,8 @@ export function createApp() {
   const orgRoutes = new Hono<{ Variables: Variables }>()
     .use("*", requireOrganization)
     .route("/documents", documentsRoutes)
+    .route("/document-types", documentTypesRoutes)
+    .route("/storage-paths", storagePathsRoutes)
     .route("/tags", tagsRoutes)
     .route("/custom-properties", customPropertiesRoutes);
 
@@ -32,7 +36,7 @@ export function createApp() {
       cors({
         origin: [env.APP_URL, ...env.EXTRA_TRUSTED_ORIGINS],
         allowHeaders: ["Content-Type", "Authorization"],
-        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         credentials: true,
       }),
     )

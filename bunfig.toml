@@ -1,0 +1,6 @@
+# Pin exact versions on `bun add` (no caret/tilde ranges) to shrink the supply-chain
+# range-float surface. Works together with the committed bun.lock and
+# `bun install --frozen-lockfile` (used in CI / docker/Dockerfile) — the lockfile is what
+# actually protects transitive deps and the "deleted lockfile, fresh install" case.
+[install]
+exact = true

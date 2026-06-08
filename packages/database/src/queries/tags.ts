@@ -70,15 +70,33 @@ export type CreateTagInput = {
   description?: string;
 };
 
+// New tags get a random hue from this palette instead of all defaulting to the same grey. Stored
+// as plain hex; the UI renders any hex as the tag's colour dot.
+const TAG_COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#14b8a6",
+  "#3b82f6",
+  "#6366f1",
+  "#a855f7",
+  "#ec4899",
+] as const;
+
+function randomTagColor(): string {
+  return TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)] ?? TAG_COLORS[0];
+}
+
 // Insert a tag. Name is trimmed here so the unique(organizationId, name) constraint sees the same
-// value the picker will. `color` is omitted when absent so the column default applies.
+// value the picker will. An absent `color` gets a random palette colour, not the grey column default.
 export async function createTag(db: Database, input: CreateTagInput) {
   const [tag] = await db
     .insert(tags)
     .values({
       organizationId: input.organizationId,
       name: input.name.trim(),
-      color: input.color,
+      color: input.color ?? randomTagColor(),
       description: input.description,
     })
     .returning();

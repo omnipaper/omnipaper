@@ -20,11 +20,16 @@ import { Route as AuthAcceptInvitationIdRouteImport } from './routes/_auth/accep
 import { Route as DashboardOrgsOrgIdRouteRouteImport } from './routes/dashboard/orgs/$orgId/route'
 import { Route as DashboardOrgsOrgIdIndexRouteImport } from './routes/dashboard/orgs/$orgId/index'
 import { Route as DashboardOrgsOrgIdSettingsIndexRouteImport } from './routes/dashboard/orgs/$orgId/settings/index'
+import { Route as DashboardOrgsOrgIdViewsListRouteImport } from './routes/dashboard/orgs/$orgId/views/list'
+import { Route as DashboardOrgsOrgIdViewsFoldersRouteImport } from './routes/dashboard/orgs/$orgId/views/folders'
 import { Route as DashboardOrgsOrgIdSettingsTagsRouteImport } from './routes/dashboard/orgs/$orgId/settings/tags'
+import { Route as DashboardOrgsOrgIdSettingsStoragePathsRouteImport } from './routes/dashboard/orgs/$orgId/settings/storage-paths'
 import { Route as DashboardOrgsOrgIdSettingsStorageRouteImport } from './routes/dashboard/orgs/$orgId/settings/storage'
+import { Route as DashboardOrgsOrgIdSettingsRegistrationRouteImport } from './routes/dashboard/orgs/$orgId/settings/registration'
 import { Route as DashboardOrgsOrgIdSettingsOcrRouteImport } from './routes/dashboard/orgs/$orgId/settings/ocr'
 import { Route as DashboardOrgsOrgIdSettingsMembersRouteImport } from './routes/dashboard/orgs/$orgId/settings/members'
 import { Route as DashboardOrgsOrgIdSettingsGeneralRouteImport } from './routes/dashboard/orgs/$orgId/settings/general'
+import { Route as DashboardOrgsOrgIdSettingsDocumentTypesRouteImport } from './routes/dashboard/orgs/$orgId/settings/document-types'
 import { Route as DashboardOrgsOrgIdSettingsCustomPropertiesRouteImport } from './routes/dashboard/orgs/$orgId/settings/custom-properties'
 import { Route as DashboardOrgsOrgIdDocumentsIdRouteImport } from './routes/dashboard/orgs/$orgId/documents.$id'
 
@@ -83,16 +88,40 @@ const DashboardOrgsOrgIdSettingsIndexRoute =
     path: '/settings/',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
+const DashboardOrgsOrgIdViewsListRoute =
+  DashboardOrgsOrgIdViewsListRouteImport.update({
+    id: '/views/list',
+    path: '/views/list',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
+const DashboardOrgsOrgIdViewsFoldersRoute =
+  DashboardOrgsOrgIdViewsFoldersRouteImport.update({
+    id: '/views/folders',
+    path: '/views/folders',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdSettingsTagsRoute =
   DashboardOrgsOrgIdSettingsTagsRouteImport.update({
     id: '/settings/tags',
     path: '/settings/tags',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
+const DashboardOrgsOrgIdSettingsStoragePathsRoute =
+  DashboardOrgsOrgIdSettingsStoragePathsRouteImport.update({
+    id: '/settings/storage-paths',
+    path: '/settings/storage-paths',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdSettingsStorageRoute =
   DashboardOrgsOrgIdSettingsStorageRouteImport.update({
     id: '/settings/storage',
     path: '/settings/storage',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
+const DashboardOrgsOrgIdSettingsRegistrationRoute =
+  DashboardOrgsOrgIdSettingsRegistrationRouteImport.update({
+    id: '/settings/registration',
+    path: '/settings/registration',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
 const DashboardOrgsOrgIdSettingsOcrRoute =
@@ -111,6 +140,12 @@ const DashboardOrgsOrgIdSettingsGeneralRoute =
   DashboardOrgsOrgIdSettingsGeneralRouteImport.update({
     id: '/settings/general',
     path: '/settings/general',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
+const DashboardOrgsOrgIdSettingsDocumentTypesRoute =
+  DashboardOrgsOrgIdSettingsDocumentTypesRouteImport.update({
+    id: '/settings/document-types',
+    path: '/settings/document-types',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
 const DashboardOrgsOrgIdSettingsCustomPropertiesRoute =
@@ -138,11 +173,16 @@ export interface FileRoutesByFullPath {
   '/dashboard/orgs/$orgId/': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
+  '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
+  '/dashboard/orgs/$orgId/settings/registration': typeof DashboardOrgsOrgIdSettingsRegistrationRoute
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
+  '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
+  '/dashboard/orgs/$orgId/views/folders': typeof DashboardOrgsOrgIdViewsFoldersRoute
+  '/dashboard/orgs/$orgId/views/list': typeof DashboardOrgsOrgIdViewsListRoute
   '/dashboard/orgs/$orgId/settings/': typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -155,11 +195,16 @@ export interface FileRoutesByTo {
   '/dashboard/orgs/$orgId': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
+  '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
+  '/dashboard/orgs/$orgId/settings/registration': typeof DashboardOrgsOrgIdSettingsRegistrationRoute
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
+  '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
+  '/dashboard/orgs/$orgId/views/folders': typeof DashboardOrgsOrgIdViewsFoldersRoute
+  '/dashboard/orgs/$orgId/views/list': typeof DashboardOrgsOrgIdViewsListRoute
   '/dashboard/orgs/$orgId/settings': typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -176,11 +221,16 @@ export interface FileRoutesById {
   '/dashboard/orgs/$orgId/': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
+  '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
+  '/dashboard/orgs/$orgId/settings/registration': typeof DashboardOrgsOrgIdSettingsRegistrationRoute
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
+  '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
+  '/dashboard/orgs/$orgId/views/folders': typeof DashboardOrgsOrgIdViewsFoldersRoute
+  '/dashboard/orgs/$orgId/views/list': typeof DashboardOrgsOrgIdViewsListRoute
   '/dashboard/orgs/$orgId/settings/': typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -197,11 +247,16 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/'
     | '/dashboard/orgs/$orgId/documents/$id'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
+    | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
     | '/dashboard/orgs/$orgId/settings/ocr'
+    | '/dashboard/orgs/$orgId/settings/registration'
     | '/dashboard/orgs/$orgId/settings/storage'
+    | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
+    | '/dashboard/orgs/$orgId/views/folders'
+    | '/dashboard/orgs/$orgId/views/list'
     | '/dashboard/orgs/$orgId/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -214,11 +269,16 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId'
     | '/dashboard/orgs/$orgId/documents/$id'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
+    | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
     | '/dashboard/orgs/$orgId/settings/ocr'
+    | '/dashboard/orgs/$orgId/settings/registration'
     | '/dashboard/orgs/$orgId/settings/storage'
+    | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
+    | '/dashboard/orgs/$orgId/views/folders'
+    | '/dashboard/orgs/$orgId/views/list'
     | '/dashboard/orgs/$orgId/settings'
   id:
     | '__root__'
@@ -234,11 +294,16 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/'
     | '/dashboard/orgs/$orgId/documents/$id'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
+    | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
     | '/dashboard/orgs/$orgId/settings/ocr'
+    | '/dashboard/orgs/$orgId/settings/registration'
     | '/dashboard/orgs/$orgId/settings/storage'
+    | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
+    | '/dashboard/orgs/$orgId/views/folders'
+    | '/dashboard/orgs/$orgId/views/list'
     | '/dashboard/orgs/$orgId/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -327,6 +392,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsIndexRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
+    '/dashboard/orgs/$orgId/views/list': {
+      id: '/dashboard/orgs/$orgId/views/list'
+      path: '/views/list'
+      fullPath: '/dashboard/orgs/$orgId/views/list'
+      preLoaderRoute: typeof DashboardOrgsOrgIdViewsListRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
+    '/dashboard/orgs/$orgId/views/folders': {
+      id: '/dashboard/orgs/$orgId/views/folders'
+      path: '/views/folders'
+      fullPath: '/dashboard/orgs/$orgId/views/folders'
+      preLoaderRoute: typeof DashboardOrgsOrgIdViewsFoldersRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
     '/dashboard/orgs/$orgId/settings/tags': {
       id: '/dashboard/orgs/$orgId/settings/tags'
       path: '/settings/tags'
@@ -334,11 +413,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsTagsRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
+    '/dashboard/orgs/$orgId/settings/storage-paths': {
+      id: '/dashboard/orgs/$orgId/settings/storage-paths'
+      path: '/settings/storage-paths'
+      fullPath: '/dashboard/orgs/$orgId/settings/storage-paths'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsStoragePathsRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
     '/dashboard/orgs/$orgId/settings/storage': {
       id: '/dashboard/orgs/$orgId/settings/storage'
       path: '/settings/storage'
       fullPath: '/dashboard/orgs/$orgId/settings/storage'
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsStorageRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
+    '/dashboard/orgs/$orgId/settings/registration': {
+      id: '/dashboard/orgs/$orgId/settings/registration'
+      path: '/settings/registration'
+      fullPath: '/dashboard/orgs/$orgId/settings/registration'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsRegistrationRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
     '/dashboard/orgs/$orgId/settings/ocr': {
@@ -362,6 +455,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsGeneralRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
+    '/dashboard/orgs/$orgId/settings/document-types': {
+      id: '/dashboard/orgs/$orgId/settings/document-types'
+      path: '/settings/document-types'
+      fullPath: '/dashboard/orgs/$orgId/settings/document-types'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsDocumentTypesRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
     '/dashboard/orgs/$orgId/settings/custom-properties': {
       id: '/dashboard/orgs/$orgId/settings/custom-properties'
       path: '/settings/custom-properties'
@@ -383,11 +483,16 @@ interface DashboardOrgsOrgIdRouteRouteChildren {
   DashboardOrgsOrgIdIndexRoute: typeof DashboardOrgsOrgIdIndexRoute
   DashboardOrgsOrgIdDocumentsIdRoute: typeof DashboardOrgsOrgIdDocumentsIdRoute
   DashboardOrgsOrgIdSettingsCustomPropertiesRoute: typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
+  DashboardOrgsOrgIdSettingsDocumentTypesRoute: typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   DashboardOrgsOrgIdSettingsGeneralRoute: typeof DashboardOrgsOrgIdSettingsGeneralRoute
   DashboardOrgsOrgIdSettingsMembersRoute: typeof DashboardOrgsOrgIdSettingsMembersRoute
   DashboardOrgsOrgIdSettingsOcrRoute: typeof DashboardOrgsOrgIdSettingsOcrRoute
+  DashboardOrgsOrgIdSettingsRegistrationRoute: typeof DashboardOrgsOrgIdSettingsRegistrationRoute
   DashboardOrgsOrgIdSettingsStorageRoute: typeof DashboardOrgsOrgIdSettingsStorageRoute
+  DashboardOrgsOrgIdSettingsStoragePathsRoute: typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   DashboardOrgsOrgIdSettingsTagsRoute: typeof DashboardOrgsOrgIdSettingsTagsRoute
+  DashboardOrgsOrgIdViewsFoldersRoute: typeof DashboardOrgsOrgIdViewsFoldersRoute
+  DashboardOrgsOrgIdViewsListRoute: typeof DashboardOrgsOrgIdViewsListRoute
   DashboardOrgsOrgIdSettingsIndexRoute: typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 
@@ -397,14 +502,22 @@ const DashboardOrgsOrgIdRouteRouteChildren: DashboardOrgsOrgIdRouteRouteChildren
     DashboardOrgsOrgIdDocumentsIdRoute: DashboardOrgsOrgIdDocumentsIdRoute,
     DashboardOrgsOrgIdSettingsCustomPropertiesRoute:
       DashboardOrgsOrgIdSettingsCustomPropertiesRoute,
+    DashboardOrgsOrgIdSettingsDocumentTypesRoute:
+      DashboardOrgsOrgIdSettingsDocumentTypesRoute,
     DashboardOrgsOrgIdSettingsGeneralRoute:
       DashboardOrgsOrgIdSettingsGeneralRoute,
     DashboardOrgsOrgIdSettingsMembersRoute:
       DashboardOrgsOrgIdSettingsMembersRoute,
     DashboardOrgsOrgIdSettingsOcrRoute: DashboardOrgsOrgIdSettingsOcrRoute,
+    DashboardOrgsOrgIdSettingsRegistrationRoute:
+      DashboardOrgsOrgIdSettingsRegistrationRoute,
     DashboardOrgsOrgIdSettingsStorageRoute:
       DashboardOrgsOrgIdSettingsStorageRoute,
+    DashboardOrgsOrgIdSettingsStoragePathsRoute:
+      DashboardOrgsOrgIdSettingsStoragePathsRoute,
     DashboardOrgsOrgIdSettingsTagsRoute: DashboardOrgsOrgIdSettingsTagsRoute,
+    DashboardOrgsOrgIdViewsFoldersRoute: DashboardOrgsOrgIdViewsFoldersRoute,
+    DashboardOrgsOrgIdViewsListRoute: DashboardOrgsOrgIdViewsListRoute,
     DashboardOrgsOrgIdSettingsIndexRoute: DashboardOrgsOrgIdSettingsIndexRoute,
   }
 

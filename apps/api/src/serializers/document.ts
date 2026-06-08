@@ -8,6 +8,7 @@ export function toDocumentDto(document: Document) {
     sizeBytes: document.sizeBytes,
     ocrStatus: document.ocrStatus,
     ocrText: document.ocrText,
+    documentDate: document.documentDate,
     createdAt: document.createdAt,
     updatedAt: document.updatedAt,
   };

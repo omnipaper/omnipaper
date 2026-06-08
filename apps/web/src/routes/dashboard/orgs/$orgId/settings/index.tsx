@@ -1,8 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { ensureOrgRole } from "@/lib/queries/organization";
-import { canManageOrg, isInstanceAdmin } from "@omnipaper/permissions";
-import { sessionQueryOptions } from "@/lib/queries/session";
+import { sessionQueryOptions } from "@/features/auth/queries/session";
+import { ensureOrgRole } from "@/features/organization/queries/organization";
 import { queryClient } from "@/lib/query-client";
+import { canManageOrg, isInstanceAdmin } from "@omnipaper/permissions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/")({
   beforeLoad: async ({ params }) => {

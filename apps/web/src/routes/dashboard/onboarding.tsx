@@ -1,3 +1,6 @@
+import { authClient } from "@/features/auth/auth-client";
+import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
+import { queryClient } from "@/lib/query-client";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Card,
@@ -13,9 +16,6 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
-import { sessionKeys, sessionQueryOptions } from "@/lib/queries/session";
-import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard/onboarding")({
   component: OnboardingPage,
@@ -24,8 +24,10 @@ export const Route = createFileRoute("/dashboard/onboarding")({
 function OnboardingPage() {
   const navigate = useNavigate();
   const { data: session } = useQuery(sessionQueryOptions);
-  const userName = session?.user?.name;
-  const [name, setName] = useState(userName ? `${userName}'s workspace` : "My workspace");
+  // Use only the first word of the name — usually the first name — so "Mateusz Tylec" suggests
+  // "Mateusz's workspace", not "Mateusz Tylec's workspace".
+  const firstName = session?.user?.name?.trim().split(/\s+/)[0];
+  const [name, setName] = useState(firstName ? `${firstName}'s workspace` : "My workspace");
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: SubmitEvent) {

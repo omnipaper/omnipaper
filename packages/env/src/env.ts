@@ -15,7 +15,12 @@ export const env = createEnv({
     EXTRA_TRUSTED_ORIGINS: z
       .string()
       .default("")
-      .transform((v) => v.split(",").map((o) => o.trim()).filter(Boolean)),
+      .transform((v) =>
+        v
+          .split(",")
+          .map((o) => o.trim())
+          .filter(Boolean),
+      ),
     PORT: z.coerce.number().default(3000),
     SERVICES: z.string().default("web,worker"),
   },

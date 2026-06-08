@@ -1,10 +1,10 @@
-import { NavUser } from "@/components/nav-user";
-import { OrgSwitcher } from "@/components/org-switcher";
-import { signOut } from "@/lib/auth-client";
-import { canManageOrg, isInstanceAdmin } from "@omnipaper/permissions";
-import { fullOrganizationQuery, useOrgMember } from "@/lib/queries/organization";
-import { sessionKeys, sessionQueryOptions } from "@/lib/queries/session";
+import { signOut } from "@/features/auth/auth-client";
+import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
+import { NavUser } from "@/features/organization/components/nav-user";
+import { OrgSwitcher } from "@/features/organization/components/org-switcher";
+import { fullOrganizationQuery, useOrgMember } from "@/features/organization/queries/organization";
 import { queryClient } from "@/lib/query-client";
+import { canManageOrg, isInstanceAdmin } from "@omnipaper/permissions";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Sidebar,
@@ -34,10 +34,13 @@ import {
   ArrowLeftIcon,
   Building2Icon,
   FileTextIcon,
+  FileTypeIcon,
+  FolderTreeIcon,
   HardDriveIcon,
   KeyIcon,
   SlidersHorizontalIcon,
   TagIcon,
+  UserPlusIcon,
   UsersIcon,
 } from "lucide-react";
 
@@ -55,6 +58,26 @@ export const Route = createFileRoute("/dashboard/orgs/$orgId")({
   component: OrgLayout,
 });
 
+// The built-in document views, surfaced as the sidebar's view switcher. This array IS the
+// definition of "which views exist" — adding one is a new entry here plus its route file.
+// `match` is the URL fragment used for active-state (independent of the view's query params).
+const orgViews = [
+  {
+    key: "list",
+    label: "Documents",
+    icon: FileTextIcon,
+    to: "/dashboard/orgs/$orgId/views/list",
+    match: "/views/list",
+  },
+  {
+    key: "folders",
+    label: "Folders",
+    icon: FolderTreeIcon,
+    to: "/dashboard/orgs/$orgId/views/folders",
+    match: "/views/folders",
+  },
+] as const;
+
 function OrgLayout() {
   const { orgId } = Route.useParams();
   const navigate = useNavigate();
@@ -65,6 +88,9 @@ function OrgLayout() {
   const canManage = canManageOrg(member?.role);
   const settingsBase = `/dashboard/orgs/${orgId}/settings`;
   const inSettings = pathname.startsWith(settingsBase);
+  // The document detail is a full-height split view; it manages its own scroll/padding, so the
+  // content shell goes edge-to-edge for it instead of the default padded, scrollable container.
+  const isDocDetail = pathname.includes("/documents/");
 
   async function handleSignOut() {
     await signOut();
@@ -73,7 +99,7 @@ function OrgLayout() {
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh overflow-hidden">
       <Sidebar>
         {inSettings ? (
           <>
@@ -139,6 +165,34 @@ function OrgLayout() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === `${settingsBase}/document-types`}
+                        >
+                          <Link
+                            to="/dashboard/orgs/$orgId/settings/document-types"
+                            params={{ orgId }}
+                          >
+                            <FileTypeIcon />
+                            <span>Document types</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === `${settingsBase}/storage-paths`}
+                        >
+                          <Link
+                            to="/dashboard/orgs/$orgId/settings/storage-paths"
+                            params={{ orgId }}
+                          >
+                            <FolderTreeIcon />
+                            <span>Storage paths</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
@@ -167,6 +221,20 @@ function OrgLayout() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === `${settingsBase}/registration`}
+                        >
+                          <Link
+                            to="/dashboard/orgs/$orgId/settings/registration"
+                            params={{ orgId }}
+                          >
+                            <UserPlusIcon />
+                            <span>Registration</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
@@ -187,20 +255,19 @@ function OrgLayout() {
               <SidebarGroup>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={
-                          pathname === `/dashboard/orgs/${orgId}` ||
-                          pathname.startsWith(`/dashboard/orgs/${orgId}/documents`)
-                        }
-                      >
-                        <Link to="/dashboard/orgs/$orgId" params={{ orgId }}>
-                          <FileTextIcon />
-                          <span>Documents</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {orgViews.map((view) => {
+                      const Icon = view.icon;
+                      return (
+                        <SidebarMenuItem key={view.key}>
+                          <SidebarMenuButton asChild isActive={pathname.includes(view.match)}>
+                            <Link to={view.to} params={{ orgId }}>
+                              <Icon />
+                              <span>{view.label}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -214,13 +281,13 @@ function OrgLayout() {
         )}
       </Sidebar>
       <SidebarInset>
-        <header className="flex items-center gap-2 border-b px-4 py-3">
+        <header className="flex shrink-0 items-center gap-2 border-b px-4 py-3">
           <SidebarTrigger />
           <span className="font-medium text-sm">{inSettings ? "Settings" : "Dashboard"}</span>
         </header>
-        <main className="p-6">
+        <div className={isDocDetail ? "min-h-0 flex-1" : "min-h-0 flex-1 overflow-y-auto p-6"}>
           <Outlet />
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

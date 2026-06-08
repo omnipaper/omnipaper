@@ -25,6 +25,63 @@ const tsvector = customType<{ data: string }>({
 
 export const ocrStatusEnum = pgEnum("ocr_status", ["pending", "processing", "completed", "failed"]);
 
+// Built-in, single-pick document metadata kept as first-class tables (not custom properties)
+// because each entry carries a `description` — for the user, and for planned AI auto-assignment
+// that reads the description to decide which type/path fits a document.
+export const documentTypes = pgTable(
+  "document_types",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("dtype")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("document_types_org_name_idx").on(t.organizationId, t.name),
+    index("document_types_organization_id_idx").on(t.organizationId),
+  ],
+);
+
+export type DocumentType = typeof documentTypes.$inferSelect;
+export type NewDocumentType = typeof documentTypes.$inferInsert;
+
+// `path` is a slash-delimited string (validated app-side); the folder tree is derived by
+// splitting these strings — a flat list, not a parentId hierarchy.
+export const storagePaths = pgTable(
+  "storage_paths",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("path")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    path: text("path").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("storage_paths_org_path_idx").on(t.organizationId, t.path),
+    index("storage_paths_organization_id_idx").on(t.organizationId),
+  ],
+);
+
+export type StoragePath = typeof storagePaths.$inferSelect;
+export type NewStoragePath = typeof storagePaths.$inferInsert;
+
 export const documents = pgTable(
   "documents",
   {
@@ -42,6 +99,13 @@ export const documents = pgTable(
     ocrStatus: ocrStatusEnum("ocr_status").notNull().default("pending"),
     ocrText: text("ocr_text"),
     ocrMetadata: jsonb("ocr_metadata").$type<Record<string, unknown>>(),
+    documentDate: date("document_date"),
+    documentTypeId: text("document_type_id").references(() => documentTypes.id, {
+      onDelete: "set null",
+    }),
+    storagePathId: text("storage_path_id").references(() => storagePaths.id, {
+      onDelete: "set null",
+    }),
     searchVector: tsvector("search_vector").generatedAlwaysAs(
       (): SQL =>
         sql`setweight(to_tsvector('simple', ${documents.title}), 'A') || setweight(to_tsvector('simple', coalesce(${documents.ocrText}, '')), 'B')`,
@@ -55,6 +119,9 @@ export const documents = pgTable(
   (t) => [
     index("documents_search_idx").using("gin", t.searchVector),
     index("documents_organization_id_idx").on(t.organizationId),
+    index("documents_org_document_type_id_idx").on(t.organizationId, t.documentTypeId),
+    index("documents_org_storage_path_id_idx").on(t.organizationId, t.storagePathId),
+    index("documents_org_document_date_idx").on(t.organizationId, t.documentDate),
   ],
 );
 

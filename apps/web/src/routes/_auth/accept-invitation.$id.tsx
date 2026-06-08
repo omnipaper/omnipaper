@@ -1,3 +1,7 @@
+import { authClient, signIn, signOut, signUp, useSession } from "@/features/auth/auth-client";
+import { sessionKeys } from "@/features/auth/queries/session";
+import { documentKeys } from "@/features/documents/queries/documents";
+import { queryClient } from "@/lib/query-client";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Card,
@@ -13,10 +17,6 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
-import { authClient, signIn, signOut, signUp, useSession } from "@/lib/auth-client";
-import { documentKeys } from "@/lib/queries/documents";
-import { sessionKeys } from "@/lib/queries/session";
-import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/_auth/accept-invitation/$id")({
   validateSearch: (search: Record<string, unknown>): { email?: string; org?: string } => ({

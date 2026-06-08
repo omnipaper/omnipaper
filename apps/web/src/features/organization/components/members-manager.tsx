@@ -1,0 +1,469 @@
+import { SettingsTableToolbar, TableEmptyRow } from "@/components/settings/settings-table";
+import { authClient } from "@/features/auth/auth-client";
+import {
+  fullOrganizationQuery,
+  organizationKeys,
+  useOrgMember,
+} from "@/features/organization/queries/organization";
+import { isOrgOwner } from "@omnipaper/permissions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@omnipaper/ui/components/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@omnipaper/ui/components/avatar";
+import { Button } from "@omnipaper/ui/components/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@omnipaper/ui/components/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@omnipaper/ui/components/dropdown-menu";
+import { Input } from "@omnipaper/ui/components/input";
+import { Label } from "@omnipaper/ui/components/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@omnipaper/ui/components/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@omnipaper/ui/components/table";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { MailIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
+import { type ReactNode, useState } from "react";
+import { toast } from "sonner";
+
+type OrgRole = "member" | "admin";
+
+const COLUMN_COUNT = 5;
+
+function initials(value: string): string {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0] ?? "";
+  const second = parts[1] ?? "";
+  if (first && second) {
+    return `${first[0]}${second[0]}`.toUpperCase();
+  }
+  return value.slice(0, 2).toUpperCase();
+}
+
+function StatusBadge({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground text-xs">{children}</span>
+  );
+}
+
+function GroupHeaderRow({ children }: { children: ReactNode }) {
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell
+        colSpan={COLUMN_COUNT}
+        className="bg-muted/40 py-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wide"
+      >
+        {children}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+export function MembersManager({ orgId }: { orgId: string }) {
+  const queryClient = useQueryClient();
+  const orgQuery = useQuery(fullOrganizationQuery(orgId));
+  const currentMember = useOrgMember(orgId);
+  const currentMemberId = currentMember?.id;
+
+  const [search, setSearch] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<{ id: string; name: string } | null>(null);
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: organizationKeys.full(orgId) });
+  }
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async (vars: { memberId: string; role: OrgRole }) => {
+      const { error } = await authClient.organization.updateMemberRole({
+        memberId: vars.memberId,
+        role: vars.role,
+        organizationId: orgId,
+      });
+      if (error) {
+        throw new Error(error.message ?? "Failed to update role");
+      }
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Role updated");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (memberId: string) => {
+      const { error } = await authClient.organization.removeMember({
+        memberIdOrEmail: memberId,
+        organizationId: orgId,
+      });
+      if (error) {
+        throw new Error(error.message ?? "Failed to remove member");
+      }
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Member removed");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const cancelInviteMutation = useMutation({
+    mutationFn: async (invitationId: string) => {
+      const { error } = await authClient.organization.cancelInvitation({ invitationId });
+      if (error) {
+        throw new Error(error.message ?? "Failed to cancel invitation");
+      }
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Invitation cancelled");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  async function copyInviteLink(invitation: { id: string; email: string }) {
+    // Carry the email (and org name) in the link so the accept page can prefill them
+    // without a session — getInvitation requires one, the logged-out invitee has none.
+    const params = new URLSearchParams({ email: invitation.email });
+    if (orgQuery.data?.name) {
+      params.set("org", orgQuery.data.name);
+    }
+    const url = `${window.location.origin}/accept-invitation/${invitation.id}?${params.toString()}`;
+    await navigator.clipboard.writeText(url);
+    toast.success("Invite link copied");
+  }
+
+  const members = orgQuery.data?.members ?? [];
+  const pendingInvitations = (orgQuery.data?.invitations ?? []).filter(
+    (invitation) => invitation.status === "pending",
+  );
+
+  const query = search.trim().toLowerCase();
+  const filteredMembers = query
+    ? members.filter(
+        (member) =>
+          member.user.name.toLowerCase().includes(query) ||
+          member.user.email.toLowerCase().includes(query),
+      )
+    : members;
+  const filteredInvitations = query
+    ? pendingInvitations.filter((invitation) => invitation.email.toLowerCase().includes(query))
+    : pendingInvitations;
+
+  const showGroups = filteredInvitations.length > 0;
+
+  let body: ReactNode;
+  if (orgQuery.isPending) {
+    body = <TableEmptyRow colSpan={COLUMN_COUNT}>Loading…</TableEmptyRow>;
+  } else if (orgQuery.isError) {
+    body = (
+      <TableEmptyRow colSpan={COLUMN_COUNT} className="text-destructive">
+        Failed to load members.
+      </TableEmptyRow>
+    );
+  } else if (filteredMembers.length === 0 && filteredInvitations.length === 0) {
+    body = (
+      <TableEmptyRow colSpan={COLUMN_COUNT}>
+        {query ? `No people match “${search}”.` : "No members yet."}
+      </TableEmptyRow>
+    );
+  } else {
+    const memberRows = filteredMembers.map((member) => {
+      const isOwnerRow = isOrgOwner(member.role);
+      const isSelf = member.id === currentMemberId;
+      const locked = isOwnerRow || isSelf;
+
+      return (
+        <TableRow key={member.id}>
+          <TableCell>
+            <div className="flex items-center gap-2">
+              <Avatar size="sm">
+                {member.user.image ? <AvatarImage src={member.user.image} alt="" /> : null}
+                <AvatarFallback>{initials(member.user.name || member.user.email)}</AvatarFallback>
+              </Avatar>
+              <span className="font-medium">{member.user.name}</span>
+            </div>
+          </TableCell>
+          <TableCell className="text-muted-foreground">{member.user.email}</TableCell>
+          <TableCell>
+            {locked ? (
+              <span className="text-muted-foreground capitalize">{member.role}</span>
+            ) : (
+              <Select
+                value={member.role}
+                onValueChange={(role) =>
+                  updateRoleMutation.mutate({ memberId: member.id, role: role as OrgRole })
+                }
+              >
+                <SelectTrigger size="sm" className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">member</SelectItem>
+                  <SelectItem value="admin">admin</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </TableCell>
+          <TableCell>
+            <StatusBadge>{isOwnerRow ? "Owner" : "Active"}</StatusBadge>
+          </TableCell>
+          <TableCell className="text-right">
+            {locked ? null : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label="Member actions">
+                    <MoreHorizontalIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-32">
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() =>
+                      setMemberToRemove({
+                        id: member.id,
+                        name: member.user.name || member.user.email,
+                      })
+                    }
+                  >
+                    Remove from org
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </TableCell>
+        </TableRow>
+      );
+    });
+
+    const invitationRows = filteredInvitations.map((invitation) => (
+      <TableRow key={invitation.id}>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <Avatar size="sm">
+              <AvatarFallback>
+                <MailIcon className="size-3" />
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-medium">{invitation.email}</span>
+          </div>
+        </TableCell>
+        <TableCell className="text-muted-foreground">—</TableCell>
+        <TableCell className="text-muted-foreground capitalize">{invitation.role}</TableCell>
+        <TableCell>
+          <StatusBadge>Pending</StatusBadge>
+        </TableCell>
+        <TableCell className="text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label="Invitation actions">
+                <MoreHorizontalIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-32">
+              <DropdownMenuItem onSelect={() => copyInviteLink(invitation)}>
+                Copy invite link
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={() => cancelInviteMutation.mutate(invitation.id)}
+              >
+                Cancel invitation
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+    ));
+
+    body = (
+      <>
+        {showGroups ? <GroupHeaderRow>Members · {filteredMembers.length}</GroupHeaderRow> : null}
+        {memberRows}
+        {showGroups ? (
+          <GroupHeaderRow>Pending invitations · {filteredInvitations.length}</GroupHeaderRow>
+        ) : null}
+        {invitationRows}
+      </>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <SettingsTableToolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Filter by name or email…"
+      >
+        <Button onClick={() => setInviteOpen(true)}>
+          <PlusIcon />
+          Invite member
+        </Button>
+      </SettingsTableToolbar>
+
+      <div className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-10" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>{body}</TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent>
+          {inviteOpen ? (
+            <InviteDialogBody orgId={orgId} onDone={() => setInviteOpen(false)} />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!memberToRemove}
+        onOpenChange={(open) => {
+          if (!open) setMemberToRemove(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {memberToRemove?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              They lose access to this organization. You can invite them again later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (memberToRemove) {
+                  removeMutation.mutate(memberToRemove.id);
+                }
+                setMemberToRemove(null);
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function InviteDialogBody({ orgId, onDone }: { orgId: string; onDone: () => void }) {
+  const queryClient = useQueryClient();
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<OrgRole>("member");
+
+  const inviteMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await authClient.organization.inviteMember({
+        email: email.trim(),
+        role,
+        organizationId: orgId,
+      });
+      if (error) {
+        throw new Error(error.message ?? "Invite failed");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: organizationKeys.full(orgId) });
+      toast.success("Invitation created — copy its link from the list");
+      onDone();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Invite member</DialogTitle>
+        <DialogDescription>
+          Creates an invitation. There's no email delivery yet — copy its link from the list and
+          send it yourself.
+        </DialogDescription>
+      </DialogHeader>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (email.trim()) {
+            inviteMutation.mutate();
+          }
+        }}
+        className="flex flex-col gap-4"
+      >
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="invite-email">Email</Label>
+          <Input
+            id="invite-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="person@example.com"
+            autoFocus
+            required
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="invite-role">Role</Label>
+          <Select value={role} onValueChange={(v) => setRole(v as OrgRole)}>
+            <SelectTrigger id="invite-role" className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="member">member</SelectItem>
+              <SelectItem value="admin">admin</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button type="submit" disabled={inviteMutation.isPending || !email.trim()}>
+            {inviteMutation.isPending ? "Inviting…" : "Send invite"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </>
+  );
+}

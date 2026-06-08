@@ -1,5 +1,5 @@
-import { TagsManager } from "@/components/tags-manager";
-import { ensureOrgRole } from "@/lib/queries/organization";
+import { ensureOrgRole } from "@/features/organization/queries/organization";
+import { TagsManager } from "@/features/tags/components/tags-manager";
 import { canManageOrg } from "@omnipaper/permissions";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
@@ -18,7 +18,7 @@ function TagsPage() {
   const { orgId } = Route.useParams();
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div>
         <h1 className="font-semibold text-2xl">Tags</h1>
         <p className="text-muted-foreground text-sm">Manage the organization's tags.</p>

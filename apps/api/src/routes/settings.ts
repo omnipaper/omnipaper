@@ -2,6 +2,11 @@ import { zValidator } from "@hono/zod-validator";
 import { getOcrDefinition, listOcrDefinitions, resolveModel } from "@omnipaper/ocr/resolve";
 import { testProviderConnection } from "@omnipaper/ocr/runner";
 import {
+  getRegistrationSettings,
+  registrationSettingsSchema,
+  setRegistrationSettings,
+} from "@omnipaper/settings/auth-settings";
+import {
   getOcrSettings,
   ocrSettingsSchema,
   setOcrSettings,
@@ -131,6 +136,13 @@ const adminSettings = new Hono<{ Variables: Variables }>()
       const message = error instanceof Error ? error.message : "Connection failed";
       return c.json({ ok: false, error: redactSecrets(message, key) });
     }
+  })
+  .get("/registration", async (c) => {
+    return c.json(await getRegistrationSettings());
+  })
+  .put("/registration", zValidator("json", registrationSettingsSchema), async (c) => {
+    await setRegistrationSettings(c.req.valid("json"));
+    return c.json({ ok: true });
   });
 
 export const settingsRoutes = adminSettings;

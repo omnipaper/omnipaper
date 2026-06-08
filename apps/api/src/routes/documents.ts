@@ -8,13 +8,18 @@ import {
   getOrgPropertyDefinitions,
   setDocumentPropertyValue,
 } from "@omnipaper/database/queries/custom-properties";
+import { getOrgDocumentType } from "@omnipaper/database/queries/document-types";
 import {
   createDocument,
   deleteDocument,
   getDocumentActivity,
   getDocuments,
   getOrgDocument,
+  markDocumentOcrPending,
+  updateDocument,
+  updateDocumentOcrText,
 } from "@omnipaper/database/queries/documents";
+import { getOrgStoragePath } from "@omnipaper/database/queries/storage-paths";
 import {
   getOrgTagsByIds,
   getTagsByDocumentIds,
@@ -40,6 +45,10 @@ const createDocumentSchema = z.object({
 
 const listDocumentsQuerySchema = z.object({
   q: z.string().optional(),
+  // Folder-view filters. `storagePathId` scopes to one path; `unfiled=true` to documents with
+  // none. Query values are strings, so `unfiled` is matched as the literal "true".
+  storagePathId: z.string().min(1).optional(),
+  unfiled: z.literal("true").optional(),
 });
 
 const setDocumentTagsSchema = z.object({
@@ -52,47 +61,71 @@ const setPropertyValueSchema = z.object({
   value: z.unknown(),
 });
 
+const updateDocumentSchema = z.object({
+  title: z.string().trim().min(1).max(255).optional(),
+  documentDate: z.string().date().nullable().optional(),
+  // null clears the field; a non-empty id assigns it. Reject "" so a bad payload is a clean 400,
+  // not a DB-level FK 500 (the ownership guard below uses a truthy check that "" would skip).
+  documentTypeId: z.string().min(1).nullable().optional(),
+  storagePathId: z.string().min(1).nullable().optional(),
+});
+
+// Manual OCR-text correction. Capped well above any real transcript to bound abuse; the column
+// itself is unbounded text.
+const updateOcrTextSchema = z.object({
+  ocrText: z.string().max(1_000_000),
+});
+
 export const documentsRoutes = new Hono<{ Variables: Variables }>()
-  .post("/", zValidator("json", createDocumentSchema), async (c) => {
-    const user = c.get("user");
+  .post(
+    "/",
+    requireOrgPermission({ documents: ["create"] }),
+    zValidator("json", createDocumentSchema),
+    async (c) => {
+      const user = c.get("user");
 
-    if (!user) { // typescript: the middleware ensures user is present, but we need to satisfy the type checker
-      throw errors.unauthorized();
-    }
+      if (!user) {
+        // typescript: the middleware ensures user is present, but we need to satisfy the type checker
+        throw errors.unauthorized();
+      }
 
-    const organizationId = c.get("organizationId");
-    const values = c.req.valid("json");
-    const driver = await getStorageDriver();
+      const organizationId = c.get("organizationId");
+      const values = c.req.valid("json");
+      const driver = await getStorageDriver();
 
-    if (!driver) {
-      throw errors.badRequest("storage_not_configured", "Storage is not configured");
-    }
+      if (!driver) {
+        throw errors.badRequest("storage_not_configured", "Storage is not configured");
+      }
 
-    const id = createId("doc");
-    const storageKey = `${organizationId}/${id}`;
+      const id = createId("doc");
+      const storageKey = `${organizationId}/${id}`;
 
-    const { url } = await driver.createUploadUrl({
-      key: storageKey,
-      contentType: values.mimeType,
-    });
+      const { url } = await driver.createUploadUrl({
+        key: storageKey,
+        contentType: values.mimeType,
+      });
 
-    await createDocument(db, {
-      id,
-      organizationId,
-      createdBy: user.id,
-      title: values.title,
-      storageKey,
-      mimeType: values.mimeType,
-      sizeBytes: values.sizeBytes,
-    });
+      await createDocument(db, {
+        id,
+        organizationId,
+        createdBy: user.id,
+        title: values.title,
+        storageKey,
+        mimeType: values.mimeType,
+        sizeBytes: values.sizeBytes,
+      });
 
-    return c.json({ documentId: id, uploadUrl: url });
-  })
+      return c.json({ documentId: id, uploadUrl: url });
+    },
+  )
   .get("/", zValidator("query", listDocumentsQuerySchema), async (c) => {
     const organizationId = c.get("organizationId");
+    const { q, storagePathId, unfiled } = c.req.valid("query");
     const rows = await getDocuments(db, {
       organizationId,
-      query: c.req.valid("query").q,
+      query: q,
+      storagePathId,
+      unfiled: unfiled === "true",
     });
 
     const tagRows = await getTagsByDocumentIds(db, { documentIds: rows.map((d) => d.id) });
@@ -123,8 +156,84 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
     const valueRows = await getDocumentPropertyValues(db, { documentId: doc.id });
     const customProperties = shapeDocumentProperties(definitions, valueRows);
 
-    return c.json({ document: { ...toDocumentDto(doc), tags, customProperties } });
+    // Resolve the assigned type/path so the detail is self-contained (the picker needs the id,
+    // the UI shows the name/path) — same shape as the embedded tags above.
+    const documentType = doc.documentTypeId
+      ? await getOrgDocumentType(db, { organizationId, id: doc.documentTypeId })
+      : null;
+    const storagePath = doc.storagePathId
+      ? await getOrgStoragePath(db, { organizationId, id: doc.storagePathId })
+      : null;
+
+    return c.json({
+      document: {
+        ...toDocumentDto(doc),
+        tags,
+        customProperties,
+        documentType: documentType ? { id: documentType.id, name: documentType.name } : null,
+        storagePath: storagePath ? { id: storagePath.id, path: storagePath.path } : null,
+      },
+    });
   })
+  .patch(
+    "/:id",
+    requireOrgPermission({ documents: ["update"] }),
+    zValidator("json", updateDocumentSchema),
+    async (c) => {
+      const organizationId = c.get("organizationId");
+      const id = c.req.param("id");
+      const doc = await getOrgDocument(db, { organizationId, id });
+
+      if (!doc) {
+        throw errors.notFound("Document not found");
+      }
+
+      const values = c.req.valid("json");
+
+      // Verify referenced taxonomy belongs to this org (a null clears the field — no check needed),
+      // mirroring the tag-ownership check so a caller can't attach another tenant's type/path.
+      if (values.documentTypeId) {
+        const found = await getOrgDocumentType(db, { organizationId, id: values.documentTypeId });
+        if (!found) {
+          throw errors.badRequest(
+            "invalid_document_type",
+            "Document type does not belong to this organization",
+          );
+        }
+      }
+      if (values.storagePathId) {
+        const found = await getOrgStoragePath(db, { organizationId, id: values.storagePathId });
+        if (!found) {
+          throw errors.badRequest(
+            "invalid_storage_path",
+            "Storage path does not belong to this organization",
+          );
+        }
+      }
+
+      await updateDocument(db, { organizationId, id, ...values });
+
+      return c.json({ ok: true });
+    },
+  )
+  .put(
+    "/:id/ocr-text",
+    requireOrgPermission({ documents: ["update"] }),
+    zValidator("json", updateOcrTextSchema),
+    async (c) => {
+      const organizationId = c.get("organizationId");
+      const id = c.req.param("id");
+      const doc = await getOrgDocument(db, { organizationId, id });
+
+      if (!doc) {
+        throw errors.notFound("Document not found");
+      }
+
+      await updateDocumentOcrText(db, { organizationId, id, ocrText: c.req.valid("json").ocrText });
+
+      return c.json({ ok: true });
+    },
+  )
   .get("/:id/download", async (c) => {
     const organizationId = c.get("organizationId");
     const doc = await getOrgDocument(db, { organizationId, id: c.req.param("id") });
@@ -157,38 +266,44 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
 
     return c.json({ activities });
   })
-  .put("/:id/tags", zValidator("json", setDocumentTagsSchema), async (c) => {
-    const organizationId = c.get("organizationId");
-    const documentId = c.req.param("id");
-    const doc = await getOrgDocument(db, { organizationId, id: documentId });
+  .put(
+    "/:id/tags",
+    requireOrgPermission({ documents: ["update"] }),
+    zValidator("json", setDocumentTagsSchema),
+    async (c) => {
+      const organizationId = c.get("organizationId");
+      const documentId = c.req.param("id");
+      const doc = await getOrgDocument(db, { organizationId, id: documentId });
 
-    if (!doc) {
-      throw errors.notFound("Document not found");
-    }
-
-    const tagIds = [...new Set(c.req.valid("json").tagIds)];
-
-    if (tagIds.length > 0) {
-      // Verify every id is one of this org's tags, so a caller can't attach another tenant's tag.
-      const owned = await getOrgTagsByIds(db, { organizationId, ids: tagIds });
-
-      if (owned.length !== tagIds.length) {
-        throw errors.badRequest(
-          "invalid_tags",
-          "One or more tags do not belong to this organization",
-        );
+      if (!doc) {
+        throw errors.notFound("Document not found");
       }
-    }
 
-    await setDocumentTags(db, { documentId, tagIds });
+      const tagIds = [...new Set(c.req.valid("json").tagIds)];
 
-    const tagRows = await getTagsByDocumentIds(db, { documentIds: [documentId] });
-    const tags = tagRows.map((row) => ({ id: row.id, name: row.name, color: row.color }));
+      if (tagIds.length > 0) {
+        // Verify every id is one of this org's tags, so a caller can't attach another tenant's tag.
+        const owned = await getOrgTagsByIds(db, { organizationId, ids: tagIds });
 
-    return c.json({ tags });
-  })
+        if (owned.length !== tagIds.length) {
+          throw errors.badRequest(
+            "invalid_tags",
+            "One or more tags do not belong to this organization",
+          );
+        }
+      }
+
+      await setDocumentTags(db, { documentId, tagIds });
+
+      const tagRows = await getTagsByDocumentIds(db, { documentIds: [documentId] });
+      const tags = tagRows.map((row) => ({ id: row.id, name: row.name, color: row.color }));
+
+      return c.json({ tags });
+    },
+  )
   .put(
     "/:id/custom-properties/:definitionId",
+    requireOrgPermission({ documents: ["update"] }),
     zValidator("json", setPropertyValueSchema),
     async (c) => {
       const organizationId = c.get("organizationId");
@@ -231,19 +346,26 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
       return c.json({ ok: true });
     },
   )
-  .delete("/:id/custom-properties/:definitionId", async (c) => {
-    const organizationId = c.get("organizationId");
-    const documentId = c.req.param("id");
-    const doc = await getOrgDocument(db, { organizationId, id: documentId });
+  .delete(
+    "/:id/custom-properties/:definitionId",
+    requireOrgPermission({ documents: ["update"] }),
+    async (c) => {
+      const organizationId = c.get("organizationId");
+      const documentId = c.req.param("id");
+      const doc = await getOrgDocument(db, { organizationId, id: documentId });
 
-    if (!doc) {
-      throw errors.notFound("Document not found");
-    }
+      if (!doc) {
+        throw errors.notFound("Document not found");
+      }
 
-    await clearDocumentPropertyValue(db, { documentId, definitionId: c.req.param("definitionId") });
+      await clearDocumentPropertyValue(db, {
+        documentId,
+        definitionId: c.req.param("definitionId"),
+      });
 
-    return c.json({ ok: true });
-  })
+      return c.json({ ok: true });
+    },
+  )
   .delete("/:id", requireOrgPermission({ documents: ["delete"] }), async (c) => {
     const organizationId = c.get("organizationId");
     const doc = await getOrgDocument(db, { organizationId, id: c.req.param("id") });
@@ -262,7 +384,7 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
 
     return c.json({ ok: true });
   })
-  .post("/:id/process", async (c) => {
+  .post("/:id/process", requireOrgPermission({ documents: ["update"] }), async (c) => {
     const organizationId = c.get("organizationId");
     const doc = await getOrgDocument(db, { organizationId, id: c.req.param("id") });
 
@@ -270,6 +392,9 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
       throw errors.notFound("Document not found");
     }
 
+    // Reset the status before enqueue so a re-run immediately reads as in-progress instead of its
+    // prior completed/failed state; the worker flips it to "processing" when it picks the job up.
+    await markDocumentOcrPending(db, { id: doc.id });
     await enqueue("ocr-extract", { documentId: doc.id });
 
     return c.json({ ok: true });

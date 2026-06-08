@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { recordEvent } from "../activity";
 import { user as userTable } from "../auth-schema";
 import type { Database } from "../client";
@@ -11,12 +11,24 @@ import { activityEvents, documents } from "../schema";
 export type GetDocumentsParams = {
   organizationId: string;
   query?: string;
+  // Storage-path taxonomy filter for the folder views. `unfiled` (documents with no path) and
+  // `storagePathId` (a specific path) are mutually exclusive; `unfiled` wins if both are set.
+  storagePathId?: string;
+  unfiled?: boolean;
 };
 
 // List (or full-text search) an org's documents. Returns the list-item shape — not the full row.
 export async function getDocuments(db: Database, params: GetDocumentsParams) {
-  const { organizationId } = params;
+  const { organizationId, storagePathId, unfiled } = params;
   const q = params.query?.trim();
+
+  // Optional path predicate, shared by both branches below. `and()` ignores an undefined member,
+  // so when no path filter is requested this is a no-op.
+  const pathFilter = unfiled
+    ? isNull(documents.storagePathId)
+    : storagePathId
+      ? eq(documents.storagePathId, storagePathId)
+      : undefined;
 
   if (q) {
     // Prefix search: websearch_to_tsquery parses the user syntax (quotes, OR, -), then we append
@@ -41,6 +53,7 @@ export async function getDocuments(db: Database, params: GetDocumentsParams) {
         and(
           eq(documents.organizationId, organizationId),
           sql`${documents.searchVector} @@ ${tsQuery}`,
+          pathFilter,
         ),
       )
       .orderBy(sql`ts_rank(${documents.searchVector}, ${tsQuery}) desc`);
@@ -57,7 +70,7 @@ export async function getDocuments(db: Database, params: GetDocumentsParams) {
       snippet: sql<string | null>`null`,
     })
     .from(documents)
-    .where(eq(documents.organizationId, organizationId))
+    .where(and(eq(documents.organizationId, organizationId), pathFilter))
     .orderBy(desc(documents.createdAt));
 }
 
@@ -146,12 +159,84 @@ export async function createDocument(db: Database, input: CreateDocumentInput) {
   });
 }
 
+export type UpdateDocumentInput = {
+  organizationId: string;
+  id: string;
+  title?: string;
+  documentDate?: string | null;
+  documentTypeId?: string | null;
+  storagePathId?: string | null;
+};
+
+// Patch a document's editable metadata, scoped to its org. Only provided fields are written; an
+// empty patch returns the current row so the route never issues an invalid empty UPDATE. A null
+// for documentDate/documentTypeId/storagePathId clears that field.
+export async function updateDocument(db: Database, input: UpdateDocumentInput) {
+  const patch: {
+    title?: string;
+    documentDate?: string | null;
+    documentTypeId?: string | null;
+    storagePathId?: string | null;
+  } = {};
+
+  if (input.title !== undefined) {
+    patch.title = input.title.trim();
+  }
+  if (input.documentDate !== undefined) {
+    patch.documentDate = input.documentDate;
+  }
+  if (input.documentTypeId !== undefined) {
+    patch.documentTypeId = input.documentTypeId;
+  }
+  if (input.storagePathId !== undefined) {
+    patch.storagePathId = input.storagePathId;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return getOrgDocument(db, { organizationId: input.organizationId, id: input.id });
+  }
+
+  const [doc] = await db
+    .update(documents)
+    .set(patch)
+    .where(and(eq(documents.id, input.id), eq(documents.organizationId, input.organizationId)))
+    .returning();
+
+  return doc;
+}
+
+// Overwrite a document's extracted text with a manual correction, scoped to its org. The generated
+// search_vector column reindexes full-text search automatically — no extra step. Status is left
+// as-is: it reflects the OCR pipeline state, which a manual edit doesn't change.
+export async function updateDocumentOcrText(
+  db: Database,
+  params: { organizationId: string; id: string; ocrText: string },
+) {
+  const [doc] = await db
+    .update(documents)
+    .set({ ocrText: params.ocrText })
+    .where(and(eq(documents.id, params.id), eq(documents.organizationId, params.organizationId)))
+    .returning();
+
+  return doc;
+}
+
 export async function deleteDocument(db: Database, params: { id: string }) {
   await db.delete(documents).where(eq(documents.id, params.id));
 }
 
 export async function markDocumentOcrProcessing(db: Database, params: { id: string }) {
   await db.update(documents).set({ ocrStatus: "processing" }).where(eq(documents.id, params.id));
+}
+
+export async function markDocumentOcrPending(db: Database, params: { id: string }) {
+  await db.update(documents).set({ ocrStatus: "pending" }).where(eq(documents.id, params.id));
+}
+
+// Record an OCR failure so the document leaves "processing" (otherwise a thrown worker error would
+// strand it there forever) and the UI can surface a re-run affordance against the "failed" status.
+export async function markDocumentOcrFailed(db: Database, params: { id: string }) {
+  await db.update(documents).set({ ocrStatus: "failed" }).where(eq(documents.id, params.id));
 }
 
 export type CompleteDocumentOcrInput = {

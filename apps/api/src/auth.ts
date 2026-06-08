@@ -2,13 +2,14 @@ import { member, user as userTable } from "@omnipaper/database/auth-schema";
 import { db } from "@omnipaper/database/client";
 import { createId } from "@omnipaper/database/id";
 import { env } from "@omnipaper/env";
+import { ac, roles } from "@omnipaper/permissions";
+import { isRegistrationEnabled } from "@omnipaper/settings/auth-settings";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization } from "better-auth/plugins";
 import { count, eq } from "drizzle-orm";
-import { ac, roles } from "@omnipaper/permissions";
 
-// Stripe-style prefixed IDs
 const ID_PREFIXES: Record<string, string> = {
   user: "usr",
   session: "ses",
@@ -50,6 +51,33 @@ export const auth = betterAuth({
     // Organization plugin ACL (owner/admin/member) — separate from the global admin plugin above.
     organization({ ac, roles, requireEmailVerificationOnInvitation: false }),
   ],
+  hooks: {
+    // Gate self-service sign-up. The very first account always passes — it bootstraps the instance
+    // admin (see databaseHooks.user.create.before). After that, sign-up only succeeds while an
+    // instance admin has turned registration on (the auth.registrationEnabled setting), so a
+    // self-hosted instance with no email verification stays closed by default.
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/sign-up/email") {
+        return;
+      }
+
+      // Open → let it through without touching the user table.
+      if (await isRegistrationEnabled()) {
+        return;
+      }
+
+      // Closed, but allow the bootstrap of the first-ever account.
+      const [row] = await db.select({ value: count() }).from(userTable);
+      if ((row?.value ?? 0) === 0) {
+        return;
+      }
+
+      throw new APIError("FORBIDDEN", {
+        message: "Registration is disabled by an instance admin.",
+        code: "SIGNUP_DISABLED",
+      });
+    }),
+  },
   databaseHooks: {
     user: {
       create: {

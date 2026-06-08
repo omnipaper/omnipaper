@@ -1,10 +1,10 @@
 import { member } from "@omnipaper/database/auth-schema";
 import { db } from "@omnipaper/database/client";
+import { type OrgPermissions, hasOrgPermission, isInstanceAdmin } from "@omnipaper/permissions";
 import { and, eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 import type { Variables } from "./context";
 import { errors } from "./errors";
-import { type OrgPermissions, hasOrgPermission, isInstanceAdmin } from "@omnipaper/permissions";
 
 export const requireAdmin = createMiddleware<{ Variables: Variables }>(async (c, next) => {
   const user = c.get("user");

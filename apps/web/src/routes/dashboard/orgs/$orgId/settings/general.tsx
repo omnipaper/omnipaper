@@ -1,7 +1,7 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { OrgGeneralForm } from "@/components/org-general-form";
-import { ensureOrgRole } from "@/lib/queries/organization";
+import { OrgGeneralForm } from "@/features/organization/components/org-general-form";
+import { ensureOrgRole } from "@/features/organization/queries/organization";
 import { canManageOrg } from "@omnipaper/permissions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/general")({
   beforeLoad: async ({ params }) => {

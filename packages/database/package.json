@@ -9,7 +9,9 @@
     "./client": "./src/client.ts",
     "./activity": "./src/activity.ts",
     "./queries/custom-properties": "./src/queries/custom-properties.ts",
+    "./queries/document-types": "./src/queries/document-types.ts",
     "./queries/documents": "./src/queries/documents.ts",
+    "./queries/storage-paths": "./src/queries/storage-paths.ts",
     "./queries/tags": "./src/queries/tags.ts",
     "./id": "./src/id.ts",
     "./migrate": "./src/migrate.ts",
@@ -24,14 +26,14 @@
   },
   "dependencies": {
     "@omnipaper/env": "workspace:*",
-    "drizzle-orm": "^0.45.2",
-    "nanoid": "^5.0.0",
-    "pg": "^8.21.0"
+    "drizzle-orm": "catalog:",
+    "nanoid": "5.1.11",
+    "pg": "8.21.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.20.0",
-    "dotenv": "^17.4.2",
-    "drizzle-kit": "^0.31.10",
-    "typescript": "^5.7.0"
+    "@types/pg": "8.20.0",
+    "dotenv": "17.4.2",
+    "drizzle-kit": "0.31.10",
+    "typescript": "catalog:"
   }
 }

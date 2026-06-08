@@ -11,6 +11,7 @@ COPY apps/web/package.json apps/web/
 COPY packages/database/package.json packages/database/
 COPY packages/env/package.json packages/env/
 COPY packages/ocr/package.json packages/ocr/
+COPY packages/permissions/package.json packages/permissions/
 COPY packages/queue/package.json packages/queue/
 COPY packages/settings/package.json packages/settings/
 COPY packages/storage/package.json packages/storage/
@@ -27,6 +28,7 @@ COPY apps/web/package.json apps/web/
 COPY packages/database/package.json packages/database/
 COPY packages/env/package.json packages/env/
 COPY packages/ocr/package.json packages/ocr/
+COPY packages/permissions/package.json packages/permissions/
 COPY packages/queue/package.json packages/queue/
 COPY packages/settings/package.json packages/settings/
 COPY packages/storage/package.json packages/storage/

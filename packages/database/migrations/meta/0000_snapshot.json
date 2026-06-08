@@ -129,12 +129,8 @@
           "name": "activity_events_organization_id_organization_id_fk",
           "tableFrom": "activity_events",
           "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -142,12 +138,8 @@
           "name": "activity_events_user_id_user_id_fk",
           "tableFrom": "activity_events",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -278,12 +270,8 @@
           "name": "custom_property_definitions_organization_id_organization_id_fk",
           "tableFrom": "custom_property_definitions",
           "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -380,12 +368,8 @@
           "name": "custom_property_select_options_definition_id_custom_property_definitions_id_fk",
           "tableFrom": "custom_property_select_options",
           "tableTo": "custom_property_definitions",
-          "columnsFrom": [
-            "definition_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["definition_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -506,12 +490,8 @@
           "name": "document_custom_property_values_document_id_documents_id_fk",
           "tableFrom": "document_custom_property_values",
           "tableTo": "documents",
-          "columnsFrom": [
-            "document_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["document_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -519,12 +499,8 @@
           "name": "document_custom_property_values_definition_id_custom_property_definitions_id_fk",
           "tableFrom": "document_custom_property_values",
           "tableTo": "custom_property_definitions",
-          "columnsFrom": [
-            "definition_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["definition_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -532,12 +508,8 @@
           "name": "document_custom_property_values_select_option_id_custom_property_select_options_id_fk",
           "tableFrom": "document_custom_property_values",
           "tableTo": "custom_property_select_options",
-          "columnsFrom": [
-            "select_option_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["select_option_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -676,12 +648,8 @@
           "name": "documents_organization_id_organization_id_fk",
           "tableFrom": "documents",
           "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -689,12 +657,8 @@
           "name": "documents_created_by_user_id_fk",
           "tableFrom": "documents",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -751,12 +715,8 @@
           "name": "documents_tags_document_id_documents_id_fk",
           "tableFrom": "documents_tags",
           "tableTo": "documents",
-          "columnsFrom": [
-            "document_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["document_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -764,12 +724,8 @@
           "name": "documents_tags_tag_id_tags_id_fk",
           "tableFrom": "documents_tags",
           "tableTo": "tags",
-          "columnsFrom": [
-            "tag_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -777,10 +733,7 @@
       "compositePrimaryKeys": {
         "documents_tags_document_id_tag_id_pk": {
           "name": "documents_tags_document_id_tag_id_pk",
-          "columns": [
-            "document_id",
-            "tag_id"
-          ]
+          "columns": ["document_id", "tag_id"]
         }
       },
       "uniqueConstraints": {},
@@ -920,12 +873,8 @@
           "name": "tags_organization_id_organization_id_fk",
           "tableFrom": "tags",
           "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1042,12 +991,8 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1134,12 +1079,8 @@
           "name": "invitation_organization_id_organization_id_fk",
           "tableFrom": "invitation",
           "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1147,12 +1088,8 @@
           "name": "invitation_inviter_id_user_id_fk",
           "tableFrom": "invitation",
           "tableTo": "user",
-          "columnsFrom": [
-            "inviter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inviter_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1221,12 +1158,8 @@
           "name": "member_organization_id_organization_id_fk",
           "tableFrom": "member",
           "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1234,12 +1167,8 @@
           "name": "member_user_id_user_id_fk",
           "tableFrom": "member",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1299,9 +1228,7 @@
         "organization_slug_unique": {
           "name": "organization_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -1396,12 +1323,8 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1411,9 +1334,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -1502,9 +1423,7 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -1583,47 +1502,27 @@
     "public.activity_actor_type": {
       "name": "activity_actor_type",
       "schema": "public",
-      "values": [
-        "user",
-        "system"
-      ]
+      "values": ["user", "system"]
     },
     "public.activity_event": {
       "name": "activity_event",
       "schema": "public",
-      "values": [
-        "document.created",
-        "document.ocr_completed"
-      ]
+      "values": ["document.created", "document.ocr_completed"]
     },
     "public.activity_resource_type": {
       "name": "activity_resource_type",
       "schema": "public",
-      "values": [
-        "document"
-      ]
+      "values": ["document"]
     },
     "public.custom_property_type": {
       "name": "custom_property_type",
       "schema": "public",
-      "values": [
-        "text",
-        "url",
-        "number",
-        "date",
-        "boolean",
-        "select"
-      ]
+      "values": ["text", "url", "number", "date", "boolean", "select"]
     },
     "public.ocr_status": {
       "name": "ocr_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "processing",
-        "completed",
-        "failed"
-      ]
+      "values": ["pending", "processing", "completed", "failed"]
     }
   },
   "schemas": {},
