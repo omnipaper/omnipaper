@@ -27,6 +27,7 @@ import { Route as DashboardOrgsOrgIdSettingsStoragePathsRouteImport } from './ro
 import { Route as DashboardOrgsOrgIdSettingsStorageRouteImport } from './routes/dashboard/orgs/$orgId/settings/storage'
 import { Route as DashboardOrgsOrgIdSettingsRegistrationRouteImport } from './routes/dashboard/orgs/$orgId/settings/registration'
 import { Route as DashboardOrgsOrgIdSettingsOcrRouteImport } from './routes/dashboard/orgs/$orgId/settings/ocr'
+import { Route as DashboardOrgsOrgIdSettingsMigrationRouteImport } from './routes/dashboard/orgs/$orgId/settings/migration'
 import { Route as DashboardOrgsOrgIdSettingsMembersRouteImport } from './routes/dashboard/orgs/$orgId/settings/members'
 import { Route as DashboardOrgsOrgIdSettingsGeneralRouteImport } from './routes/dashboard/orgs/$orgId/settings/general'
 import { Route as DashboardOrgsOrgIdSettingsDocumentTypesRouteImport } from './routes/dashboard/orgs/$orgId/settings/document-types'
@@ -130,6 +131,12 @@ const DashboardOrgsOrgIdSettingsOcrRoute =
     path: '/settings/ocr',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
+const DashboardOrgsOrgIdSettingsMigrationRoute =
+  DashboardOrgsOrgIdSettingsMigrationRouteImport.update({
+    id: '/settings/migration',
+    path: '/settings/migration',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdSettingsMembersRoute =
   DashboardOrgsOrgIdSettingsMembersRouteImport.update({
     id: '/settings/members',
@@ -176,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
+  '/dashboard/orgs/$orgId/settings/migration': typeof DashboardOrgsOrgIdSettingsMigrationRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
   '/dashboard/orgs/$orgId/settings/registration': typeof DashboardOrgsOrgIdSettingsRegistrationRoute
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
@@ -198,6 +206,7 @@ export interface FileRoutesByTo {
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
+  '/dashboard/orgs/$orgId/settings/migration': typeof DashboardOrgsOrgIdSettingsMigrationRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
   '/dashboard/orgs/$orgId/settings/registration': typeof DashboardOrgsOrgIdSettingsRegistrationRoute
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
@@ -224,6 +233,7 @@ export interface FileRoutesById {
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
+  '/dashboard/orgs/$orgId/settings/migration': typeof DashboardOrgsOrgIdSettingsMigrationRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
   '/dashboard/orgs/$orgId/settings/registration': typeof DashboardOrgsOrgIdSettingsRegistrationRoute
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
+    | '/dashboard/orgs/$orgId/settings/migration'
     | '/dashboard/orgs/$orgId/settings/ocr'
     | '/dashboard/orgs/$orgId/settings/registration'
     | '/dashboard/orgs/$orgId/settings/storage'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
+    | '/dashboard/orgs/$orgId/settings/migration'
     | '/dashboard/orgs/$orgId/settings/ocr'
     | '/dashboard/orgs/$orgId/settings/registration'
     | '/dashboard/orgs/$orgId/settings/storage'
@@ -297,6 +309,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
+    | '/dashboard/orgs/$orgId/settings/migration'
     | '/dashboard/orgs/$orgId/settings/ocr'
     | '/dashboard/orgs/$orgId/settings/registration'
     | '/dashboard/orgs/$orgId/settings/storage'
@@ -441,6 +454,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsOcrRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
+    '/dashboard/orgs/$orgId/settings/migration': {
+      id: '/dashboard/orgs/$orgId/settings/migration'
+      path: '/settings/migration'
+      fullPath: '/dashboard/orgs/$orgId/settings/migration'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsMigrationRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
     '/dashboard/orgs/$orgId/settings/members': {
       id: '/dashboard/orgs/$orgId/settings/members'
       path: '/settings/members'
@@ -486,6 +506,7 @@ interface DashboardOrgsOrgIdRouteRouteChildren {
   DashboardOrgsOrgIdSettingsDocumentTypesRoute: typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   DashboardOrgsOrgIdSettingsGeneralRoute: typeof DashboardOrgsOrgIdSettingsGeneralRoute
   DashboardOrgsOrgIdSettingsMembersRoute: typeof DashboardOrgsOrgIdSettingsMembersRoute
+  DashboardOrgsOrgIdSettingsMigrationRoute: typeof DashboardOrgsOrgIdSettingsMigrationRoute
   DashboardOrgsOrgIdSettingsOcrRoute: typeof DashboardOrgsOrgIdSettingsOcrRoute
   DashboardOrgsOrgIdSettingsRegistrationRoute: typeof DashboardOrgsOrgIdSettingsRegistrationRoute
   DashboardOrgsOrgIdSettingsStorageRoute: typeof DashboardOrgsOrgIdSettingsStorageRoute
@@ -508,6 +529,8 @@ const DashboardOrgsOrgIdRouteRouteChildren: DashboardOrgsOrgIdRouteRouteChildren
       DashboardOrgsOrgIdSettingsGeneralRoute,
     DashboardOrgsOrgIdSettingsMembersRoute:
       DashboardOrgsOrgIdSettingsMembersRoute,
+    DashboardOrgsOrgIdSettingsMigrationRoute:
+      DashboardOrgsOrgIdSettingsMigrationRoute,
     DashboardOrgsOrgIdSettingsOcrRoute: DashboardOrgsOrgIdSettingsOcrRoute,
     DashboardOrgsOrgIdSettingsRegistrationRoute:
       DashboardOrgsOrgIdSettingsRegistrationRoute,

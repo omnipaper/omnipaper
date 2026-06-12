@@ -24,7 +24,9 @@ import {
   getTagsByDocumentIds,
   setDocumentTags,
 } from "@omnipaper/database/queries/tags";
+import { supportsMime } from "@omnipaper/ocr/resolve";
 import { enqueue } from "@omnipaper/queue/producer";
+import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
@@ -164,6 +166,11 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
       ? await getOrgStoragePath(db, { organizationId, id: doc.storagePathId })
       : null;
 
+    // Can the active OCR engine read this MIME type? Drives the re-run affordance — an unsupported
+    // type can never be extracted, so the UI disables it rather than offering a doomed re-run.
+    const { definitionId } = await getOcrSettings();
+    const ocrSupported = supportsMime(definitionId, doc.mimeType);
+
     return c.json({
       document: toDocumentDetailDto({
         document: doc,
@@ -171,6 +178,7 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
         customProperties,
         documentType,
         storagePath,
+        ocrSupported,
       }),
     });
   })
@@ -428,6 +436,16 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
 
     if (!doc) {
       throw errors.notFound("Document not found");
+    }
+
+    // Backstop for the case the UI already hides: an unsupported MIME can never be extracted, so
+    // refuse the re-run instead of queuing a job guaranteed to fail.
+    const { definitionId } = await getOcrSettings();
+    if (!supportsMime(definitionId, doc.mimeType)) {
+      throw errors.badRequest(
+        "ocr_unsupported",
+        "The configured OCR engine can't process this file type",
+      );
     }
 
     // Reset the status before enqueue so a re-run immediately reads as in-progress instead of its

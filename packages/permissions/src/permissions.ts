@@ -32,6 +32,9 @@ export const statement = {
   properties: ["read", "create", "update", "delete"],
   documentTypes: ["read", "create", "update", "delete"],
   storagePaths: ["read", "create", "update", "delete"],
+  // Importing from another system creates documents + taxonomy org-wide and can expose other users'
+  // data, so it's org-admin territory (owner/admin), not a plain member capability.
+  migrations: ["manage"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -45,6 +48,7 @@ export const roles = {
     properties: ["read", "create", "update", "delete"],
     documentTypes: ["read", "create", "update", "delete"],
     storagePaths: ["read", "create", "update", "delete"],
+    migrations: ["manage"],
   }),
   admin: ac.newRole({
     ...adminAc.statements,
@@ -53,6 +57,7 @@ export const roles = {
     properties: ["read", "create", "update", "delete"],
     documentTypes: ["read", "create", "update", "delete"],
     storagePaths: ["read", "create", "update", "delete"],
+    migrations: ["manage"],
   }),
   member: ac.newRole({
     ...memberAc.statements,

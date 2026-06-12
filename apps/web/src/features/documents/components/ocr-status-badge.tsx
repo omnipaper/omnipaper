@@ -1,6 +1,7 @@
 import { cn } from "@omnipaper/ui/lib/utils";
 import {
   AlertTriangleIcon,
+  BanIcon,
   CheckIcon,
   ClockIcon,
   Loader2Icon,
@@ -33,6 +34,11 @@ const CONFIG: Record<string, Config> = {
     label: "Failed",
     className: "bg-destructive/10 text-destructive",
     Icon: AlertTriangleIcon,
+  },
+  unsupported: {
+    label: "Unsupported",
+    className: "bg-muted text-muted-foreground",
+    Icon: BanIcon,
   },
 };
 

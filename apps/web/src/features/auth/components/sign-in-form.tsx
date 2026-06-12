@@ -13,6 +13,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { type SubmitEvent, useState } from "react";
 import { signIn } from "@/features/auth/auth-client";
 import { sessionKeys } from "@/features/auth/queries/session";
+import { config } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 
 export function SignInForm() {
@@ -44,7 +45,7 @@ export function SignInForm() {
     <Card>
       <CardHeader>
         <CardTitle>Sign in</CardTitle>
-        <CardDescription>Welcome back to omnipaper.</CardDescription>
+        <CardDescription>Welcome back to {config.appName}.</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="flex flex-col gap-4">

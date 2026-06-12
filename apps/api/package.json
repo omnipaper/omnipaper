@@ -15,6 +15,7 @@
     "@hono/zod-validator": "0.8.0",
     "@omnipaper/database": "workspace:*",
     "@omnipaper/env": "workspace:*",
+    "@omnipaper/migration": "workspace:*",
     "@omnipaper/ocr": "workspace:*",
     "@omnipaper/permissions": "workspace:*",
     "@omnipaper/queue": "workspace:*",

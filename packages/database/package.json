@@ -11,6 +11,7 @@
     "./queries/custom-properties": "./src/queries/custom-properties.ts",
     "./queries/document-types": "./src/queries/document-types.ts",
     "./queries/documents": "./src/queries/documents.ts",
+    "./queries/migrations": "./src/queries/migrations.ts",
     "./queries/storage-paths": "./src/queries/storage-paths.ts",
     "./queries/tags": "./src/queries/tags.ts",
     "./id": "./src/id.ts",

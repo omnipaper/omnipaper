@@ -23,7 +23,15 @@ const tsvector = customType<{ data: string }>({
   },
 });
 
-export const ocrStatusEnum = pgEnum("ocr_status", ["pending", "processing", "completed", "failed"]);
+export const ocrStatusEnum = pgEnum("ocr_status", [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  // The active OCR engine can't read this file's MIME type, so it was never queued. Distinct from
+  // "failed" (a real attempt that errored) — there's nothing to retry until the engine gains support.
+  "unsupported",
+]);
 
 // Built-in, single-pick document metadata kept as first-class tables (not custom properties)
 // because each entry carries a `description` — for the user, and for planned AI auto-assignment
@@ -93,6 +101,10 @@ export const documents = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     title: text("title").notNull(),
+    // The original uploaded filename, verbatim (extension included). `title` is derived from this by
+    // dropping the extension; persisting it preserves what was actually uploaded — and lets a future
+    // migration source carry the source filename through. Nullable: rows predate this column.
+    originalFilename: text("original_filename"),
     storageKey: text("storage_key").notNull(),
     mimeType: text("mime_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
@@ -326,3 +338,71 @@ export const activityEvents = pgTable(
 
 export type ActivityEventRow = typeof activityEvents.$inferSelect;
 export type NewActivityEvent = typeof activityEvents.$inferInsert;
+
+// Phases of a migration run. created → (upload) → analyzing → awaiting_confirmation → importing →
+// done; any phase can fail. "active" phases (everything but done/failed) gate the one-run-per-org
+// guard so a second upload can't race a run in progress.
+export const migrationStatusEnum = pgEnum("migration_status", [
+  "created",
+  "analyzing",
+  "awaiting_confirmation",
+  "importing",
+  "done",
+  "failed",
+]);
+
+// Import options the user picks at confirmation time. `importOcr` carries Paperless's extracted text
+// over instead of re-OCRing; `timezone` resolves legacy datetime `created` values to a calendar date.
+export type MigrationOptions = {
+  importOcr?: boolean;
+  timezone?: string;
+};
+
+// One migration run from an external system (Paperless first). The export ZIP is staged in object
+// storage (`uploadKey`) and a background worker drives the phases; `preview` holds the analyze
+// result, `report` the final summary, and the counters drive the progress UI.
+export const migrations = pgTable(
+  "migrations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("mig")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    // The external system this run imports from. Plain text (not an enum) so adding an adapter needs
+    // no migration. "paperless" today.
+    source: text("source").notNull(),
+    status: migrationStatusEnum("status").notNull().default("created"),
+    // Object-storage key of the staged export, plus the in-flight multipart upload id (cleared once
+    // the upload completes).
+    uploadKey: text("upload_key").notNull(),
+    uploadId: text("upload_id"),
+    options: jsonb("options").$type<MigrationOptions>().notNull().default({}),
+    // Analyze output (what will be imported / dropped) and the final per-run report. Shapes are owned
+    // by the migration engine/adapter (other packages), so kept opaque here.
+    preview: jsonb("preview").$type<unknown>(),
+    report: jsonb("report").$type<unknown>(),
+    // Progress counters, incremented per document during the ingest phase.
+    docsTotal: integer("docs_total").notNull().default(0),
+    docsImported: integer("docs_imported").notNull().default(0),
+    docsDuplicate: integer("docs_duplicate").notNull().default(0),
+    docsFailed: integer("docs_failed").notNull().default(0),
+    // Resumability: which source documents are already done, so a re-run after a crash skips them.
+    checkpoint: jsonb("checkpoint").$type<unknown>(),
+    error: text("error"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    index("migrations_org_status_idx").on(t.organizationId, t.status),
+    index("migrations_organization_id_idx").on(t.organizationId),
+  ],
+);
+
+export type Migration = typeof migrations.$inferSelect;
+export type NewMigration = typeof migrations.$inferInsert;

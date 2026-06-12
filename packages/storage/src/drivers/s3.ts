@@ -1,9 +1,13 @@
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
+  UploadPartCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { StorageDriver } from "../driver";
@@ -18,6 +22,9 @@ export type S3Config = {
 };
 
 const DEFAULT_DOWNLOAD_EXPIRY_SECONDS = 600;
+// Part URLs are signed on demand, one per part right before it uploads, so a generous-but-bounded
+// window covers a slow part without pre-signing the whole (possibly huge) upload up front.
+const DEFAULT_UPLOAD_PART_EXPIRY_SECONDS = 60 * 60;
 
 function isNotFoundError(error: unknown): boolean {
   return (
@@ -93,6 +100,56 @@ export const createS3Driver = (config: S3Config): StorageDriver => {
 
         throw error;
       }
+    },
+
+    createMultipartUpload: async ({ key, contentType }) => {
+      const result = await client.send(
+        new CreateMultipartUploadCommand({ Bucket: bucket, Key: key, ContentType: contentType }),
+      );
+
+      if (!result.UploadId) {
+        throw new Error("S3 did not return an UploadId for the multipart upload");
+      }
+
+      return { uploadId: result.UploadId };
+    },
+
+    signUploadPart: async ({ key, uploadId, partNumber, expiresInSeconds }) => {
+      const command = new UploadPartCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        PartNumber: partNumber,
+      });
+
+      const url = await getSignedUrl(client, command, {
+        expiresIn: expiresInSeconds ?? DEFAULT_UPLOAD_PART_EXPIRY_SECONDS,
+      });
+
+      return { url };
+    },
+
+    completeMultipartUpload: async ({ key, uploadId, parts }) => {
+      await client.send(
+        new CompleteMultipartUploadCommand({
+          Bucket: bucket,
+          Key: key,
+          UploadId: uploadId,
+          // S3 requires parts in ascending PartNumber order; sort defensively in case the caller
+          // collected ETags out of order.
+          MultipartUpload: {
+            Parts: [...parts]
+              .sort((a, b) => a.partNumber - b.partNumber)
+              .map((p) => ({ PartNumber: p.partNumber, ETag: p.etag })),
+          },
+        }),
+      );
+    },
+
+    abortMultipartUpload: async ({ key, uploadId }) => {
+      await client.send(
+        new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }),
+      );
     },
   };
 };

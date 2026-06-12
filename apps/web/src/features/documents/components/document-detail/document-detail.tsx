@@ -130,6 +130,11 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
               {doc.title}
             </h1>
             <p className="text-muted-foreground text-xs">{doc.mimeType}</p>
+            {doc.originalFilename ? (
+              <p className="truncate text-muted-foreground text-xs" title={doc.originalFilename}>
+                {doc.originalFilename}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -158,6 +163,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                 documentId={id}
                 ocrStatus={doc.ocrStatus}
                 ocrText={doc.ocrText}
+                ocrSupported={doc.ocrSupported}
               />
             </TabsContent>
             <TabsContent value="activity">

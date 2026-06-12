@@ -41,10 +41,12 @@ coverage/
 # generated
 *.generated.ts
 **/.generated/
+**/.source/
+**/.nitro/
 
-# local project notes
-docs/
+# local project notes (root-level only — apps/docs is the docs site and stays tracked)
+/docs/
 
-**/.tanstack/tmp/
+**/.tanstack/
 .claude/*
 /docker/docker-compose.dev.yml

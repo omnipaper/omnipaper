@@ -14,6 +14,7 @@ import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
 import { signUp } from "@/features/auth/auth-client";
 import { sessionKeys } from "@/features/auth/queries/session";
+import { config } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 
 export function SignUpForm() {
@@ -44,7 +45,9 @@ export function SignUpForm() {
     <Card>
       <CardHeader>
         <CardTitle>Create account</CardTitle>
-        <CardDescription>Start using omnipaper. The first account becomes admin.</CardDescription>
+        <CardDescription>
+          Start using {config.appName}. The first account becomes admin.
+        </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="flex flex-col gap-4">

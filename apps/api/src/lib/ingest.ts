@@ -1,8 +1,15 @@
 import { createHash } from "node:crypto";
 import type { Database } from "@omnipaper/database/client";
 import { createId } from "@omnipaper/database/id";
-import { createDocument, getDocumentByHash } from "@omnipaper/database/queries/documents";
+import {
+  completeDocumentOcr,
+  createDocument,
+  getDocumentByHash,
+  markDocumentOcrUnsupported,
+} from "@omnipaper/database/queries/documents";
+import { supportsMime } from "@omnipaper/ocr/resolve";
 import { enqueue } from "@omnipaper/queue/producer";
+import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
 import type { StorageDriver } from "@omnipaper/storage/driver";
 
 // The single ingest funnel: hash → dedupe (per org) → store → enqueue OCR, in one place. Browser
@@ -21,6 +28,15 @@ export type IngestDocumentInput = {
   bytes: Uint8Array;
   filename: string;
   mimeType: string;
+  // Optional overrides for non-upload sources (e.g. migration). A browser upload omits all of these.
+  title?: string;
+  // Pre-extracted text to carry over instead of re-running OCR. Used only for a MIME the active
+  // engine can read; blank/whitespace is treated as absent (falls back to queuing OCR).
+  ocrText?: string;
+  // The document's own date (e.g. Paperless `created`, already resolved to a calendar date).
+  documentDate?: string;
+  // Override the system ingestion timestamp (e.g. Paperless `added`). Defaults to now.
+  createdAt?: Date;
 };
 
 export async function ingestDocument(input: IngestDocumentInput): Promise<IngestResult> {
@@ -36,7 +52,8 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
 
   const id = createId("doc");
   const storageKey = `${organizationId}/${id}`;
-  const title = stripExtension(filename);
+  // Non-upload sources pass an explicit title; a browser upload derives it from the filename.
+  const title = input.title?.trim() || stripExtension(filename);
 
   // Object first, then row. If the insert loses a race on the (org, sha256) unique index, we delete
   // the object we just wrote so a rejected duplicate leaves no orphan.
@@ -48,10 +65,13 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
       organizationId,
       createdBy,
       title,
+      originalFilename: filename,
       storageKey,
       mimeType,
       sizeBytes: bytes.byteLength,
       sha256,
+      documentDate: input.documentDate,
+      createdAt: input.createdAt,
     });
   } catch (err) {
     await driver.deleteObject({ key: storageKey });
@@ -66,8 +86,23 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
     throw err;
   }
 
-  // The funnel enqueues OCR, not the caller — so every source gets it.
-  await enqueue("ocr-extract", { documentId: id });
+  // The funnel decides OCR, not the caller — so every source gets the same treatment:
+  //  - readable MIME with carried-over text (e.g. migration) → store it, mark completed, no re-OCR
+  //  - readable MIME without text → queue extraction
+  //  - unreadable MIME → "unsupported" so it settles instead of failing every attempt
+  // Blank carry-over text counts as absent, so a source with empty text still gets OCR'd.
+  const { definitionId } = await getOcrSettings();
+  const carriedText = input.ocrText?.trim() ? input.ocrText : undefined;
+
+  if (supportsMime(definitionId, mimeType)) {
+    if (carriedText) {
+      await completeDocumentOcr(db, { id, organizationId, title, text: carriedText });
+    } else {
+      await enqueue("ocr-extract", { documentId: id });
+    }
+  } else {
+    await markDocumentOcrUnsupported(db, { id });
+  }
 
   return { status: "created", document: { id, title } };
 }

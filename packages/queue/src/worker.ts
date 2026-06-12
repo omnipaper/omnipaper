@@ -7,7 +7,10 @@ export function defineTask<TName extends JobName>(
   handler: (payload: JobPayload<TName>) => Promise<void>,
 ): Task {
   return async (rawPayload) => {
-    const payload = jobSchemas[name].parse(rawPayload);
+    // Under the generic TName, `jobSchemas[name]` widens to a union of every job schema, so the parse
+    // result is the union of all payload types. Re-assert it as this task's specific payload — the
+    // schema we indexed by `name` is the correct one at runtime, so the validation is sound.
+    const payload = jobSchemas[name].parse(rawPayload) as JobPayload<TName>;
     await handler(payload);
   };
 }

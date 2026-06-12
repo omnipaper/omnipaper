@@ -148,10 +148,16 @@ export type CreateDocumentInput = {
   organizationId: string;
   createdBy: string;
   title: string;
+  originalFilename?: string;
   storageKey: string;
   mimeType: string;
   sizeBytes: number;
   sha256: string;
+  // Optional metadata for non-upload sources (migration). `documentDate` is the document's own date;
+  // `createdAt` overrides the system ingestion timestamp (e.g. Paperless `added`) — both default to
+  // the row's own defaults (null / now) when omitted.
+  documentDate?: string;
+  createdAt?: Date;
 };
 
 export async function createDocument(db: Database, input: CreateDocumentInput) {
@@ -161,10 +167,13 @@ export async function createDocument(db: Database, input: CreateDocumentInput) {
       organizationId: input.organizationId,
       createdBy: input.createdBy,
       title: input.title,
+      originalFilename: input.originalFilename,
       storageKey: input.storageKey,
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
       sha256: input.sha256,
+      documentDate: input.documentDate,
+      createdAt: input.createdAt,
     });
 
     await recordEvent(tx, {
@@ -254,6 +263,13 @@ export async function markDocumentOcrPending(db: Database, params: { id: string 
 // strand it there forever) and the UI can surface a re-run affordance against the "failed" status.
 export async function markDocumentOcrFailed(db: Database, params: { id: string }) {
   await db.update(documents).set({ ocrStatus: "failed" }).where(eq(documents.id, params.id));
+}
+
+// Mark a document whose MIME type the active OCR engine can't read, so it settles immediately
+// instead of churning a doomed extraction. Unlike "failed" there's nothing to retry — the UI hides
+// the re-run affordance until the configured engine gains support for the type.
+export async function markDocumentOcrUnsupported(db: Database, params: { id: string }) {
+  await db.update(documents).set({ ocrStatus: "unsupported" }).where(eq(documents.id, params.id));
 }
 
 export type CompleteDocumentOcrInput = {

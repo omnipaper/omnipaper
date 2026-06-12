@@ -4,6 +4,8 @@ import { env } from "@omnipaper/env";
 import { startWorker } from "@omnipaper/queue/worker";
 import { serveStatic } from "hono/bun";
 import { createApp } from "./app";
+import { migrationAnalyzeTask } from "./tasks/migration-analyze";
+import { migrationIngestTask } from "./tasks/migration-ingest";
 import { ocrExtractTask } from "./tasks/ocr-extract";
 
 const services = env.SERVICES.split(",").map((service) => service.trim());
@@ -18,7 +20,13 @@ if (isProduction) {
 }
 
 const runner = services.includes("worker")
-  ? await startWorker({ taskList: { "ocr-extract": ocrExtractTask } })
+  ? await startWorker({
+      taskList: {
+        "ocr-extract": ocrExtractTask,
+        "migration-analyze": migrationAnalyzeTask,
+        "migration-ingest": migrationIngestTask,
+      },
+    })
   : null;
 
 if (services.includes("web")) {

@@ -8,6 +8,7 @@ import {
 } from "@omnipaper/ui/components/card";
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
+import { Switch } from "@omnipaper/ui/components/switch";
 import { useQuery } from "@tanstack/react-query";
 import { type SubmitEvent, useEffect, useState } from "react";
 import {
@@ -26,6 +27,7 @@ export function StorageSettingsForm() {
   const [endpoint, setEndpoint] = useState("");
   const [accessKeyId, setAccessKeyId] = useState("");
   const [secretAccessKey, setSecretAccessKey] = useState("");
+  const [forcePathStyle, setForcePathStyle] = useState(false);
 
   useEffect(() => {
     const data = settingsQuery.data;
@@ -35,6 +37,7 @@ export function StorageSettingsForm() {
       setEndpoint(data.endpoint ?? "");
       setAccessKeyId(data.accessKeyId ?? "");
       setSecretAccessKey(data.secretAccessKey ?? "");
+      setForcePathStyle(data.forcePathStyle ?? false);
     }
   }, [settingsQuery.data]);
 
@@ -44,6 +47,7 @@ export function StorageSettingsForm() {
     endpoint: endpoint || undefined,
     accessKeyId,
     secretAccessKey,
+    forcePathStyle,
   };
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
@@ -88,6 +92,20 @@ export function StorageSettingsForm() {
               value={endpoint}
               onChange={(e) => setEndpoint(e.target.value)}
               placeholder="https://<account>.r2.cloudflarestorage.com"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor="forcePathStyle">Force path-style addressing</Label>
+              <p className="text-muted-foreground text-xs">
+                Enable for S3-compatible servers (e.g. MinIO) that don’t support
+                virtual-hosted-style URLs.
+              </p>
+            </div>
+            <Switch
+              id="forcePathStyle"
+              checked={forcePathStyle}
+              onCheckedChange={setForcePathStyle}
             />
           </div>
           <div className="flex flex-col gap-2">
