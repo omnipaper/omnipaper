@@ -4,9 +4,6 @@ import { streamManifestRecords } from "./manifest";
 import { paperlessAdapter } from "./paperless/adapter";
 import { openZip, type ZipSource } from "./zip";
 
-// Integration test against a real (committed) ZIP fixture — exercises the yauzl reader and the
-// stream-json manifest parser end-to-end under Bun, which the in-memory fakes in adapter.test.ts
-// can't cover.
 const FIXTURE = `${import.meta.dir}/__fixtures__/export-sample.zip`;
 
 async function readToString(stream: Readable): Promise<string> {
@@ -35,7 +32,6 @@ describe("openZip (real archive)", () => {
     expect(names).toContain("hello.pdf");
     expect(zip.hasEntry("hello.pdf")).toBe(true);
     expect(zip.hasEntry("missing.pdf")).toBe(false);
-    // The symlink entry in the fixture is skipped (path-traversal guard), never listed or readable.
     expect(names).not.toContain("evil-link");
     expect(zip.hasEntry("evil-link")).toBe(false);
   });

@@ -19,9 +19,6 @@ import { getStorageDriver } from "../lib/storage";
 import { requireOrgPermission } from "../middleware";
 import { toMigrationDto } from "../serializers/migration";
 
-// Uniform multipart part size the browser slices the export by — fixed (R2 requires equal-size parts)
-// and within every S3-compatible provider's envelope (5 MiB–5 GiB). 64 MiB covers archives up to
-// ~625 GiB within the 10,000-part cap.
 const PART_SIZE = 64 * 1024 * 1024;
 
 const createMigrationSchema = z.object({ source: z.string().min(1) });
@@ -36,8 +33,6 @@ const confirmSchema = z.object({
   timezone: z.string().optional(),
 });
 
-// All migration routes are org-admin only (see the `migrations` permission) and org-scoped by the
-// parent router's requireOrganization.
 export const migrationsRoutes = new Hono<{ Variables: Variables }>()
   .use("*", requireOrgPermission({ migrations: ["manage"] }))
   .get("/", async (c) => {
@@ -45,8 +40,6 @@ export const migrationsRoutes = new Hono<{ Variables: Variables }>()
     const rows = await listOrgMigrations(db, { organizationId });
     return c.json({ migrations: rows.map(toMigrationDto) });
   })
-  // Start a run: reserve the row + initiate the multipart upload. The browser then uploads parts
-  // directly to storage and calls complete-upload.
   .post("/", zValidator("json", createMigrationSchema), async (c) => {
     const user = c.get("user");
     if (!user) {
@@ -59,7 +52,6 @@ export const migrationsRoutes = new Hono<{ Variables: Variables }>()
       throw errors.badRequest("invalid_source", `Unknown migration source: ${source}`);
     }
 
-    // One run per org at a time — a second upload can't race an in-progress run's taxonomy creation.
     const active = await getActiveMigrationForOrg(db, { organizationId });
     if (active) {
       throw errors.badRequest(
@@ -91,7 +83,6 @@ export const migrationsRoutes = new Hono<{ Variables: Variables }>()
 
     return c.json({ migrationId: migration.id, partSize: PART_SIZE });
   })
-  // Presign one part URL on demand — the browser PUTs the slice's bytes straight to storage.
   .post("/:id/parts", zValidator("json", signPartSchema), async (c) => {
     const organizationId = c.get("organizationId");
     const migration = await getOrgMigration(db, { organizationId, id: c.req.param("id") });
@@ -115,7 +106,6 @@ export const migrationsRoutes = new Hono<{ Variables: Variables }>()
 
     return c.json({ url });
   })
-  // Finalize the upload and kick off analysis.
   .post("/:id/complete-upload", zValidator("json", completeUploadSchema), async (c) => {
     const organizationId = c.get("organizationId");
     const migration = await getOrgMigration(db, { organizationId, id: c.req.param("id") });
@@ -137,7 +127,6 @@ export const migrationsRoutes = new Hono<{ Variables: Variables }>()
       parts: c.req.valid("json").parts,
     });
 
-    // Clear the (now consumed) upload id and hand off to the analyze worker.
     await updateMigration(db, { id: migration.id, status: "analyzing", uploadId: null });
     await enqueue("migration-analyze", { migrationId: migration.id });
 
@@ -151,7 +140,6 @@ export const migrationsRoutes = new Hono<{ Variables: Variables }>()
     }
     return c.json({ migration: toMigrationDto(migration) });
   })
-  // Confirm the preview and start the import.
   .post("/:id/confirm", zValidator("json", confirmSchema), async (c) => {
     const organizationId = c.get("organizationId");
     const migration = await getOrgMigration(db, { organizationId, id: c.req.param("id") });
@@ -169,14 +157,12 @@ export const migrationsRoutes = new Hono<{ Variables: Variables }>()
     await updateMigration(db, {
       id: migration.id,
       status: "importing",
-      // Default carry-over ON, matching the recommended import option.
       options: { importOcr: importOcr ?? true, timezone },
     });
     await enqueue("migration-ingest", { migrationId: migration.id });
 
     return c.json({ ok: true });
   })
-  // Cancel a run before it imports: abort the upload (or purge the staged object) and drop the row.
   .delete("/:id", async (c) => {
     const organizationId = c.get("organizationId");
     const migration = await getOrgMigration(db, { organizationId, id: c.req.param("id") });
@@ -192,7 +178,6 @@ export const migrationsRoutes = new Hono<{ Variables: Variables }>()
 
     const driver = await getStorageDriver();
     if (driver) {
-      // Best-effort cleanup — a failed abort/delete shouldn't block cancelling the row.
       if (migration.uploadId) {
         await driver
           .abortMultipartUpload({ key: migration.uploadKey, uploadId: migration.uploadId })

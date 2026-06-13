@@ -1,7 +1,5 @@
 import type { Migration } from "@omnipaper/database/schema";
 
-// The client-facing shape of a migration run. Drops the internal storage pointers (uploadKey,
-// uploadId); preview/report are opaque blobs the analyze/ingest phases wrote.
 export function toMigrationDto(migration: Migration) {
   return {
     id: migration.id,

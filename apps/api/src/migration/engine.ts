@@ -23,13 +23,8 @@ import type { ZipSource } from "@omnipaper/migration/zip";
 import type { StorageDriver } from "@omnipaper/storage/driver";
 import { ingestDocument } from "../lib/ingest";
 
-// The source-agnostic import engine: it consumes the IR an adapter produced and writes it into the
-// org via the same ingest funnel browser uploads use. Knows nothing about Paperless.
-
 const CORRESPONDENT_PROPERTY_NAME = "Correspondent";
 const CORRESPONDENT_PROPERTY_KEY = "correspondent";
-// Flush progress counters to the migration record every N documents instead of per-document, so a
-// large library doesn't issue tens of thousands of tiny UPDATEs while still moving the progress bar.
 const PROGRESS_FLUSH_EVERY = 25;
 // Per-document ceiling: ingestDocument buffers the whole file in memory to hash + store it, and
 // documents.size_bytes is a 32-bit integer (~2.1 GB). Cap below that so a pathological entry fails
@@ -50,18 +45,15 @@ export type RunMigrationInput = {
   organizationId: string;
   createdBy: string;
   options: MigrationOptions;
-  /** Called with cumulative progress periodically (and once at the end) so the UI can poll it. */
   onProgress?: (progress: MigrationProgress) => Promise<void>;
 };
 
-// Maps from a source entity's id to the upserted omnipaper id, built once before ingesting documents.
 type TaxonomyMaps = {
   organizationId: string;
   tagId: Map<string, string>;
   typeId: Map<string, string>;
   pathId: Map<string, string>;
   defId: Map<string, string>;
-  // Per source-definition: source option id → omnipaper option id (for select properties).
   optionId: Map<string, Map<string, string>>;
   correspondentDefId: string | null;
 };
@@ -125,8 +117,6 @@ async function streamToUint8Array(stream: NodeJS.ReadableStream): Promise<Uint8A
   return new Uint8Array(Buffer.concat(chunks));
 }
 
-// Upsert all taxonomy by org-scoped natural key (tag/type name, storage path, property name), so a
-// re-run reuses existing rows and same-name entities from different source owners merge into one.
 async function upsertTaxonomy(
   db: Database,
   organizationId: string,
@@ -216,7 +206,6 @@ async function upsertTaxonomy(
     }
   }
 
-  // The `correspondent` property is auto-created only if any document actually has one.
   let correspondentDefId: string | null = null;
   if (ir.documents.some((d) => d.correspondent)) {
     const existing = defByName.get(CORRESPONDENT_PROPERTY_NAME);
@@ -239,9 +228,6 @@ async function upsertTaxonomy(
   return { organizationId, tagId, typeId, pathId, defId, optionId, correspondentDefId };
 }
 
-// Attach a document's taxonomy/properties. Runs for created AND duplicate documents — file dedup
-// makes the bytes idempotent, but the metadata must still (re-)apply, so a re-run after a crash
-// between insert and link finishes the job. setDocumentTags / setDocumentPropertyValue are upserts.
 async function linkDocument(
   db: Database,
   documentId: string,
@@ -322,8 +308,6 @@ export async function runMigration(input: RunMigrationInput): Promise<MigrationR
         createdAt: doc.createdAt ? new Date(doc.createdAt) : undefined,
       });
 
-      // Per-document failures must not abort the run, so linking is inside the try: a bad link logs
-      // the document as failed and the import continues.
       await linkDocument(db, result.document.id, doc, maps);
 
       if (result.status === "created") {

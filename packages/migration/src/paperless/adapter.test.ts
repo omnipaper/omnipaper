@@ -3,9 +3,6 @@ import { Readable } from "node:stream";
 import type { ZipSource } from "../zip";
 import { paperlessAdapter } from "./adapter";
 
-// In-memory ZipSource: maps entry name → text content. Lets us exercise the whole adapter (manifest
-// discovery, streaming parse, resolution) without a real archive — the yauzl-backed reader is
-// covered separately in zip.test.ts.
 function fakeZip(files: Record<string, string>): ZipSource {
   return {
     listEntries: () =>
@@ -237,12 +234,10 @@ describe("paperless adapter — edge cases", () => {
 
   it("merges a split manifest and attaches an instance that follows its document", async () => {
     const files = {
-      // Main manifest: taxonomy + custom-field definition, no documents.
       "manifest.json": manifest([
         { model: "documents.customfield", pk: 9, fields: { name: "Ref", data_type: "string" } },
         { model: "documents.tag", pk: 7, fields: { name: "T", color: "#abcdef", owner: null } },
       ]),
-      // Per-document split manifest: the document, THEN its custom-field instance (exporter order).
       "doc-0000010-manifest.json": manifest([
         docRecord(10, { title: "Split doc", mime_type: "application/pdf", tags: [7] }, "split.pdf"),
         {

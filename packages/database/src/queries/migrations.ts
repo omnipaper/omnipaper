@@ -2,9 +2,6 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Database } from "../client";
 import { type Migration, type MigrationOptions, migrations } from "../schema";
 
-// All data access for the `migrations` domain. Like the other query modules, every function takes
-// `db` first so the same query works from an HTTP route, the migration worker, or a test.
-
 export type MigrationStatus = Migration["status"];
 
 export type CreateMigrationInput = {
@@ -36,7 +33,6 @@ export async function createMigration(db: Database, input: CreateMigrationInput)
   return row;
 }
 
-// Org-scoped fetch — the safe default for request handlers (can't read another tenant's run).
 export async function getOrgMigration(
   db: Database,
   params: { organizationId: string; id: string },
@@ -50,16 +46,12 @@ export async function getOrgMigration(
   return row;
 }
 
-// Fetch by id with NO org scope — for the background worker, which receives just a migrationId off
-// the queue.
 export async function getMigrationById(db: Database, params: { id: string }) {
   const [row] = await db.select().from(migrations).where(eq(migrations.id, params.id)).limit(1);
 
   return row;
 }
 
-// The phases that count as "in progress" — everything but the terminal done/failed. Drives the
-// one-active-run-per-org guard so a second upload can't race a run already underway.
 const ACTIVE_STATUSES = [
   "created",
   "analyzing",
@@ -90,8 +82,6 @@ export async function listOrgMigrations(db: Database, params: { organizationId: 
     .orderBy(desc(migrations.createdAt));
 }
 
-// Org-scoped delete — used to cancel a migration before it imports (the route aborts the upload and
-// purges the staged object first).
 export async function deleteMigration(
   db: Database,
   params: { organizationId: string; id: string },
@@ -116,8 +106,6 @@ export type UpdateMigrationInput = {
   error?: string | null;
 };
 
-// Patch a migration's mutable state. Only provided fields are written, so a phase transition and a
-// preview write don't clobber each other's untouched columns.
 export async function updateMigration(db: Database, input: UpdateMigrationInput) {
   const patch: Partial<typeof migrations.$inferInsert> = {};
 

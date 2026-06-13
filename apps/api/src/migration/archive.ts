@@ -4,10 +4,6 @@ import { join } from "node:path";
 import { openZip, type ZipSource } from "@omnipaper/migration/zip";
 import type { StorageDriver } from "@omnipaper/storage/driver";
 
-// Both migration phases need the staged export on local disk: the ZIP central directory lives at the
-// end of the file, so reading it needs random access (not an S3 stream). We pull it via a presigned
-// GET to a temp file, open it, run the phase, and always clean the temp dir up afterwards. The staged
-// object in S3 is deleted separately by the ingest phase once the import is done.
 export async function withMigrationArchive<T>(
   driver: StorageDriver,
   uploadKey: string,

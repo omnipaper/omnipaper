@@ -166,8 +166,6 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
       ? await getOrgStoragePath(db, { organizationId, id: doc.storagePathId })
       : null;
 
-    // Can the active OCR engine read this MIME type? Drives the re-run affordance — an unsupported
-    // type can never be extracted, so the UI disables it rather than offering a doomed re-run.
     const { definitionId } = await getOcrSettings();
     const ocrSupported = supportsMime(definitionId, doc.mimeType);
 
@@ -438,8 +436,6 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
       throw errors.notFound("Document not found");
     }
 
-    // Backstop for the case the UI already hides: an unsupported MIME can never be extracted, so
-    // refuse the re-run instead of queuing a job guaranteed to fail.
     const { definitionId } = await getOcrSettings();
     if (!supportsMime(definitionId, doc.mimeType)) {
       throw errors.badRequest(

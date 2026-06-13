@@ -10,9 +10,6 @@ describe("resolveDocumentDate", () => {
   });
 
   it("resolves a UTC instant to the user's local date — recovering the +1-day shift", () => {
-    // A user in UTC+2 who set the date to 2024-05-02 had it stored as local midnight = 22:00Z the
-    // day before. Taking the UTC date part would wrongly give 2024-05-01; the local-tz conversion
-    // recovers 2024-05-02.
     const instant: IRDate = { kind: "instant", value: "2024-05-01T22:00:00Z" };
     expect(resolveDocumentDate(instant, "Europe/Warsaw")).toBe("2024-05-02");
     expect(resolveDocumentDate(instant, "UTC")).toBe("2024-05-01");

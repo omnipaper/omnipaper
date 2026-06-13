@@ -22,8 +22,6 @@ export type S3Config = {
 };
 
 const DEFAULT_DOWNLOAD_EXPIRY_SECONDS = 600;
-// Part URLs are signed on demand, one per part right before it uploads, so a generous-but-bounded
-// window covers a slow part without pre-signing the whole (possibly huge) upload up front.
 const DEFAULT_UPLOAD_PART_EXPIRY_SECONDS = 60 * 60;
 
 function isNotFoundError(error: unknown): boolean {
@@ -135,8 +133,6 @@ export const createS3Driver = (config: S3Config): StorageDriver => {
           Bucket: bucket,
           Key: key,
           UploadId: uploadId,
-          // S3 requires parts in ascending PartNumber order; sort defensively in case the caller
-          // collected ETags out of order.
           MultipartUpload: {
             Parts: [...parts]
               .sort((a, b) => a.partNumber - b.partNumber)

@@ -33,8 +33,6 @@ export function MigrationWizard({ orgId }: { orgId: string }) {
   const resumeId =
     listQuery.data?.migrations.find((m) => ACTIVE_STATUSES.has(m.status))?.id ?? null;
 
-  // Latch onto an in-flight run found on load (e.g. after a refresh) so the tracker keeps showing it
-  // through to done/failed, even once it leaves the active set.
   useEffect(() => {
     if (!trackedId && resumeId) {
       setTrackedId(resumeId);

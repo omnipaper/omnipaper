@@ -2,7 +2,6 @@ import { docs } from "collections/server";
 import { loader } from "fumadocs-core/source";
 import { lucideIconsPlugin } from "fumadocs-core/source/lucide-icons";
 
-// Docs live at the domain root (docs.omnipaper.app), not under a /docs prefix.
 export const source = loader({
   source: docs.toFumadocsSource(),
   baseUrl: "/",

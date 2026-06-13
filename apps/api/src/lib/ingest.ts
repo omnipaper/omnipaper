@@ -28,14 +28,9 @@ export type IngestDocumentInput = {
   bytes: Uint8Array;
   filename: string;
   mimeType: string;
-  // Optional overrides for non-upload sources (e.g. migration). A browser upload omits all of these.
   title?: string;
-  // Pre-extracted text to carry over instead of re-running OCR. Used only for a MIME the active
-  // engine can read; blank/whitespace is treated as absent (falls back to queuing OCR).
   ocrText?: string;
-  // The document's own date (e.g. Paperless `created`, already resolved to a calendar date).
   documentDate?: string;
-  // Override the system ingestion timestamp (e.g. Paperless `added`). Defaults to now.
   createdAt?: Date;
 };
 
@@ -52,7 +47,6 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
 
   const id = createId("doc");
   const storageKey = `${organizationId}/${id}`;
-  // Non-upload sources pass an explicit title; a browser upload derives it from the filename.
   const title = input.title?.trim() || stripExtension(filename);
 
   // Object first, then row. If the insert loses a race on the (org, sha256) unique index, we delete
@@ -86,11 +80,6 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
     throw err;
   }
 
-  // The funnel decides OCR, not the caller — so every source gets the same treatment:
-  //  - readable MIME with carried-over text (e.g. migration) → store it, mark completed, no re-OCR
-  //  - readable MIME without text → queue extraction
-  //  - unreadable MIME → "unsupported" so it settles instead of failing every attempt
-  // Blank carry-over text counts as absent, so a source with empty text still gets OCR'd.
   const { definitionId } = await getOcrSettings();
   const carriedText = input.ocrText?.trim() ? input.ocrText : undefined;
 

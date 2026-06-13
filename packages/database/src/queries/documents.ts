@@ -153,9 +153,6 @@ export type CreateDocumentInput = {
   mimeType: string;
   sizeBytes: number;
   sha256: string;
-  // Optional metadata for non-upload sources (migration). `documentDate` is the document's own date;
-  // `createdAt` overrides the system ingestion timestamp (e.g. Paperless `added`) — both default to
-  // the row's own defaults (null / now) when omitted.
   documentDate?: string;
   createdAt?: Date;
 };
@@ -265,9 +262,6 @@ export async function markDocumentOcrFailed(db: Database, params: { id: string }
   await db.update(documents).set({ ocrStatus: "failed" }).where(eq(documents.id, params.id));
 }
 
-// Mark a document whose MIME type the active OCR engine can't read, so it settles immediately
-// instead of churning a doomed extraction. Unlike "failed" there's nothing to retry — the UI hides
-// the re-run affordance until the configured engine gains support for the type.
 export async function markDocumentOcrUnsupported(db: Database, params: { id: string }) {
   await db.update(documents).set({ ocrStatus: "unsupported" }).where(eq(documents.id, params.id));
 }
@@ -279,7 +273,6 @@ export type CompleteDocumentOcrInput = {
   text: string;
 };
 
-// Store the extracted text, flip status to completed, and record the event — atomically.
 export async function completeDocumentOcr(db: Database, input: CompleteDocumentOcrInput) {
   await db.transaction(async (tx) => {
     await tx

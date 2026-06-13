@@ -35,8 +35,6 @@ export function toDocumentDetailDto(input: {
   customProperties: { definitionId: string; value: unknown }[];
   documentType: DocumentType | null | undefined;
   storagePath: StoragePath | null | undefined;
-  // Whether the active OCR engine can read this document's MIME type. Computed by the route (it
-  // reads the org's OCR settings); the UI uses it to enable/hide the re-run affordance.
   ocrSupported: boolean;
 }) {
   return {

@@ -5,8 +5,6 @@ import { defineTask } from "@omnipaper/queue/worker";
 import { getStorageDriver } from "../lib/storage";
 import { withMigrationArchive } from "../migration/archive";
 
-// ANALYZE phase: download the staged export, parse its metadata into a preview + loss ledger, and
-// park the run awaiting the user's confirmation. No document bytes are written here.
 export const migrationAnalyzeTask = defineTask("migration-analyze", async ({ migrationId }) => {
   const migration = await getMigrationById(db, { id: migrationId });
   if (!migration) {

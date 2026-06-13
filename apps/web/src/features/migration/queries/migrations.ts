@@ -3,16 +3,11 @@ import type { InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 
-// The client-facing migration shape, derived from the API so it can't drift from what the server
-// returns. `preview`/`report` arrive as `unknown` here (see the view types below).
 export type MigrationDto = InferResponseType<
   (typeof api.orgs)[":orgId"]["migrations"][":id"]["$get"],
   200
 >["migration"];
 
-// `preview` and `report` cross the API boundary as opaque JSON (typed `unknown`), so the shapes the
-// engine writes are mirrored here for rendering. Keep in sync with the migration engine's
-// AnalyzeResult / MigrationReport.
 export type MigrationPreview = {
   counts: {
     documents: number;
@@ -45,9 +40,7 @@ export type MigrationReport = {
   errors: { sourceId: string; fileRef: string; message: string }[];
 };
 
-// Statuses where the background worker is doing something, so the detail view should poll.
 const POLLING_STATUSES = new Set(["analyzing", "importing"]);
-// Statuses where a run still occupies the org's single active slot — used to resume on load.
 export const ACTIVE_STATUSES = new Set([
   "created",
   "analyzing",
@@ -84,7 +77,6 @@ export function migrationDetailQuery(orgId: string, id: string) {
       }
       return res.json();
     },
-    // Poll while the worker is analyzing or importing; awaiting_confirmation/done/failed are settled.
     refetchInterval: (query) =>
       POLLING_STATUSES.has(query.state.data?.migration.status ?? "") ? 1500 : false,
   });
@@ -102,9 +94,6 @@ async function apiErrorMessage(res: { json: () => Promise<unknown> }, fallback: 
 
 export type UploadProgress = { partsDone: number; partsTotal: number };
 
-// Create the migration, upload the ZIP straight to storage in fixed-size parts via presigned URLs,
-// then finalize. Returns the migration id (now "analyzing"). Not a hook — it's a multi-step process
-// driven from a component with its own progress state.
 export async function uploadAndStartMigration(
   orgId: string,
   file: File,

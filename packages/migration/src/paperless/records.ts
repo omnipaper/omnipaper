@@ -1,15 +1,9 @@
 import type { IRCustomPropertyType, IRCustomValue, IRDate, IRSelectOption } from "../ir";
 
-// Pure helpers for reading Paperless's Django-serializer records. Kept separate from the adapter
-// orchestration so the fiddly bits (type mapping, date-shape detection, value extraction) are
-// unit-testable in isolation.
-
-/** A string field, or null if absent/not a string. */
 export function asString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
-/** A foreign-key reference (a numeric pk, or a string pk) stringified, or null. */
 export function asRef(value: unknown): string | null {
   if (typeof value === "number") {
     return String(value);
@@ -17,7 +11,6 @@ export function asRef(value: unknown): string | null {
   return typeof value === "string" && value !== "" ? value : null;
 }
 
-/** An array of foreign-key references (e.g. a document's tags) stringified. */
 export function asRefArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -25,8 +18,6 @@ export function asRefArray(value: unknown): string[] {
   return value.map((v) => (typeof v === "number" ? String(v) : String(v)));
 }
 
-// Paperless CustomField.data_type → omnipaper custom-property type. Entries absent on purpose
-// ("monetary", "documentlink", anything unknown) signal a field we drop wholesale.
 const DATA_TYPE_MAP: Record<string, IRCustomPropertyType> = {
   string: "text",
   long_text: "text",
@@ -44,11 +35,6 @@ export function mapCustomFieldType(dataType: string): IRCustomPropertyType | nul
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
-/**
- * Normalize Paperless's `created` into an IR date. A bare `YYYY-MM-DD` (exports ≥2.16.0) is already
- * the user's local date → `date`. Anything with a time component (exports ≤2.15.3, serialized as a
- * UTC instant like `2024-05-01T22:00:00Z`) is an `instant` the engine resolves with a timezone.
- */
 export function parseCreatedDate(created: unknown): IRDate | null {
   if (typeof created !== "string" || created === "") {
     return null;
@@ -58,7 +44,6 @@ export function parseCreatedDate(created: unknown): IRDate | null {
     : { kind: "instant", value: created };
 }
 
-/** Read a custom field's `extra_data.select_options`, tolerating both the object and legacy string forms. */
 export function parseSelectOptions(extraData: unknown): IRSelectOption[] {
   if (typeof extraData !== "object" || extraData === null) {
     return [];

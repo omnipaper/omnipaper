@@ -1,5 +1,3 @@
-// One uploaded part of a multipart upload, as reported back by storage (the ETag) so it can be
-// listed at completion time.
 export type MultipartPart = { partNumber: number; etag: string };
 
 export type StorageDriver = {
@@ -15,9 +13,6 @@ export type StorageDriver = {
 
   testConnection: () => Promise<void>;
 
-  // Multipart upload — for objects past the single-PUT ceiling (~5 GiB on S3/R2), e.g. migration
-  // export ZIPs. The browser PUTs each part straight to storage via a presigned part URL; the server
-  // only initiates, signs, and completes (it never streams the bytes).
   createMultipartUpload: (args: {
     key: string;
     contentType: string;

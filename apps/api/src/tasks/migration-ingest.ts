@@ -6,9 +6,6 @@ import { getStorageDriver } from "../lib/storage";
 import { withMigrationArchive } from "../migration/archive";
 import { runMigration } from "../migration/engine";
 
-// INGEST phase (after the user confirms): build the IR and import every document through the funnel,
-// updating progress counters as it goes. Per-document errors are isolated; the staged export — which
-// embeds source secrets like mail credentials — is deleted once the import completes.
 export const migrationIngestTask = defineTask("migration-ingest", async ({ migrationId }) => {
   const migration = await getMigrationById(db, { id: migrationId });
   if (!migration) {
@@ -21,8 +18,6 @@ export const migrationIngestTask = defineTask("migration-ingest", async ({ migra
       throw new Error("Storage is not configured");
     }
     if (!migration.createdBy) {
-      // Documents are attributed to the initiating user; if that account was deleted mid-run there's
-      // no one to own the imports, so stop rather than guess.
       throw new Error("The user who started this migration no longer exists");
     }
 

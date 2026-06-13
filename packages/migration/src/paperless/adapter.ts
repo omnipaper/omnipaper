@@ -42,8 +42,6 @@ const MODEL = {
   user: "auth.user",
 } as const;
 
-// Models we knowingly skip (config/automation/auth internals) — kept off the "unknown models" report
-// so it surfaces only genuinely unrecognized record types.
 const KNOWN_IGNORED_PREFIXES = [
   "auth.",
   "contenttypes.",
@@ -86,9 +84,6 @@ function emptyLedger(): DroppedLedger {
   };
 }
 
-// Raw, pre-resolution forms captured during the streaming pass — owners/correspondents are stored as
-// pks here because the records they point at can appear after the referencing record in the stream;
-// everything is resolved against the complete maps in a final pass.
 type RawTaxonomy = { pk: string; name: string; ownerPk: string | null };
 type RawTag = RawTaxonomy & { color: string };
 type RawStoragePath = RawTaxonomy & { path: string };
@@ -130,9 +125,6 @@ async function parse(zip: ZipSource): Promise<ParseResult> {
     return base === MANIFEST_BASENAME || base.endsWith(`-${MANIFEST_BASENAME}`);
   });
 
-  // The export root is wherever the main manifest.json sits (shallowest, if a stray copy exists).
-  // File references in the manifest are relative to that root, so we prefix them to match zip entries
-  // — which also tolerates a hand-zipped wrapper folder (e.g. "export/manifest.json").
   const mainManifest = manifestEntries
     .filter((e) => basename(e.name) === MANIFEST_BASENAME)
     .sort((a, b) => a.name.split("/").length - b.name.split("/").length)[0];
@@ -142,8 +134,6 @@ async function parse(zip: ZipSource): Promise<ParseResult> {
   }
 
   const prefix = mainManifest.name.slice(0, mainManifest.name.length - MANIFEST_BASENAME.length);
-  // Main manifest first so custom-field definitions and taxonomy are seen before the per-document
-  // split manifests (which carry the documents and their custom-field instances).
   const orderedManifests = [mainManifest, ...manifestEntries.filter((e) => e !== mainManifest)];
 
   const users = new Map<string, string>();
@@ -198,8 +188,6 @@ async function parse(zip: ZipSource): Promise<ParseResult> {
       case MODEL.storagePath: {
         const name = asString(f.name);
         if (name) {
-          // Paperless `path` is a Jinja template; use it literally only when it has no placeholders,
-          // else fall back to the name (best-effort — lossy by design).
           const rawPath = asString(f.path);
           const path = rawPath && !rawPath.includes("{{") ? rawPath : name;
           rawPaths.push({ pk, name, path, ownerPk: asRef(f.owner) });
@@ -214,7 +202,6 @@ async function parse(zip: ZipSource): Promise<ParseResult> {
         }
         const type = mapCustomFieldType(dataType);
         if (!type) {
-          // monetary / documentlink / unknown → dropped wholesale.
           ledger.droppedCustomFields++;
           return;
         }
@@ -234,7 +221,6 @@ async function parse(zip: ZipSource): Promise<ParseResult> {
         }
         const type = customDefTypes.get(fieldPk);
         if (!type) {
-          // Instance of a dropped/unknown field — skip (the field drop is already counted once).
           return;
         }
         const value = extractCustomValue({ sourceId: fieldPk, type }, f);
@@ -246,15 +232,12 @@ async function parse(zip: ZipSource): Promise<ParseResult> {
         return;
       }
       case MODEL.document: {
-        // Trashed documents only appear in v3.0+ exports (older exporters exclude them) — skip so we
-        // never resurrect a deleted document into the active library.
         if (f.deleted_at != null) {
           ledger.trashedDocuments++;
           return;
         }
         const exportedName = asString(rec[EXPORTER_FILE_NAME_KEY]);
         if (!exportedName) {
-          // No original-file pointer — can't ingest bytes; count it so the total reconciles.
           ledger.unknownModels["documents.document(no-file)"] =
             (ledger.unknownModels["documents.document(no-file)"] ?? 0) + 1;
           return;
@@ -314,7 +297,6 @@ async function parse(zip: ZipSource): Promise<ParseResult> {
     }
   }
 
-  // Final pass — resolve references against the now-complete maps and assemble the IR + stats.
   const resolveUser = (pk: string | null): string | null =>
     pk === null ? null : (users.get(pk) ?? null);
   const resolveCorrespondent = (pk: string | null): string | null =>

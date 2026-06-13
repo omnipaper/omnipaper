@@ -32,8 +32,6 @@ export const statement = {
   properties: ["read", "create", "update", "delete"],
   documentTypes: ["read", "create", "update", "delete"],
   storagePaths: ["read", "create", "update", "delete"],
-  // Importing from another system creates documents + taxonomy org-wide and can expose other users'
-  // data, so it's org-admin territory (owner/admin), not a plain member capability.
   migrations: ["manage"],
 } as const;
 

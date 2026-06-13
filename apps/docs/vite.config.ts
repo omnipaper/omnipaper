@@ -12,14 +12,10 @@ export default defineConfig({
     tanstackStart({
       spa: {
         enabled: true,
-        // The shell page is injected with `path: maskPath` and would collide with the
-        // real "/" page below (prerender dedupes by path) — keep it off the root.
         maskPath: "/_shell",
         prerender: {
           enabled: true,
           crawlLinks: true,
-          // Emit the SPA shell as 404.html — static hosts serve it as the
-          // not-found fallback, so unknown paths hydrate into the client router.
           outputPath: "/404",
         },
       },

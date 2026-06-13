@@ -21,8 +21,6 @@ type Props = {
   documentId: string;
   ocrStatus: string;
   ocrText: string | null;
-  // Whether the active OCR engine can read this file's MIME type. When false, re-running can only
-  // fail, so the affordance is disabled — text can still be entered manually below.
   ocrSupported: boolean;
 };
 

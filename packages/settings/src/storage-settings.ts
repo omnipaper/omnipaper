@@ -7,8 +7,6 @@ export const storageSettingsSchema = z.object({
   endpoint: z.string().optional(),
   accessKeyId: z.string().min(1),
   secretAccessKey: z.string().min(1),
-  // Path-style addressing (bucket in the URL path, not the host). Required by some S3-compatibles
-  // (e.g. MinIO) that don't support virtual-hosted-style; harmless on AWS/R2. Defaults off.
   forcePathStyle: z.boolean().optional(),
 });
 
@@ -30,7 +28,6 @@ export async function getStorageSettings(): Promise<StorageSettings | null> {
     endpoint: (await getSetting(KEYS.endpoint)) ?? undefined,
     accessKeyId: await getSetting(KEYS.accessKeyId),
     secretAccessKey: await getSetting(KEYS.secretAccessKey),
-    // Stored as a "true"/"false" string in the KV table; absent → false.
     forcePathStyle: (await getSetting(KEYS.forcePathStyle)) === "true",
   };
 

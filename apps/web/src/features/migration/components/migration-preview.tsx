@@ -52,7 +52,6 @@ const TAXONOMY_LABEL: Record<string, string> = {
   customField: "custom fields",
 };
 
-// Build the human-readable "won't be migrated" lines from the loss ledger (only non-zero items).
 function droppedLines(preview: MigrationPreview): string[] {
   const l = preview.ledger;
   const lines: string[] = [];

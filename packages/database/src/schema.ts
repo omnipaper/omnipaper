@@ -28,8 +28,6 @@ export const ocrStatusEnum = pgEnum("ocr_status", [
   "processing",
   "completed",
   "failed",
-  // The active OCR engine can't read this file's MIME type, so it was never queued. Distinct from
-  // "failed" (a real attempt that errored) — there's nothing to retry until the engine gains support.
   "unsupported",
 ]);
 
@@ -47,8 +45,8 @@ export const documentTypes = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -75,8 +73,8 @@ export const storagePaths = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     path: text("path").notNull(),
     description: text("description"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -101,9 +99,6 @@ export const documents = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     title: text("title").notNull(),
-    // The original uploaded filename, verbatim (extension included). `title` is derived from this by
-    // dropping the extension; persisting it preserves what was actually uploaded — and lets a future
-    // migration source carry the source filename through. Nullable: rows predate this column.
     originalFilename: text("original_filename"),
     storageKey: text("storage_key").notNull(),
     mimeType: text("mime_type").notNull(),
@@ -123,8 +118,8 @@ export const documents = pgTable(
       (): SQL =>
         sql`setweight(to_tsvector('simple', ${documents.title}), 'A') || setweight(to_tsvector('simple', coalesce(${documents.ocrText}, '')), 'B')`,
     ),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -154,8 +149,8 @@ export const tags = pgTable(
     name: text("name").notNull(),
     color: text("color").notNull().default("#94a3b8"),
     description: text("description"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -178,7 +173,7 @@ export const documentsTags = pgTable(
     tagId: text("tag_id")
       .notNull()
       .references(() => tags.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     primaryKey({ columns: [t.documentId, t.tagId] }),
@@ -212,8 +207,8 @@ export const customPropertyDefinitions = pgTable(
     description: text("description"),
     // Immutable after creation — changing the type would require migrating existing values.
     type: customPropertyTypeEnum("type").notNull(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -239,8 +234,8 @@ export const customPropertySelectOptions = pgTable(
       .references(() => customPropertyDefinitions.id, { onDelete: "cascade" }),
     label: text("label").notNull(),
     color: text("color"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -273,8 +268,8 @@ export const documentCustomPropertyValues = pgTable(
     selectOptionId: text("select_option_id").references(() => customPropertySelectOptions.id, {
       onDelete: "cascade",
     }),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -292,7 +287,7 @@ export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
   encrypted: boolean("encrypted").notNull().default(false),
-  updatedAt: timestamp("updated_at")
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()
     .$onUpdateFn(() => new Date()),
@@ -328,7 +323,7 @@ export const activityEvents = pgTable(
     actorType: activityActorTypeEnum("actor_type").notNull().default("user"),
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
     data: jsonb("data").$type<Record<string, unknown>>(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("activity_events_resource_idx").on(t.resourceType, t.resourceId, t.createdAt),
@@ -339,9 +334,6 @@ export const activityEvents = pgTable(
 export type ActivityEventRow = typeof activityEvents.$inferSelect;
 export type NewActivityEvent = typeof activityEvents.$inferInsert;
 
-// Phases of a migration run. created → (upload) → analyzing → awaiting_confirmation → importing →
-// done; any phase can fail. "active" phases (everything but done/failed) gate the one-run-per-org
-// guard so a second upload can't race a run in progress.
 export const migrationStatusEnum = pgEnum("migration_status", [
   "created",
   "analyzing",
@@ -351,16 +343,11 @@ export const migrationStatusEnum = pgEnum("migration_status", [
   "failed",
 ]);
 
-// Import options the user picks at confirmation time. `importOcr` carries Paperless's extracted text
-// over instead of re-OCRing; `timezone` resolves legacy datetime `created` values to a calendar date.
 export type MigrationOptions = {
   importOcr?: boolean;
   timezone?: string;
 };
 
-// One migration run from an external system (Paperless first). The export ZIP is staged in object
-// storage (`uploadKey`) and a background worker drives the phases; `preview` holds the analyze
-// result, `report` the final summary, and the counters drive the progress UI.
 export const migrations = pgTable(
   "migrations",
   {
@@ -371,29 +358,21 @@ export const migrations = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
-    // The external system this run imports from. Plain text (not an enum) so adding an adapter needs
-    // no migration. "paperless" today.
     source: text("source").notNull(),
     status: migrationStatusEnum("status").notNull().default("created"),
-    // Object-storage key of the staged export, plus the in-flight multipart upload id (cleared once
-    // the upload completes).
     uploadKey: text("upload_key").notNull(),
     uploadId: text("upload_id"),
     options: jsonb("options").$type<MigrationOptions>().notNull().default({}),
-    // Analyze output (what will be imported / dropped) and the final per-run report. Shapes are owned
-    // by the migration engine/adapter (other packages), so kept opaque here.
     preview: jsonb("preview").$type<unknown>(),
     report: jsonb("report").$type<unknown>(),
-    // Progress counters, incremented per document during the ingest phase.
     docsTotal: integer("docs_total").notNull().default(0),
     docsImported: integer("docs_imported").notNull().default(0),
     docsDuplicate: integer("docs_duplicate").notNull().default(0),
     docsFailed: integer("docs_failed").notNull().default(0),
-    // Resumability: which source documents are already done, so a re-run after a crash skips them.
     checkpoint: jsonb("checkpoint").$type<unknown>(),
     error: text("error"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
