@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./redact": "./src/redact.ts",
-    "./provider": "./src/provider.ts"
+    "./provider": "./src/provider.ts",
+    "./formats": "./src/formats.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

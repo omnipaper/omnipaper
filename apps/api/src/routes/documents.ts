@@ -27,6 +27,7 @@ import {
 import { supportsMime } from "@omnipaper/ocr/resolve";
 import { enqueue } from "@omnipaper/queue/producer";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
+import { describeAcceptedFormats, isUploadAllowed } from "@omnipaper/shared/formats";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
@@ -96,6 +97,16 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
 
     if (!(file instanceof File) || file.size === 0) {
       throw errors.badRequest("file_required", "A file is required");
+    }
+
+    // Authoritative upload gate: reject types not on the allow-list before storing anything. The
+    // web UI mirrors this list (accept= + a client pre-check), but that is advisory — the API is
+    // the boundary that actually enforces it. Migration ingests bypass this route by design.
+    if (!isUploadAllowed({ filename: file.name, mimeType: file.type })) {
+      throw errors.badRequest(
+        "unsupported_file_type",
+        `Unsupported file type. Accepted formats: ${describeAcceptedFormats()}.`,
+      );
     }
 
     if (file.size > MAX_UPLOAD_BYTES) {
@@ -268,6 +279,51 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
 
     return c.json({ downloadUrl: url });
   })
+  .get("/:id/thumb", async (c) => {
+    const organizationId = c.get("organizationId");
+    const doc = await getOrgDocument(db, { organizationId, id: c.req.param("id") });
+
+    if (!doc) {
+      throw errors.notFound("Document not found");
+    }
+
+    // ETag is the ORIGINAL's hash (already on the row), not the WebP's: the thumbnail is a pure
+    // function of the source, so the source hash changes iff the thumbnail would. "-t1" is the
+    // render-recipe version — bump it to invalidate every cached thumbnail at once if the render
+    // changes (size/format/renderer) while the source hashes stay the same.
+    const etag = `"${doc.sha256}-t1"`;
+    const cacheControl = "private, max-age=86400";
+
+    // Cheap revalidation: answer 304 from the row alone, never touching storage.
+    if (c.req.header("if-none-match") === etag) {
+      return new Response(null, {
+        status: 304,
+        headers: { ETag: etag, "Cache-Control": cacheControl },
+      });
+    }
+
+    const driver = await getStorageDriver();
+
+    if (!driver) {
+      throw errors.badRequest("storage_not_configured", "Storage is not configured");
+    }
+
+    const object = await driver.getObject({ key: `${doc.storageKey}.thumb.png` });
+
+    if (!object) {
+      // No thumbnail: still generating, generation failed, or a non-PDF that never gets one.
+      throw errors.notFound("Thumbnail not available");
+    }
+
+    return new Response(object.body, {
+      status: 200,
+      headers: {
+        "Content-Type": object.contentType ?? "image/png",
+        "Cache-Control": cacheControl,
+        ETag: etag,
+      },
+    });
+  })
   .get("/:id/activity", async (c) => {
     const organizationId = c.get("organizationId");
     const activities = await getDocumentActivity(db, {
@@ -422,6 +478,8 @@ export const documentsRoutes = new Hono<{ Variables: Variables }>()
 
     if (driver) {
       await driver.deleteObject({ key: doc.storageKey });
+      // Remove the derived thumbnail too (no-op if it was never generated — S3 delete is idempotent).
+      await driver.deleteObject({ key: `${doc.storageKey}.thumb.png` });
     }
 
     await deleteDocument(db, { id: doc.id });

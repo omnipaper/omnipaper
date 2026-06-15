@@ -1,3 +1,4 @@
+import { describeAcceptedFormats, isUploadAllowed } from "@omnipaper/shared/formats";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -121,14 +122,32 @@ export function useUploadDocuments(orgId: string) {
       return;
     }
 
-    if (files.length > MAX_FILES) {
+    // Advisory pre-check so unsupported files don't waste a round-trip — the API gate is the real
+    // boundary. Drop the rejects, warn, and proceed with the rest (one bad file shouldn't block a
+    // batch). Covers both the Upload button and the global drag-and-drop area.
+    const accepted = files.filter((file) =>
+      isUploadAllowed({ filename: file.name, mimeType: file.type }),
+    );
+    const rejected = files.length - accepted.length;
+
+    if (rejected > 0) {
+      toast.warning(
+        `Skipped ${rejected} unsupported ${rejected === 1 ? "file" : "files"}. Accepted formats: ${describeAcceptedFormats()}.`,
+      );
+    }
+
+    if (accepted.length === 0) {
+      return;
+    }
+
+    if (accepted.length > MAX_FILES) {
       toast.error(
-        `You can upload up to ${MAX_FILES} files at once (you selected ${files.length}).`,
+        `You can upload up to ${MAX_FILES} files at once (you selected ${accepted.length}).`,
       );
       return;
     }
 
-    mutation.mutate(files);
+    mutation.mutate(accepted);
   }
 
   return { upload, isPending: mutation.isPending, progress };

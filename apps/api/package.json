@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@hono/zod-validator": "0.8.0",
+    "@hyzyla/pdfium": "2.1.13",
     "@omnipaper/database": "workspace:*",
     "@omnipaper/env": "workspace:*",
     "@omnipaper/migration": "workspace:*",
@@ -25,10 +26,13 @@
     "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
     "hono": "catalog:",
+    "mammoth": "1.12.0",
+    "pngjs": "7.0.0",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
+    "@types/pngjs": "6.0.5",
     "typescript": "catalog:"
   }
 }

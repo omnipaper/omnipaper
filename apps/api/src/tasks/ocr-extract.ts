@@ -20,6 +20,10 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }) =
     return;
   }
 
+  if (doc.ocrStatus === "completed") {
+    return;
+  }
+
   await markDocumentOcrProcessing(db, { id: documentId });
 
   try {

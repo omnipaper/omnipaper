@@ -12,6 +12,7 @@
   "dependencies": {
     "@omnipaper/api": "workspace:*",
     "@omnipaper/permissions": "workspace:*",
+    "@omnipaper/shared": "workspace:*",
     "@omnipaper/ui": "workspace:*",
     "@tanstack/react-query": "5.100.14",
     "@tanstack/react-router": "1.170.10",

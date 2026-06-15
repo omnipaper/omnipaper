@@ -31,6 +31,14 @@ export const ocrStatusEnum = pgEnum("ocr_status", [
   "unsupported",
 ]);
 
+export const thumbnailStatusEnum = pgEnum("thumbnail_status", [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  "unsupported",
+]);
+
 // Built-in, single-pick document metadata kept as first-class tables (not custom properties)
 // because each entry carries a `description` — for the user, and for planned AI auto-assignment
 // that reads the description to decide which type/path fits a document.
@@ -106,7 +114,7 @@ export const documents = pgTable(
     sha256: text("sha256").notNull(),
     ocrStatus: ocrStatusEnum("ocr_status").notNull().default("pending"),
     ocrText: text("ocr_text"),
-    ocrMetadata: jsonb("ocr_metadata").$type<Record<string, unknown>>(),
+    thumbnailStatus: thumbnailStatusEnum("thumbnail_status").notNull().default("pending"),
     documentDate: date("document_date"),
     documentTypeId: text("document_type_id").references(() => documentTypes.id, {
       onDelete: "set null",

@@ -33,6 +33,7 @@ import {
   HardDriveIcon,
   ImportIcon,
   KeyIcon,
+  LayoutGridIcon,
   SlidersHorizontalIcon,
   TagIcon,
   UserPlusIcon,
@@ -61,9 +62,6 @@ export const Route = createFileRoute("/dashboard/orgs/$orgId")({
   component: OrgLayout,
 });
 
-// The built-in document views, surfaced as the sidebar's view switcher. This array IS the
-// definition of "which views exist" — adding one is a new entry here plus its route file.
-// `match` is the URL fragment used for active-state (independent of the view's query params).
 const orgViews = [
   {
     key: "list",
@@ -78,6 +76,13 @@ const orgViews = [
     icon: FolderTreeIcon,
     to: "/dashboard/orgs/$orgId/views/folders",
     match: "/views/folders",
+  },
+  {
+    key: "gallery",
+    label: "Gallery",
+    icon: LayoutGridIcon,
+    to: "/dashboard/orgs/$orgId/views/gallery",
+    match: "/views/gallery",
   },
 ] as const;
 

@@ -43,6 +43,7 @@ export async function getDocuments(db: Database, params: GetDocumentsParams) {
         mimeType: documents.mimeType,
         sizeBytes: documents.sizeBytes,
         ocrStatus: documents.ocrStatus,
+        thumbnailStatus: documents.thumbnailStatus,
         createdAt: documents.createdAt,
         snippet: sql<
           string | null
@@ -66,6 +67,7 @@ export async function getDocuments(db: Database, params: GetDocumentsParams) {
       mimeType: documents.mimeType,
       sizeBytes: documents.sizeBytes,
       ocrStatus: documents.ocrStatus,
+      thumbnailStatus: documents.thumbnailStatus,
       createdAt: documents.createdAt,
       snippet: sql<string | null>`null`,
     })
@@ -288,4 +290,31 @@ export async function completeDocumentOcr(db: Database, input: CompleteDocumentO
       data: { characters: input.text.length },
     });
   });
+}
+
+export async function markDocumentThumbnailProcessing(db: Database, params: { id: string }) {
+  await db
+    .update(documents)
+    .set({ thumbnailStatus: "processing" })
+    .where(eq(documents.id, params.id));
+}
+
+export async function markDocumentThumbnailCompleted(db: Database, params: { id: string }) {
+  await db
+    .update(documents)
+    .set({ thumbnailStatus: "completed" })
+    .where(eq(documents.id, params.id));
+}
+
+// Mark a thumbnail render failed so the document leaves "processing" (a thrown worker error would
+// otherwise strand it) and the card falls back to the generic icon.
+export async function markDocumentThumbnailFailed(db: Database, params: { id: string }) {
+  await db.update(documents).set({ thumbnailStatus: "failed" }).where(eq(documents.id, params.id));
+}
+
+export async function markDocumentThumbnailUnsupported(db: Database, params: { id: string }) {
+  await db
+    .update(documents)
+    .set({ thumbnailStatus: "unsupported" })
+    .where(eq(documents.id, params.id));
 }

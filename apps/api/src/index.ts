@@ -7,6 +7,8 @@ import { createApp } from "./app";
 import { migrationAnalyzeTask } from "./tasks/migration-analyze";
 import { migrationIngestTask } from "./tasks/migration-ingest";
 import { ocrExtractTask } from "./tasks/ocr-extract";
+import { textExtractTask } from "./tasks/text-extract";
+import { thumbnailGenerateTask } from "./tasks/thumbnail-generate";
 
 const services = env.SERVICES.split(",").map((service) => service.trim());
 const isProduction = process.env.NODE_ENV === "production";
@@ -23,6 +25,8 @@ const runner = services.includes("worker")
   ? await startWorker({
       taskList: {
         "ocr-extract": ocrExtractTask,
+        "text-extract": textExtractTask,
+        "thumbnail-generate": thumbnailGenerateTask,
         "migration-analyze": migrationAnalyzeTask,
         "migration-ingest": migrationIngestTask,
       },

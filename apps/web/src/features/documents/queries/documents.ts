@@ -3,18 +3,23 @@ import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 
-// One row of the documents list response. Derived from the API so it can never drift from what
-// `GET /documents` actually returns (the server shapes it via toDocumentListItemDto). Shared by the
-// list view and the folder views, which both render <DocumentRows>.
+// Types derived from the API
 export type DocumentRow = InferResponseType<
   (typeof api.orgs)[":orgId"]["documents"]["$get"],
   200
 >["documents"][number];
 
+export type DocumentDetail = InferResponseType<
+  (typeof api.orgs)[":orgId"]["documents"][":id"]["$get"],
+  200
+>["document"];
+
+export type OcrStatus = DocumentRow["ocrStatus"];
+export type ThumbnailStatus = DocumentRow["thumbnailStatus"];
+
+
 type DocumentRef = { orgId: string; id: string };
 
-// Filters for the documents list, shared by the list view (`query`) and the folder views
-// (`storagePathId` for one path, `unfiled` for documents with none). All optional.
 type DocumentListFilters = {
   orgId: string;
   query?: string;
@@ -22,9 +27,10 @@ type DocumentListFilters = {
   unfiled?: boolean;
 };
 
-// Query-key factory for the documents domain. Keys are hierarchical (generic → specific) so we
-// can invalidate at any level: every doc query for an org, just the lists, or a single detail.
-// Reads and invalidations both go through here, so a key can never drift between the two sides.
+export function thumbnailUrl(orgId: string, id: string): string {
+  return api.orgs[":orgId"].documents[":id"].thumb.$url({ param: { orgId, id } }).toString();
+}
+
 export const documentKeys = {
   root: ["documents"] as const,
   all: (orgId: string) => [...documentKeys.root, orgId] as const,
@@ -61,14 +67,14 @@ export function documentsListQuery({
       }
       return res.json();
     },
-    // Mirror the detail query's polling so a freshly uploaded document's OCR progress
-    // (pending → processing → completed/failed) lands on the list without a manual refresh.
-    // Poll only while *some* document is still in flight; once every row has settled the
-    // interval returns false and network traffic drops back to zero.
     refetchInterval: (query) => {
       const documents = query.state.data?.documents ?? [];
       const inFlight = documents.some(
-        (d) => d.ocrStatus === "pending" || d.ocrStatus === "processing",
+        (d) =>
+          d.ocrStatus === "pending" ||
+          d.ocrStatus === "processing" ||
+          d.thumbnailStatus === "pending" ||
+          d.thumbnailStatus === "processing",
       );
       return inFlight ? 3000 : false;
     },

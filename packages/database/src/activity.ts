@@ -6,7 +6,6 @@ import { activityEvents } from "./schema";
 // Always pass the surrounding transaction so the event and the mutation commit atomically.
 type DbOrTx = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
-// Types are derived from the schema enums — single source of truth, autocomplete, no typos.
 export type ActivityResourceType = (typeof activityEvents.resourceType.enumValues)[number];
 export type ActivityEventName = (typeof activityEvents.event.enumValues)[number];
 export type ActivityActorType = (typeof activityEvents.actorType.enumValues)[number];

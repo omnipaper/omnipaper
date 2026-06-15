@@ -7,6 +7,10 @@ export type StorageDriver = {
 
   createDownloadUrl: (args: { key: string; expiresInSeconds?: number }) => Promise<{ url: string }>;
 
+  getObject: (args: {
+    key: string;
+  }) => Promise<{ body: ArrayBuffer; contentType: string | null } | null>;
+
   deleteObject: (args: { key: string }) => Promise<void>;
 
   objectExists: (args: { key: string }) => Promise<boolean>;

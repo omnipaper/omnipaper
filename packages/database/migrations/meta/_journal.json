@@ -15,6 +15,13 @@
       "when": 1781361905078,
       "tag": "0001_bumpy_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781370912608,
+      "tag": "0002_rainy_redwing",
+      "breakpoints": true
     }
   ]
 }

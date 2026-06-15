@@ -14,12 +14,16 @@ import { Textarea } from "@omnipaper/ui/components/textarea";
 import { CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 import { OcrStatusBadge } from "@/features/documents/components/ocr-status-badge";
-import { useReprocessDocument, useUpdateOcrText } from "@/features/documents/queries/documents";
+import {
+  type OcrStatus,
+  useReprocessDocument,
+  useUpdateOcrText,
+} from "@/features/documents/queries/documents";
 
 type Props = {
   orgId: string;
   documentId: string;
-  ocrStatus: string;
+  ocrStatus: OcrStatus;
   ocrText: string | null;
   ocrSupported: boolean;
 };

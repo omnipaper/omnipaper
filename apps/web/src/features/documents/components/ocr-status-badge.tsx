@@ -7,18 +7,16 @@ import {
   Loader2Icon,
   type LucideIcon,
 } from "lucide-react";
+import type { OcrStatus } from "@/features/documents/queries/documents";
 
 type Config = { label: string; className: string; Icon: LucideIcon; spin?: boolean };
 
-const PENDING: Config = {
-  label: "Pending",
-  className: "bg-muted text-muted-foreground",
-  Icon: ClockIcon,
-};
-
-// Keyed by the documents.ocr_status enum. Unknown values fall back to PENDING.
-const CONFIG: Record<string, Config> = {
-  pending: PENDING,
+const CONFIG = {
+  pending: {
+    label: "Pending",
+    className: "bg-muted text-muted-foreground",
+    Icon: ClockIcon,
+  },
   processing: {
     label: "Processing",
     className: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
@@ -40,10 +38,10 @@ const CONFIG: Record<string, Config> = {
     className: "bg-muted text-muted-foreground",
     Icon: BanIcon,
   },
-};
+} satisfies Record<OcrStatus, Config>;
 
-export function OcrStatusBadge({ status, className }: { status: string; className?: string }) {
-  const cfg = CONFIG[status] ?? PENDING;
+export function OcrStatusBadge({ status, className }: { status: OcrStatus; className?: string }) {
+  const cfg: Config = CONFIG[status];
   const Icon = cfg.Icon;
   return (
     <span

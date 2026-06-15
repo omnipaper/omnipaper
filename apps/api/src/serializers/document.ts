@@ -10,6 +10,7 @@ export function toDocumentDto(document: Document) {
     mimeType: document.mimeType,
     sizeBytes: document.sizeBytes,
     ocrStatus: document.ocrStatus,
+    thumbnailStatus: document.thumbnailStatus,
     ocrText: document.ocrText,
     documentDate: document.documentDate,
     createdAt: document.createdAt,

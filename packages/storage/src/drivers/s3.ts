@@ -67,6 +67,31 @@ export const createS3Driver = (config: S3Config): StorageDriver => {
       return { url };
     },
 
+    getObject: async ({ key }) => {
+      try {
+        const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+
+        if (!result.Body) {
+          return null;
+        }
+
+        const bytes = await result.Body.transformToByteArray();
+        return {
+          body: bytes.buffer.slice(
+            bytes.byteOffset,
+            bytes.byteOffset + bytes.byteLength,
+          ) as ArrayBuffer,
+          contentType: result.ContentType ?? null,
+        };
+      } catch (error) {
+        if (isNotFoundError(error)) {
+          return null;
+        }
+
+        throw error;
+      }
+    },
+
     deleteObject: async ({ key }) => {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },
