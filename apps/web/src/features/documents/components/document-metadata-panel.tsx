@@ -44,8 +44,8 @@ export function DocumentMetadataPanel({
 
   const patch = useUpdateDocumentMetadata(orgId, documentId);
   // Create-and-assign: create the taxonomy entry, then (on success) patch the document to select it.
-  // Each create hook refreshes its own list; the patch's server truth flows back via the detail
-  // refetch.
+  // Each create hook refreshes its own list; the patch updates the detail optimistically and
+  // reconciles with server truth on settle.
   const createType = useCreateDocumentType(orgId);
   const createPath = useCreateStoragePath(orgId);
 
@@ -61,7 +61,7 @@ export function DocumentMetadataPanel({
           onBlur={(e) => {
             const value = e.target.value.trim();
             if (value && value !== title) {
-              patch.mutate({ title: value });
+              patch.mutate({ body: { title: value }, optimistic: { title: value } });
             }
           }}
         />
@@ -77,7 +77,8 @@ export function DocumentMetadataPanel({
           onChange={(e) => {
             const value = e.target.value;
             if (value !== (documentDate ?? "")) {
-              patch.mutate({ documentDate: value || null });
+              const next = value || null;
+              patch.mutate({ body: { documentDate: next }, optimistic: { documentDate: next } });
             }
           }}
         />
@@ -90,17 +91,28 @@ export function DocumentMetadataPanel({
           aria-label="Document type"
           items={types.map((type) => ({ id: type.id, label: type.name }))}
           value={documentType?.id ?? null}
-          onSelect={(id) => patch.mutate({ documentTypeId: id })}
+          onSelect={(id) => {
+            const selected = id ? (types.find((t) => t.id === id) ?? null) : null;
+            patch.mutate({
+              body: { documentTypeId: id },
+              optimistic: {
+                documentType: selected ? { id: selected.id, name: selected.name } : null,
+              },
+            });
+          }}
           placeholder="None"
           searchPlaceholder="Search or create type…"
           canCreate={canManageTaxonomy}
           onCreate={(name) =>
             createType.mutate(name, {
               onSuccess: ({ documentType: created }) =>
-                patch.mutate({ documentTypeId: created.id }),
+                patch.mutate({
+                  body: { documentTypeId: created.id },
+                  optimistic: { documentType: { id: created.id, name: created.name } },
+                }),
             })
           }
-          pending={patch.isPending || createType.isPending}
+          pending={createType.isPending}
         />
       </div>
 
@@ -111,17 +123,29 @@ export function DocumentMetadataPanel({
           aria-label="Storage path"
           items={paths.map((path) => ({ id: path.id, label: path.path }))}
           value={storagePath?.id ?? null}
-          onSelect={(id) => patch.mutate({ storagePathId: id })}
+          onSelect={(id) => {
+            const selected = id ? (paths.find((p) => p.id === id) ?? null) : null;
+            patch.mutate({
+              body: { storagePathId: id },
+              optimistic: {
+                storagePath: selected ? { id: selected.id, path: selected.path } : null,
+              },
+            });
+          }}
           placeholder="None"
           searchPlaceholder="Search or create path… (/Finance/2024)"
           canCreate={canManageTaxonomy}
           onCreate={(path) =>
             createPath.mutate(path, {
-              onSuccess: ({ storagePath: created }) => patch.mutate({ storagePathId: created.id }),
+              onSuccess: ({ storagePath: created }) =>
+                patch.mutate({
+                  body: { storagePathId: created.id },
+                  optimistic: { storagePath: { id: created.id, path: created.path } },
+                }),
             })
           }
           validateCreate={isValidStoragePath}
-          pending={patch.isPending || createPath.isPending}
+          pending={createPath.isPending}
         />
       </div>
     </div>

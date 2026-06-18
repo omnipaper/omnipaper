@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@omnipaper/env": "workspace:*",
+    "@omnipaper/shared": "workspace:*",
     "drizzle-orm": "catalog:",
     "nanoid": "5.1.11",
     "pg": "8.21.0"

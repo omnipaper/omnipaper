@@ -27,13 +27,12 @@ import {
 import {
   ArrowLeftIcon,
   Building2Icon,
-  FileTextIcon,
+  FilesIcon,
   FileTypeIcon,
   FolderTreeIcon,
   HardDriveIcon,
   ImportIcon,
   KeyIcon,
-  LayoutGridIcon,
   SlidersHorizontalIcon,
   TagIcon,
   UserPlusIcon,
@@ -43,6 +42,7 @@ import { signOut } from "@/features/auth/auth-client";
 import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
 import { GlobalDropArea } from "@/features/documents/components/global-drop-area";
 import { useUploadDocuments } from "@/features/documents/queries/upload";
+import { RecentDocuments } from "@/features/documents/recent/recent-documents";
 import { NavUser } from "@/features/organization/components/nav-user";
 import { OrgSwitcher } from "@/features/organization/components/org-switcher";
 import { fullOrganizationQuery, useOrgMember } from "@/features/organization/queries/organization";
@@ -61,30 +61,6 @@ export const Route = createFileRoute("/dashboard/orgs/$orgId")({
   },
   component: OrgLayout,
 });
-
-const orgViews = [
-  {
-    key: "list",
-    label: "Documents",
-    icon: FileTextIcon,
-    to: "/dashboard/orgs/$orgId/views/list",
-    match: "/views/list",
-  },
-  {
-    key: "folders",
-    label: "Folders",
-    icon: FolderTreeIcon,
-    to: "/dashboard/orgs/$orgId/views/folders",
-    match: "/views/folders",
-  },
-  {
-    key: "gallery",
-    label: "Gallery",
-    icon: LayoutGridIcon,
-    to: "/dashboard/orgs/$orgId/views/gallery",
-    match: "/views/gallery",
-  },
-] as const;
 
 function OrgLayout() {
   const { orgId } = Route.useParams();
@@ -276,22 +252,18 @@ function OrgLayout() {
               <SidebarGroup>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {orgViews.map((view) => {
-                      const Icon = view.icon;
-                      return (
-                        <SidebarMenuItem key={view.key}>
-                          <SidebarMenuButton asChild isActive={pathname.includes(view.match)}>
-                            <Link to={view.to} params={{ orgId }}>
-                              <Icon />
-                              <span>{view.label}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      );
-                    })}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname.endsWith("/documents")}>
+                        <Link to="/dashboard/orgs/$orgId/documents" params={{ orgId }}>
+                          <FilesIcon />
+                          <span>Documents</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+              <RecentDocuments orgId={orgId} />
             </SidebarContent>
             <SidebarFooter>
               {session?.user ? (

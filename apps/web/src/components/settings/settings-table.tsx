@@ -1,106 +1,46 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@omnipaper/ui/components/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, } from "@omnipaper/ui/components/alert-dialog";
 import { Button } from "@omnipaper/ui/components/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@omnipaper/ui/components/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "@omnipaper/ui/components/dropdown-menu";
 import { Input } from "@omnipaper/ui/components/input";
 import { TableCell, TableRow } from "@omnipaper/ui/components/table";
 import { cn } from "@omnipaper/ui/lib/utils";
 import { MoreHorizontalIcon, SearchIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
-
-/**
- * The Linear-style toolbar above each settings table: a filter box on the left, the primary
- * "New …" action (passed as children) on the right.
- */
-export function SettingsTableToolbar({
-  search,
-  onSearchChange,
-  searchPlaceholder = "Filter…",
-  children,
-}: {
-  search: string;
-  onSearchChange: (value: string) => void;
-  searchPlaceholder?: string;
-  children?: ReactNode;
+export function SettingsTableToolbar({ search, onSearchChange, searchPlaceholder = "Filter…", children, }: {
+    search: string;
+    onSearchChange: (value: string) => void;
+    searchPlaceholder?: string;
+    children?: ReactNode;
 }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
+    return (<div className="flex items-center justify-between gap-3">
       <div className="relative w-full max-w-xs">
-        <SearchIcon className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 size-3.5 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={searchPlaceholder}
-          aria-label={searchPlaceholder}
-          className="pl-8"
-        />
+        <SearchIcon className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 size-3.5 text-muted-foreground"/>
+        <Input value={search} onChange={(e) => onSearchChange(e.target.value)} placeholder={searchPlaceholder} aria-label={searchPlaceholder} className="pl-8"/>
       </div>
       {children}
-    </div>
-  );
+    </div>);
 }
-
-/**
- * A single full-width row used for loading / error / empty states inside a settings table.
- */
-export function TableEmptyRow({
-  colSpan,
-  className,
-  children,
-}: {
-  colSpan: number;
-  className?: string;
-  children: ReactNode;
+export function TableEmptyRow({ colSpan, className, children, }: {
+    colSpan: number;
+    className?: string;
+    children: ReactNode;
 }) {
-  return (
-    <TableRow className="hover:bg-transparent">
-      <TableCell
-        colSpan={colSpan}
-        className={cn("py-10 text-center text-muted-foreground", className)}
-      >
+    return (<TableRow className="hover:bg-transparent">
+      <TableCell colSpan={colSpan} className={cn("py-10 text-center text-muted-foreground", className)}>
         {children}
       </TableCell>
-    </TableRow>
-  );
+    </TableRow>);
 }
-
-/**
- * The per-row "…" overflow menu (Edit + Delete). Delete opens a confirmation dialog whose copy is
- * supplied by the caller, since each entity describes its own blast radius. The AlertDialog is
- * controlled (rather than nested under the menu's trigger) to avoid focus fighting between the two.
- */
-export function RowActions({
-  onEdit,
-  onDelete,
-  disabled,
-  deleteTitle,
-  deleteDescription,
-  deleteLabel = "Delete",
-}: {
-  onEdit: () => void;
-  onDelete: () => void;
-  disabled?: boolean;
-  deleteTitle: ReactNode;
-  deleteDescription: ReactNode;
-  deleteLabel?: string;
+export function RowActions({ onEdit, onDelete, disabled, deleteTitle, deleteDescription, deleteLabel = "Delete", }: {
+    onEdit: () => void;
+    onDelete: () => void;
+    disabled?: boolean;
+    deleteTitle: ReactNode;
+    deleteDescription: ReactNode;
+    deleteLabel?: string;
 }) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
-
-  return (
-    <>
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    return (<>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon-sm" disabled={disabled} aria-label="Row actions">
@@ -128,6 +68,5 @@ export function RowActions({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
-  );
+    </>);
 }

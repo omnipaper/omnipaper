@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
@@ -24,6 +25,13 @@ export function orgPropertyDefinitionsQuery({ orgId }: { orgId: string }) {
     },
   });
 }
+
+// Element type of the org's custom-property definitions, derived from the API response so it stays in
+// sync — and `type` is the real enum union, not a loose string.
+export type PropertyDefinition = InferResponseType<
+  (typeof api.orgs)[":orgId"]["custom-properties"]["$get"],
+  200
+>["definitions"][number];
 
 export type UpsertPropertyDefinitionInput = {
   id?: string;

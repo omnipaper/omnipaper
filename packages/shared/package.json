@@ -6,7 +6,11 @@
   "exports": {
     "./redact": "./src/redact.ts",
     "./provider": "./src/provider.ts",
-    "./formats": "./src/formats.ts"
+    "./formats": "./src/formats.ts",
+    "./document-filters": "./src/document-filters.ts"
+  },
+  "dependencies": {
+    "zod": "catalog:"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

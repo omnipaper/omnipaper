@@ -20,9 +20,7 @@ import { Route as AuthAcceptInvitationIdRouteImport } from './routes/_auth/accep
 import { Route as DashboardOrgsOrgIdRouteRouteImport } from './routes/dashboard/orgs/$orgId/route'
 import { Route as DashboardOrgsOrgIdIndexRouteImport } from './routes/dashboard/orgs/$orgId/index'
 import { Route as DashboardOrgsOrgIdSettingsIndexRouteImport } from './routes/dashboard/orgs/$orgId/settings/index'
-import { Route as DashboardOrgsOrgIdViewsListRouteImport } from './routes/dashboard/orgs/$orgId/views/list'
-import { Route as DashboardOrgsOrgIdViewsGalleryRouteImport } from './routes/dashboard/orgs/$orgId/views/gallery'
-import { Route as DashboardOrgsOrgIdViewsFoldersRouteImport } from './routes/dashboard/orgs/$orgId/views/folders'
+import { Route as DashboardOrgsOrgIdDocumentsIndexRouteImport } from './routes/dashboard/orgs/$orgId/documents.index'
 import { Route as DashboardOrgsOrgIdSettingsTagsRouteImport } from './routes/dashboard/orgs/$orgId/settings/tags'
 import { Route as DashboardOrgsOrgIdSettingsStoragePathsRouteImport } from './routes/dashboard/orgs/$orgId/settings/storage-paths'
 import { Route as DashboardOrgsOrgIdSettingsStorageRouteImport } from './routes/dashboard/orgs/$orgId/settings/storage'
@@ -90,22 +88,10 @@ const DashboardOrgsOrgIdSettingsIndexRoute =
     path: '/settings/',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
-const DashboardOrgsOrgIdViewsListRoute =
-  DashboardOrgsOrgIdViewsListRouteImport.update({
-    id: '/views/list',
-    path: '/views/list',
-    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
-  } as any)
-const DashboardOrgsOrgIdViewsGalleryRoute =
-  DashboardOrgsOrgIdViewsGalleryRouteImport.update({
-    id: '/views/gallery',
-    path: '/views/gallery',
-    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
-  } as any)
-const DashboardOrgsOrgIdViewsFoldersRoute =
-  DashboardOrgsOrgIdViewsFoldersRouteImport.update({
-    id: '/views/folders',
-    path: '/views/folders',
+const DashboardOrgsOrgIdDocumentsIndexRoute =
+  DashboardOrgsOrgIdDocumentsIndexRouteImport.update({
+    id: '/documents/',
+    path: '/documents/',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
 const DashboardOrgsOrgIdSettingsTagsRoute =
@@ -196,9 +182,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
   '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
-  '/dashboard/orgs/$orgId/views/folders': typeof DashboardOrgsOrgIdViewsFoldersRoute
-  '/dashboard/orgs/$orgId/views/gallery': typeof DashboardOrgsOrgIdViewsGalleryRoute
-  '/dashboard/orgs/$orgId/views/list': typeof DashboardOrgsOrgIdViewsListRoute
+  '/dashboard/orgs/$orgId/documents/': typeof DashboardOrgsOrgIdDocumentsIndexRoute
   '/dashboard/orgs/$orgId/settings/': typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -220,9 +204,7 @@ export interface FileRoutesByTo {
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
   '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
-  '/dashboard/orgs/$orgId/views/folders': typeof DashboardOrgsOrgIdViewsFoldersRoute
-  '/dashboard/orgs/$orgId/views/gallery': typeof DashboardOrgsOrgIdViewsGalleryRoute
-  '/dashboard/orgs/$orgId/views/list': typeof DashboardOrgsOrgIdViewsListRoute
+  '/dashboard/orgs/$orgId/documents': typeof DashboardOrgsOrgIdDocumentsIndexRoute
   '/dashboard/orgs/$orgId/settings': typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -248,9 +230,7 @@ export interface FileRoutesById {
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
   '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
-  '/dashboard/orgs/$orgId/views/folders': typeof DashboardOrgsOrgIdViewsFoldersRoute
-  '/dashboard/orgs/$orgId/views/gallery': typeof DashboardOrgsOrgIdViewsGalleryRoute
-  '/dashboard/orgs/$orgId/views/list': typeof DashboardOrgsOrgIdViewsListRoute
+  '/dashboard/orgs/$orgId/documents/': typeof DashboardOrgsOrgIdDocumentsIndexRoute
   '/dashboard/orgs/$orgId/settings/': typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -276,9 +256,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/storage'
     | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
-    | '/dashboard/orgs/$orgId/views/folders'
-    | '/dashboard/orgs/$orgId/views/gallery'
-    | '/dashboard/orgs/$orgId/views/list'
+    | '/dashboard/orgs/$orgId/documents/'
     | '/dashboard/orgs/$orgId/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -300,9 +278,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/storage'
     | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
-    | '/dashboard/orgs/$orgId/views/folders'
-    | '/dashboard/orgs/$orgId/views/gallery'
-    | '/dashboard/orgs/$orgId/views/list'
+    | '/dashboard/orgs/$orgId/documents'
     | '/dashboard/orgs/$orgId/settings'
   id:
     | '__root__'
@@ -327,9 +303,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/storage'
     | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
-    | '/dashboard/orgs/$orgId/views/folders'
-    | '/dashboard/orgs/$orgId/views/gallery'
-    | '/dashboard/orgs/$orgId/views/list'
+    | '/dashboard/orgs/$orgId/documents/'
     | '/dashboard/orgs/$orgId/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -418,25 +392,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsIndexRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
-    '/dashboard/orgs/$orgId/views/list': {
-      id: '/dashboard/orgs/$orgId/views/list'
-      path: '/views/list'
-      fullPath: '/dashboard/orgs/$orgId/views/list'
-      preLoaderRoute: typeof DashboardOrgsOrgIdViewsListRouteImport
-      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
-    }
-    '/dashboard/orgs/$orgId/views/gallery': {
-      id: '/dashboard/orgs/$orgId/views/gallery'
-      path: '/views/gallery'
-      fullPath: '/dashboard/orgs/$orgId/views/gallery'
-      preLoaderRoute: typeof DashboardOrgsOrgIdViewsGalleryRouteImport
-      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
-    }
-    '/dashboard/orgs/$orgId/views/folders': {
-      id: '/dashboard/orgs/$orgId/views/folders'
-      path: '/views/folders'
-      fullPath: '/dashboard/orgs/$orgId/views/folders'
-      preLoaderRoute: typeof DashboardOrgsOrgIdViewsFoldersRouteImport
+    '/dashboard/orgs/$orgId/documents/': {
+      id: '/dashboard/orgs/$orgId/documents/'
+      path: '/documents'
+      fullPath: '/dashboard/orgs/$orgId/documents/'
+      preLoaderRoute: typeof DashboardOrgsOrgIdDocumentsIndexRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
     '/dashboard/orgs/$orgId/settings/tags': {
@@ -532,9 +492,7 @@ interface DashboardOrgsOrgIdRouteRouteChildren {
   DashboardOrgsOrgIdSettingsStorageRoute: typeof DashboardOrgsOrgIdSettingsStorageRoute
   DashboardOrgsOrgIdSettingsStoragePathsRoute: typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   DashboardOrgsOrgIdSettingsTagsRoute: typeof DashboardOrgsOrgIdSettingsTagsRoute
-  DashboardOrgsOrgIdViewsFoldersRoute: typeof DashboardOrgsOrgIdViewsFoldersRoute
-  DashboardOrgsOrgIdViewsGalleryRoute: typeof DashboardOrgsOrgIdViewsGalleryRoute
-  DashboardOrgsOrgIdViewsListRoute: typeof DashboardOrgsOrgIdViewsListRoute
+  DashboardOrgsOrgIdDocumentsIndexRoute: typeof DashboardOrgsOrgIdDocumentsIndexRoute
   DashboardOrgsOrgIdSettingsIndexRoute: typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 
@@ -560,9 +518,8 @@ const DashboardOrgsOrgIdRouteRouteChildren: DashboardOrgsOrgIdRouteRouteChildren
     DashboardOrgsOrgIdSettingsStoragePathsRoute:
       DashboardOrgsOrgIdSettingsStoragePathsRoute,
     DashboardOrgsOrgIdSettingsTagsRoute: DashboardOrgsOrgIdSettingsTagsRoute,
-    DashboardOrgsOrgIdViewsFoldersRoute: DashboardOrgsOrgIdViewsFoldersRoute,
-    DashboardOrgsOrgIdViewsGalleryRoute: DashboardOrgsOrgIdViewsGalleryRoute,
-    DashboardOrgsOrgIdViewsListRoute: DashboardOrgsOrgIdViewsListRoute,
+    DashboardOrgsOrgIdDocumentsIndexRoute:
+      DashboardOrgsOrgIdDocumentsIndexRoute,
     DashboardOrgsOrgIdSettingsIndexRoute: DashboardOrgsOrgIdSettingsIndexRoute,
   }
 

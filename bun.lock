@@ -98,6 +98,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@omnipaper/env": "workspace:*",
+        "@omnipaper/shared": "workspace:*",
         "drizzle-orm": "catalog:",
         "nanoid": "5.1.11",
         "pg": "8.21.0",
@@ -191,6 +192,9 @@
     "packages/shared": {
       "name": "@omnipaper/shared",
       "version": "0.0.0",
+      "dependencies": {
+        "zod": "catalog:",
+      },
       "devDependencies": {
         "@types/bun": "catalog:",
         "typescript": "catalog:",

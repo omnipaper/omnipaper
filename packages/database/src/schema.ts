@@ -139,6 +139,10 @@ export const documents = pgTable(
     index("documents_org_document_type_id_idx").on(t.organizationId, t.documentTypeId),
     index("documents_org_storage_path_id_idx").on(t.organizationId, t.storagePathId),
     index("documents_org_document_date_idx").on(t.organizationId, t.documentDate),
+    // Sort/pagination support: the default feed (createdAt) plus the other sortable columns.
+    index("documents_org_created_at_idx").on(t.organizationId, t.createdAt),
+    index("documents_org_title_idx").on(t.organizationId, t.title),
+    index("documents_org_size_bytes_idx").on(t.organizationId, t.sizeBytes),
   ],
 );
 
