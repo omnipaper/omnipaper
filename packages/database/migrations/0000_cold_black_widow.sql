@@ -2,7 +2,8 @@ CREATE TYPE "public"."activity_actor_type" AS ENUM('user', 'system');--> stateme
 CREATE TYPE "public"."activity_event" AS ENUM('document.created', 'document.ocr_completed', 'document.metadata_updated', 'document.tags_updated', 'document.property_updated');--> statement-breakpoint
 CREATE TYPE "public"."activity_resource_type" AS ENUM('document');--> statement-breakpoint
 CREATE TYPE "public"."custom_property_type" AS ENUM('text', 'url', 'number', 'date', 'boolean', 'select');--> statement-breakpoint
-CREATE TYPE "public"."ocr_status" AS ENUM('pending', 'processing', 'completed', 'failed');--> statement-breakpoint
+CREATE TYPE "public"."ocr_status" AS ENUM('pending', 'processing', 'completed', 'failed', 'unsupported');--> statement-breakpoint
+CREATE TYPE "public"."thumbnail_status" AS ENUM('pending', 'processing', 'completed', 'failed', 'unsupported');--> statement-breakpoint
 CREATE TABLE "activity_events" (
 	"id" text PRIMARY KEY NOT NULL,
 	"organization_id" text NOT NULL,
@@ -13,7 +14,7 @@ CREATE TABLE "activity_events" (
 	"actor_type" "activity_actor_type" DEFAULT 'user' NOT NULL,
 	"user_id" text,
 	"data" jsonb,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "custom_property_definitions" (
@@ -23,8 +24,8 @@ CREATE TABLE "custom_property_definitions" (
 	"name" text NOT NULL,
 	"description" text,
 	"type" "custom_property_type" NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "custom_property_select_options" (
@@ -32,8 +33,8 @@ CREATE TABLE "custom_property_select_options" (
 	"definition_id" text NOT NULL,
 	"label" text NOT NULL,
 	"color" text,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "document_custom_property_values" (
@@ -45,8 +46,8 @@ CREATE TABLE "document_custom_property_values" (
 	"value_date" date,
 	"value_bool" boolean,
 	"select_option_id" text,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "document_types" (
@@ -54,8 +55,8 @@ CREATE TABLE "document_types" (
 	"organization_id" text NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "documents" (
@@ -63,25 +64,26 @@ CREATE TABLE "documents" (
 	"organization_id" text NOT NULL,
 	"created_by" text,
 	"title" text NOT NULL,
+	"original_filename" text,
 	"storage_key" text NOT NULL,
 	"mime_type" text NOT NULL,
 	"size_bytes" integer NOT NULL,
 	"sha256" text NOT NULL,
 	"ocr_status" "ocr_status" DEFAULT 'pending' NOT NULL,
 	"ocr_text" text,
-	"ocr_metadata" jsonb,
+	"thumbnail_status" "thumbnail_status" DEFAULT 'pending' NOT NULL,
 	"document_date" date,
 	"document_type_id" text,
 	"storage_path_id" text,
 	"search_vector" "tsvector" GENERATED ALWAYS AS (setweight(to_tsvector('simple', "documents"."title"), 'A') || setweight(to_tsvector('simple', coalesce("documents"."ocr_text", '')), 'B')) STORED,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "documents_tags" (
 	"document_id" text NOT NULL,
 	"tag_id" text NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "documents_tags_document_id_tag_id_pk" PRIMARY KEY("document_id","tag_id")
 );
 --> statement-breakpoint
@@ -89,7 +91,7 @@ CREATE TABLE "settings" (
 	"key" text PRIMARY KEY NOT NULL,
 	"value" text NOT NULL,
 	"encrypted" boolean DEFAULT false NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "storage_paths" (
@@ -97,8 +99,8 @@ CREATE TABLE "storage_paths" (
 	"organization_id" text NOT NULL,
 	"path" text NOT NULL,
 	"description" text,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "tags" (
@@ -107,8 +109,8 @@ CREATE TABLE "tags" (
 	"name" text NOT NULL,
 	"color" text DEFAULT '#94a3b8' NOT NULL,
 	"description" text,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "account" (
@@ -233,6 +235,9 @@ CREATE UNIQUE INDEX "documents_org_sha256_unique" ON "documents" USING btree ("o
 CREATE INDEX "documents_org_document_type_id_idx" ON "documents" USING btree ("organization_id","document_type_id");--> statement-breakpoint
 CREATE INDEX "documents_org_storage_path_id_idx" ON "documents" USING btree ("organization_id","storage_path_id");--> statement-breakpoint
 CREATE INDEX "documents_org_document_date_idx" ON "documents" USING btree ("organization_id","document_date");--> statement-breakpoint
+CREATE INDEX "documents_org_created_at_idx" ON "documents" USING btree ("organization_id","created_at");--> statement-breakpoint
+CREATE INDEX "documents_org_title_idx" ON "documents" USING btree ("organization_id","title");--> statement-breakpoint
+CREATE INDEX "documents_org_size_bytes_idx" ON "documents" USING btree ("organization_id","size_bytes");--> statement-breakpoint
 CREATE INDEX "documents_tags_tag_id_idx" ON "documents_tags" USING btree ("tag_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "storage_paths_org_path_idx" ON "storage_paths" USING btree ("organization_id","path");--> statement-breakpoint
 CREATE INDEX "storage_paths_organization_id_idx" ON "storage_paths" USING btree ("organization_id");--> statement-breakpoint

@@ -1,9 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
 
-// Which metadata each document row can show (Linear's "Display properties"). A personal display
-// preference, kept in localStorage — NOT the URL (filters/sort own the URL). MVP: ONE global key per
-// browser (not scoped per org) — a user keeps a single set of column prefs everywhere.
-
 export const DISPLAY_PROPERTY_KEYS = ["type", "date", "tags", "fileType", "created"] as const;
 export type DisplayPropertyKey = (typeof DISPLAY_PROPERTY_KEYS)[number];
 

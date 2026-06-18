@@ -1,2 +1,0 @@
-CREATE TYPE "public"."thumbnail_status" AS ENUM('pending', 'processing', 'completed', 'failed', 'unsupported');--> statement-breakpoint
-ALTER TABLE "documents" ADD COLUMN "thumbnail_status" "thumbnail_status" DEFAULT 'pending' NOT NULL;

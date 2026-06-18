@@ -2,8 +2,16 @@ import { Link } from "@tanstack/react-router";
 import { Fragment } from "react";
 import { useDisplayProperties } from "@/features/documents/filters/display-properties";
 import type { DocumentRow } from "@/features/documents/queries/documents";
+import { SelectCheckbox } from "@/features/documents/selection/select-checkbox";
 import { TagChip } from "@/features/tags/components/tag-chip";
 import { fileTypeLabel, formatCalendarDate, formatRelativeDay } from "@/lib/format";
+
+type DocumentRowsProps = {
+  orgId: string;
+  documents: DocumentRow[];
+  isSelected: (id: string) => boolean;
+  onToggle: (id: string, shiftKey: boolean) => void;
+};
 
 function renderSnippet(snippet: string) {
   return snippet.split(/(<mark>.*?<\/mark>)/g).map((part, index) => {
@@ -19,7 +27,7 @@ function renderSnippet(snippet: string) {
 // Renders the document list. Which metadata each row shows is driven by the user's Display
 // properties (localStorage). Callers handle loading / error / empty states, since those differ per
 // view.
-export function DocumentRows({ orgId, documents }: { orgId: string; documents: DocumentRow[] }) {
+export function DocumentRows({ orgId, documents, isSelected, onToggle }: DocumentRowsProps) {
   const { isOn } = useDisplayProperties();
 
   function row(doc: DocumentRow) {
@@ -32,11 +40,18 @@ export function DocumentRows({ orgId, documents }: { orgId: string; documents: D
     const added = isOn("created") ? `Added ${formatRelativeDay(doc.createdAt)}` : null;
 
     return (
-      <li key={doc.id}>
+      <li key={doc.id} className="flex items-start hover:bg-accent">
+        <div className="flex shrink-0 items-start pt-3.5 pl-4">
+          <SelectCheckbox
+            checked={isSelected(doc.id)}
+            onToggle={(shiftKey) => onToggle(doc.id, shiftKey)}
+            label={`Select ${doc.title}`}
+          />
+        </div>
         <Link
           to="/dashboard/orgs/$orgId/documents/$id"
           params={{ orgId, id: doc.id }}
-          className="flex items-start gap-3 px-4 py-3 hover:bg-accent"
+          className="flex flex-1 items-start gap-3 py-3 pr-4 pl-3"
         >
           {isOn("fileType") ? (
             <span className="mt-0.5 w-11 shrink-0 rounded-md border py-0.5 text-center font-medium text-[11px] text-muted-foreground">

@@ -5,6 +5,7 @@ import { DocumentCards } from "@/features/documents/components/document-cards";
 import { DocumentRows } from "@/features/documents/components/document-rows";
 import type { DocumentSearch } from "@/features/documents/filters/types";
 import { documentsListQuery } from "@/features/documents/queries/documents";
+import { useDocumentSelection } from "@/features/documents/selection/use-document-selection";
 
 // Pure renderer over the shared query: paged fetch flattened into one list, then list or gallery by
 // `view`. Folder scope, filters, search and sort all arrive through the URL (filters.path carries the
@@ -18,6 +19,8 @@ export function DocumentResults({ orgId }: { orgId: string }) {
 
   const { data, isPending, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useInfiniteQuery(documentsListQuery({ orgId, query, filters, sort }));
+
+  const selection = useDocumentSelection();
 
   // Infinite scroll: fetch the next page when a bottom sentinel scrolls near the viewport.
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -56,12 +59,25 @@ export function DocumentResults({ orgId }: { orgId: string }) {
     );
   }
 
+  const orderedIds = documents.map((d) => d.id);
+  const onToggle = (id: string, shiftKey: boolean) => selection.toggle(id, orderedIds, shiftKey);
+
   return (
     <>
       {view === "list" ? (
-        <DocumentRows orgId={orgId} documents={documents} />
+        <DocumentRows
+          orgId={orgId}
+          documents={documents}
+          isSelected={selection.isSelected}
+          onToggle={onToggle}
+        />
       ) : (
-        <DocumentCards orgId={orgId} documents={documents} />
+        <DocumentCards
+          orgId={orgId}
+          documents={documents}
+          isSelected={selection.isSelected}
+          onToggle={onToggle}
+        />
       )}
       <div ref={sentinelRef} aria-hidden className="h-px" />
       {isFetchingNextPage ? (

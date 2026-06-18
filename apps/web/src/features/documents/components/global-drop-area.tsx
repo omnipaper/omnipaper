@@ -1,11 +1,8 @@
 import { UploadIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-// Drop files anywhere on the page to import them — a full-screen overlay shown only while dragging.
-// Same pattern as Papra (global-drop-area) and paperless-ngx (app-level file-drop).
 export function GlobalDropArea({ onFilesDrop }: { onFilesDrop: (files: File[]) => void }) {
   const [isDragging, setIsDragging] = useState(false);
-  // Hold the latest callback in a ref so listeners attach once, not on every render.
   const onFilesDropRef = useRef(onFilesDrop);
   onFilesDropRef.current = onFilesDrop;
 
@@ -16,13 +13,11 @@ export function GlobalDropArea({ onFilesDrop }: { onFilesDrop: (files: File[]) =
       if (!isFileDrag(e)) {
         return;
       }
-      // Required so the browser fires `drop` instead of navigating to the file.
       e.preventDefault();
       setIsDragging(true);
     };
 
     const onDragLeave = (e: DragEvent) => {
-      // relatedTarget is null only when the cursor leaves the window entirely.
       if (e.relatedTarget === null) {
         setIsDragging(false);
       }

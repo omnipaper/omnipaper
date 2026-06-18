@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1780956343332,
-      "tag": "0000_lumpy_misty_knight",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1781361905078,
-      "tag": "0001_bumpy_korg",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1781370912608,
-      "tag": "0002_rainy_redwing",
+      "when": 1781748034071,
+      "tag": "0000_cold_black_widow",
       "breakpoints": true
     }
   ]

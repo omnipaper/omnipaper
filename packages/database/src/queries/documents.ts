@@ -1,5 +1,5 @@
 import type { FilterState, SortState } from "@omnipaper/shared/document-filters";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { recordEvent } from "../activity";
 import { user as userTable } from "../auth-schema";
 import type { Database } from "../client";
@@ -79,6 +79,69 @@ export async function getDocuments(db: Database, params: GetDocumentsParams) {
     .orderBy(...(explicitOrder ?? [desc(documents.createdAt), desc(documents.id)]))
     .limit(limit)
     .offset(offset);
+}
+export type ExportDocumentRow = {
+  id: string;
+  storageKey: string;
+  title: string;
+  originalFilename: string | null;
+  mimeType: string;
+};
+// Resolves the documents to bundle into an export zip: either an explicit id list, or "all matching"
+// the current filter/search (no pagination — an export covers the whole result set). Selects only the
+// columns the zip needs; no tags/joins.
+export async function getDocumentsForExport(
+  db: Database,
+  params: {
+    organizationId: string;
+    ids?: string[];
+    query?: string;
+    filters?: FilterState;
+    sort?: SortState;
+    customPropertyTypes?: CustomPropertyTypeMap;
+  },
+): Promise<ExportDocumentRow[]> {
+  const { organizationId, ids } = params;
+  const cols = {
+    id: documents.id,
+    storageKey: documents.storageKey,
+    title: documents.title,
+    originalFilename: documents.originalFilename,
+    mimeType: documents.mimeType,
+  };
+  // Explicit selection: just those ids within the org (filter/search ignored).
+  if (ids && ids.length > 0) {
+    return db
+      .select(cols)
+      .from(documents)
+      .where(and(eq(documents.organizationId, organizationId), inArray(documents.id, ids)));
+  }
+  // "All matching": mirror getDocuments' WHERE (incl. full-text search) without pagination.
+  const q = params.query?.trim();
+  const filterConds = buildDocumentWhere(params.filters, params.customPropertyTypes);
+  const order = buildDocumentOrderBy(params.sort) ?? [
+    desc(documents.createdAt),
+    desc(documents.id),
+  ];
+  if (q) {
+    const tsQuery = sql`to_tsquery('simple', nullif(websearch_to_tsquery('simple', ${q})::text, '') || ':*')`;
+    return db
+      .select(cols)
+      .from(documents)
+      .where(
+        and(
+          eq(documents.organizationId, organizationId),
+          sql`${documents.searchVector} @@ ${tsQuery}`,
+          ...filterConds,
+        ),
+      )
+      .orderBy(...order);
+  }
+  return db
+    .select(cols)
+    .from(documents)
+    .where(and(eq(documents.organizationId, organizationId), ...filterConds))
+    .orderBy(...order);
 }
 export type GetOrgDocumentParams = {
   organizationId: string;

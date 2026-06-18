@@ -15,6 +15,7 @@ import {
   deleteDocument,
   getDocumentActivity,
   getDocuments,
+  getDocumentsForExport,
   getOrgDocument,
   markDocumentOcrPending,
   updateDocument,
@@ -33,8 +34,10 @@ import {
   decodeSort,
   filterStateSchema,
   isKnownFilterKey,
+  sortStateSchema,
 } from "@omnipaper/shared/document-filters";
 import { describeAcceptedFormats, isUploadAllowed } from "@omnipaper/shared/formats";
+import { Zip, ZipPassThrough } from "fflate";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
@@ -105,6 +108,49 @@ const updateDocumentSchema = z.object({
 const updateOcrTextSchema = z.object({
   ocrText: z.string().max(1000000),
 });
+// Export takes either an explicit id list or "all matching" the current filter/search, so "select
+// all" never has to enumerate thousands of ids.
+const exportDocumentsSchema = z.union([
+  z.object({ documents: z.array(z.string().min(1)).min(1) }),
+  z.object({
+    all: z.literal(true),
+    q: z.string().optional(),
+    filters: filterStateSchema.optional(),
+    sort: sortStateSchema.optional(),
+  }),
+]);
+const MIME_EXTENSIONS: Record<string, string> = {
+  "application/pdf": ".pdf",
+  "image/png": ".png",
+  "image/jpeg": ".jpg",
+  "image/webp": ".webp",
+  "text/plain": ".txt",
+  "text/csv": ".csv",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+};
+// A filesystem-safe, unique name for a document inside the export zip. Prefers the original filename
+// (it carries the real extension); falls back to the title plus an extension inferred from the MIME.
+function exportFileName(
+  doc: { id: string; title: string; originalFilename: string | null; mimeType: string },
+  used: Set<string>,
+): string {
+  const raw = (doc.originalFilename ?? doc.title ?? doc.id).replace(/[\\/:*?"<>|]/g, "_").trim();
+  const safe = raw || doc.id;
+  const hasExt = safe.lastIndexOf(".") > 0;
+  let name = hasExt ? safe : safe + (MIME_EXTENSIONS[doc.mimeType] ?? "");
+  if (used.has(name)) {
+    const dot = name.lastIndexOf(".");
+    const stem = dot > 0 ? name.slice(0, dot) : name;
+    const ext = dot > 0 ? name.slice(dot) : "";
+    let i = 2;
+    while (used.has(`${stem} (${i})${ext}`)) {
+      i++;
+    }
+    name = `${stem} (${i})${ext}`;
+  }
+  used.add(name);
+  return name;
+}
 export const documentsRoutes = new Hono<{
   Variables: Variables;
 }>()
@@ -182,6 +228,76 @@ export const documentsRoutes = new Hono<{
     const nextCursor =
       rows.length === DEFAULT_PAGE_SIZE ? String(offset + DEFAULT_PAGE_SIZE) : null;
     return c.json({ documents, nextCursor });
+  })
+  .post("/export", zValidator("json", exportDocumentsSchema), async (c) => {
+    const organizationId = c.get("organizationId");
+    const body = c.req.valid("json");
+    const driver = await getStorageDriver();
+    if (!driver) {
+      throw errors.badRequest("storage_not_configured", "Storage is not configured");
+    }
+    const customPropertyTypes =
+      "all" in body && body.filters && Object.keys(body.filters).some((k) => k.startsWith("cp:"))
+        ? new Map(
+            (await getOrgCustomPropertyTypes(db, { organizationId })).map(
+              (d) => [d.id, d.type] as const,
+            ),
+          )
+        : undefined;
+    const docs = await getDocumentsForExport(
+      db,
+      "documents" in body
+        ? { organizationId, ids: body.documents }
+        : {
+            organizationId,
+            query: body.q,
+            filters: body.filters,
+            sort: body.sort,
+            customPropertyTypes,
+          },
+    );
+    if (docs.length === 0) {
+      throw errors.badRequest("no_documents", "No documents to export");
+    }
+    // Build the zip on the fly: pull each object from storage and stream it straight into the
+    // response, so server memory stays flat regardless of how many documents are selected.
+    const used = new Set<string>();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const zip = new Zip((err, chunk, final) => {
+          if (err) {
+            controller.error(err);
+            return;
+          }
+          controller.enqueue(chunk);
+          if (final) {
+            controller.close();
+          }
+        });
+        (async () => {
+          try {
+            for (const doc of docs) {
+              const obj = await driver.getObject({ key: doc.storageKey });
+              if (!obj) {
+                continue; // skip files missing from storage rather than failing the whole zip
+              }
+              const entry = new ZipPassThrough(exportFileName(doc, used));
+              zip.add(entry);
+              entry.push(new Uint8Array(obj.body), true);
+            }
+            zip.end();
+          } catch (e) {
+            controller.error(e as Error);
+          }
+        })();
+      },
+    });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/zip",
+        "Content-Disposition": 'attachment; filename="documents.zip"',
+      },
+    });
   })
   .get("/:id", async (c) => {
     const organizationId = c.get("organizationId");

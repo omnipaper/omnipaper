@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import type { Database } from "@omnipaper/database/client";
 import { createId } from "@omnipaper/database/id";
 import {
-  completeDocumentOcr,
   createDocument,
   getDocumentByHash,
   markDocumentOcrUnsupported,
@@ -31,7 +30,6 @@ export type IngestDocumentInput = {
   filename: string;
   mimeType: string;
   title?: string;
-  ocrText?: string;
   documentDate?: string;
   createdAt?: Date;
 };
@@ -83,11 +81,9 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
   }
 
   const { definitionId } = await getOcrSettings();
-  const carriedText = input.ocrText?.trim() ? input.ocrText : undefined;
 
   // Pick the lane that yields the document's text: OCR (PDF + images, external provider), native
-  // extraction (txt, docx — no provider), or none. When upstream already carried text (migration),
-  // store it as-is regardless of lane; only genuinely text-less unsupported types fall through.
+  // extraction (txt, docx — no provider), or none. Genuinely text-less unsupported types fall through.
   const lane = supportsMime(definitionId, mimeType)
     ? "ocr"
     : isTextExtractable(mimeType)
@@ -96,8 +92,6 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
 
   if (lane === "unsupported") {
     await markDocumentOcrUnsupported(db, { id });
-  } else if (carriedText) {
-    await completeDocumentOcr(db, { id, organizationId, title, text: carriedText });
   } else {
     await enqueue(lane === "ocr" ? "ocr-extract" : "text-extract", { documentId: id });
   }

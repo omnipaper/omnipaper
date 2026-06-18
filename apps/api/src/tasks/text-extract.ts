@@ -13,14 +13,13 @@ import { extractDocumentText } from "../lib/text-extract";
 // Pull text out of types we can read natively (txt, docx) — no external OCR provider, no signed URL.
 // Enqueued from ingestDocument() when the type isn't OCR-supported but is text-extractable. Reuses
 // the document's ocr_* status columns: they track text availability regardless of how the text was
-// obtained (OCR, native extraction, or migration carry-over).
+// obtained (OCR or native extraction).
 export const textExtractTask = defineTask("text-extract", async ({ documentId }) => {
   const doc = await getDocumentById(db, { id: documentId });
 
   if (!doc) {
     return;
   }
-
 
   if (doc.ocrStatus === "completed") {
     return;

@@ -31,7 +31,6 @@ import {
   FileTypeIcon,
   FolderTreeIcon,
   HardDriveIcon,
-  ImportIcon,
   KeyIcon,
   SlidersHorizontalIcon,
   TagIcon,
@@ -176,17 +175,6 @@ function OrgLayout() {
                           >
                             <FolderTreeIcon />
                             <span>Storage paths</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname === `${settingsBase}/migration`}
-                        >
-                          <Link to="/dashboard/orgs/$orgId/settings/migration" params={{ orgId }}>
-                            <ImportIcon />
-                            <span>Migration</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

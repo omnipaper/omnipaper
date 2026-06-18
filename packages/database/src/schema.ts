@@ -217,7 +217,6 @@ export const customPropertyDefinitions = pgTable(
     key: text("key").notNull(),
     name: text("name").notNull(),
     description: text("description"),
-    // Immutable after creation — changing the type would require migrating existing values.
     type: customPropertyTypeEnum("type").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -345,55 +344,3 @@ export const activityEvents = pgTable(
 
 export type ActivityEventRow = typeof activityEvents.$inferSelect;
 export type NewActivityEvent = typeof activityEvents.$inferInsert;
-
-export const migrationStatusEnum = pgEnum("migration_status", [
-  "created",
-  "analyzing",
-  "awaiting_confirmation",
-  "importing",
-  "done",
-  "failed",
-]);
-
-export type MigrationOptions = {
-  importOcr?: boolean;
-  timezone?: string;
-};
-
-export const migrations = pgTable(
-  "migrations",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => createId("mig")),
-    organizationId: text("organization_id")
-      .notNull()
-      .references(() => organization.id, { onDelete: "cascade" }),
-    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
-    source: text("source").notNull(),
-    status: migrationStatusEnum("status").notNull().default("created"),
-    uploadKey: text("upload_key").notNull(),
-    uploadId: text("upload_id"),
-    options: jsonb("options").$type<MigrationOptions>().notNull().default({}),
-    preview: jsonb("preview").$type<unknown>(),
-    report: jsonb("report").$type<unknown>(),
-    docsTotal: integer("docs_total").notNull().default(0),
-    docsImported: integer("docs_imported").notNull().default(0),
-    docsDuplicate: integer("docs_duplicate").notNull().default(0),
-    docsFailed: integer("docs_failed").notNull().default(0),
-    checkpoint: jsonb("checkpoint").$type<unknown>(),
-    error: text("error"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdateFn(() => new Date()),
-  },
-  (t) => [
-    index("migrations_org_status_idx").on(t.organizationId, t.status),
-    index("migrations_organization_id_idx").on(t.organizationId),
-  ],
-);
-
-export type Migration = typeof migrations.$inferSelect;
-export type NewMigration = typeof migrations.$inferInsert;

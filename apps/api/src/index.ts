@@ -4,8 +4,6 @@ import { env } from "@omnipaper/env";
 import { startWorker } from "@omnipaper/queue/worker";
 import { serveStatic } from "hono/bun";
 import { createApp } from "./app";
-import { migrationAnalyzeTask } from "./tasks/migration-analyze";
-import { migrationIngestTask } from "./tasks/migration-ingest";
 import { ocrExtractTask } from "./tasks/ocr-extract";
 import { textExtractTask } from "./tasks/text-extract";
 import { thumbnailGenerateTask } from "./tasks/thumbnail-generate";
@@ -27,8 +25,6 @@ const runner = services.includes("worker")
         "ocr-extract": ocrExtractTask,
         "text-extract": textExtractTask,
         "thumbnail-generate": thumbnailGenerateTask,
-        "migration-analyze": migrationAnalyzeTask,
-        "migration-ingest": migrationIngestTask,
       },
     })
   : null;

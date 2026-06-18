@@ -1,5 +1,5 @@
 {
-  "id": "c6faa137-5392-4bdd-aa0b-0cac31a26ada",
+  "id": "4d83ed76-5ef9-4a26-8217-b904deb6fdc6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -68,7 +68,7 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -129,8 +129,12 @@
           "name": "activity_events_organization_id_organization_id_fk",
           "tableFrom": "activity_events",
           "tableTo": "organization",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -138,8 +142,12 @@
           "name": "activity_events_user_id_user_id_fk",
           "tableFrom": "activity_events",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -193,14 +201,14 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -270,8 +278,12 @@
           "name": "custom_property_definitions_organization_id_organization_id_fk",
           "tableFrom": "custom_property_definitions",
           "tableTo": "organization",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -312,14 +324,14 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -368,8 +380,12 @@
           "name": "custom_property_select_options_definition_id_custom_property_definitions_id_fk",
           "tableFrom": "custom_property_select_options",
           "tableTo": "custom_property_definitions",
-          "columnsFrom": ["definition_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "definition_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -434,14 +450,14 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -490,8 +506,12 @@
           "name": "document_custom_property_values_document_id_documents_id_fk",
           "tableFrom": "document_custom_property_values",
           "tableTo": "documents",
-          "columnsFrom": ["document_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "document_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -499,8 +519,12 @@
           "name": "document_custom_property_values_definition_id_custom_property_definitions_id_fk",
           "tableFrom": "document_custom_property_values",
           "tableTo": "custom_property_definitions",
-          "columnsFrom": ["definition_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "definition_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -508,8 +532,12 @@
           "name": "document_custom_property_values_select_option_id_custom_property_select_options_id_fk",
           "tableFrom": "document_custom_property_values",
           "tableTo": "custom_property_select_options",
-          "columnsFrom": ["select_option_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "select_option_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -550,14 +578,14 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -606,8 +634,12 @@
           "name": "document_types_organization_id_organization_id_fk",
           "tableFrom": "document_types",
           "tableTo": "organization",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -645,6 +677,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "original_filename": {
+          "name": "original_filename",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "storage_key": {
           "name": "storage_key",
@@ -684,11 +722,13 @@
           "primaryKey": false,
           "notNull": false
         },
-        "ocr_metadata": {
-          "name": "ocr_metadata",
-          "type": "jsonb",
+        "thumbnail_status": {
+          "name": "thumbnail_status",
+          "type": "thumbnail_status",
+          "typeSchema": "public",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'pending'"
         },
         "document_date": {
           "name": "document_date",
@@ -720,14 +760,14 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -847,6 +887,69 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "documents_org_created_at_idx": {
+          "name": "documents_org_created_at_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "documents_org_title_idx": {
+          "name": "documents_org_title_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "title",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "documents_org_size_bytes_idx": {
+          "name": "documents_org_size_bytes_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "size_bytes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -854,8 +957,12 @@
           "name": "documents_organization_id_organization_id_fk",
           "tableFrom": "documents",
           "tableTo": "organization",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -863,8 +970,12 @@
           "name": "documents_created_by_user_id_fk",
           "tableFrom": "documents",
           "tableTo": "user",
-          "columnsFrom": ["created_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -872,8 +983,12 @@
           "name": "documents_document_type_id_document_types_id_fk",
           "tableFrom": "documents",
           "tableTo": "document_types",
-          "columnsFrom": ["document_type_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "document_type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -881,8 +996,12 @@
           "name": "documents_storage_path_id_storage_paths_id_fk",
           "tableFrom": "documents",
           "tableTo": "storage_paths",
-          "columnsFrom": ["storage_path_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "storage_path_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -911,7 +1030,7 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -939,8 +1058,12 @@
           "name": "documents_tags_document_id_documents_id_fk",
           "tableFrom": "documents_tags",
           "tableTo": "documents",
-          "columnsFrom": ["document_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "document_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -948,8 +1071,12 @@
           "name": "documents_tags_tag_id_tags_id_fk",
           "tableFrom": "documents_tags",
           "tableTo": "tags",
-          "columnsFrom": ["tag_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -957,7 +1084,10 @@
       "compositePrimaryKeys": {
         "documents_tags_document_id_tag_id_pk": {
           "name": "documents_tags_document_id_tag_id_pk",
-          "columns": ["document_id", "tag_id"]
+          "columns": [
+            "document_id",
+            "tag_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -990,7 +1120,7 @@
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -1034,14 +1164,14 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -1090,8 +1220,12 @@
           "name": "storage_paths_organization_id_organization_id_fk",
           "tableFrom": "storage_paths",
           "tableTo": "organization",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1139,14 +1273,14 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -1195,8 +1329,12 @@
           "name": "tags_organization_id_organization_id_fk",
           "tableFrom": "tags",
           "tableTo": "organization",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1313,8 +1451,12 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1401,8 +1543,12 @@
           "name": "invitation_organization_id_organization_id_fk",
           "tableFrom": "invitation",
           "tableTo": "organization",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1410,8 +1556,12 @@
           "name": "invitation_inviter_id_user_id_fk",
           "tableFrom": "invitation",
           "tableTo": "user",
-          "columnsFrom": ["inviter_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "inviter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1480,8 +1630,12 @@
           "name": "member_organization_id_organization_id_fk",
           "tableFrom": "member",
           "tableTo": "organization",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1489,8 +1643,12 @@
           "name": "member_user_id_user_id_fk",
           "tableFrom": "member",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1550,7 +1708,9 @@
         "organization_slug_unique": {
           "name": "organization_slug_unique",
           "nullsNotDistinct": false,
-          "columns": ["slug"]
+          "columns": [
+            "slug"
+          ]
         }
       },
       "policies": {},
@@ -1645,8 +1805,12 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1656,7 +1820,9 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": ["token"]
+          "columns": [
+            "token"
+          ]
         }
       },
       "policies": {},
@@ -1745,7 +1911,9 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": [
+            "email"
+          ]
         }
       },
       "policies": {},
@@ -1824,7 +1992,10 @@
     "public.activity_actor_type": {
       "name": "activity_actor_type",
       "schema": "public",
-      "values": ["user", "system"]
+      "values": [
+        "user",
+        "system"
+      ]
     },
     "public.activity_event": {
       "name": "activity_event",
@@ -1840,17 +2011,43 @@
     "public.activity_resource_type": {
       "name": "activity_resource_type",
       "schema": "public",
-      "values": ["document"]
+      "values": [
+        "document"
+      ]
     },
     "public.custom_property_type": {
       "name": "custom_property_type",
       "schema": "public",
-      "values": ["text", "url", "number", "date", "boolean", "select"]
+      "values": [
+        "text",
+        "url",
+        "number",
+        "date",
+        "boolean",
+        "select"
+      ]
     },
     "public.ocr_status": {
       "name": "ocr_status",
       "schema": "public",
-      "values": ["pending", "processing", "completed", "failed"]
+      "values": [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "unsupported"
+      ]
+    },
+    "public.thumbnail_status": {
+      "name": "thumbnail_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "unsupported"
+      ]
     }
   },
   "schemas": {},
