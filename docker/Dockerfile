@@ -15,6 +15,7 @@ COPY packages/ocr/package.json packages/ocr/
 COPY packages/permissions/package.json packages/permissions/
 COPY packages/queue/package.json packages/queue/
 COPY packages/settings/package.json packages/settings/
+COPY packages/shared/package.json packages/shared/
 COPY packages/storage/package.json packages/storage/
 COPY packages/ui/package.json packages/ui/
 RUN bun install --frozen-lockfile
@@ -34,6 +35,7 @@ COPY packages/ocr/package.json packages/ocr/
 COPY packages/permissions/package.json packages/permissions/
 COPY packages/queue/package.json packages/queue/
 COPY packages/settings/package.json packages/settings/
+COPY packages/shared/package.json packages/shared/
 COPY packages/storage/package.json packages/storage/
 COPY packages/ui/package.json packages/ui/
 RUN bun install --frozen-lockfile --production
