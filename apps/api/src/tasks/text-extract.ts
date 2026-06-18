@@ -1,0 +1,60 @@
+import { db } from "@omnipaper/database/client";
+import {
+  completeDocumentOcr,
+  getDocumentById,
+  markDocumentOcrFailed,
+  markDocumentOcrProcessing,
+} from "@omnipaper/database/queries/documents";
+import { defineTask } from "@omnipaper/queue/worker";
+import { getStorageSettings } from "@omnipaper/settings/storage-settings";
+import { createS3Driver } from "@omnipaper/storage/s3";
+import { extractDocumentText } from "../lib/text-extract";
+
+// Pull text out of types we can read natively (txt, docx) — no external OCR provider, no signed URL.
+// Enqueued from ingestDocument() when the type isn't OCR-supported but is text-extractable. Reuses
+// the document's ocr_* status columns: they track text availability regardless of how the text was
+// obtained (OCR, native extraction, or migration carry-over).
+export const textExtractTask = defineTask("text-extract", async ({ documentId }) => {
+  const doc = await getDocumentById(db, { id: documentId });
+
+  if (!doc) {
+    return;
+  }
+
+
+  if (doc.ocrStatus === "completed") {
+    return;
+  }
+
+  await markDocumentOcrProcessing(db, { id: documentId });
+
+  try {
+    const storageSettings = await getStorageSettings();
+
+    if (!storageSettings) {
+      throw new Error("Storage is not configured");
+    }
+
+    const storage = createS3Driver(storageSettings);
+    const original = await storage.getObject({ key: doc.storageKey });
+
+    if (!original) {
+      throw new Error("Original file not found in storage");
+    }
+
+    const text = await extractDocumentText(doc.mimeType, new Uint8Array(original.body));
+
+    await completeDocumentOcr(db, {
+      id: documentId,
+      organizationId: doc.organizationId,
+      title: doc.title,
+      text,
+    });
+  } catch (err) {
+    // Mirror ocr-extract: mark "failed" so the document leaves "processing" and the UI can offer a
+    // re-run, and swallow rather than rethrow — a parse failure is deterministic (e.g. a corrupt
+    // docx), so graphile-worker's default retries would just churn.
+    await markDocumentOcrFailed(db, { id: documentId });
+    console.error(`[text-extract] failed for document ${documentId}:`, err);
+  }
+});

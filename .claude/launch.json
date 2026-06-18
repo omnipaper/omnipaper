@@ -7,6 +7,12 @@
       "runtimeArgs": ["run", "--cwd", "apps/web", "dev"],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "docs-static",
+      "runtimeExecutable": "bunx",
+      "runtimeArgs": ["serve", "-l", "4949", "apps/docs/.output/public"],
+      "port": 4949
     }
   ]
 }

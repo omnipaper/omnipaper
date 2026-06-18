@@ -6,9 +6,11 @@ export function toDocumentDto(document: Document) {
   return {
     id: document.id,
     title: document.title,
+    originalFilename: document.originalFilename,
     mimeType: document.mimeType,
     sizeBytes: document.sizeBytes,
     ocrStatus: document.ocrStatus,
+    thumbnailStatus: document.thumbnailStatus,
     ocrText: document.ocrText,
     documentDate: document.documentDate,
     createdAt: document.createdAt,
@@ -34,9 +36,11 @@ export function toDocumentDetailDto(input: {
   customProperties: { definitionId: string; value: unknown }[];
   documentType: DocumentType | null | undefined;
   storagePath: StoragePath | null | undefined;
+  ocrSupported: boolean;
 }) {
   return {
     ...toDocumentDto(input.document),
+    ocrSupported: input.ocrSupported,
     tags: input.tags,
     customProperties: input.customProperties,
     documentType: input.documentType

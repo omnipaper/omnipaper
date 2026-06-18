@@ -40,6 +40,7 @@ const adminSettings = new Hono<{ Variables: Variables }>()
       bucket: stored?.bucket ?? null,
       region: stored?.region ?? null,
       endpoint: stored?.endpoint ?? null,
+      forcePathStyle: stored?.forcePathStyle ?? false,
       accessKeyId: stored ? SECRET_MASK : null,
       secretAccessKey: stored ? SECRET_MASK : null,
     });

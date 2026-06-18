@@ -27,34 +27,33 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
   const selectedIds = new Set(tags.map((t) => t.id));
 
   // Whole tag set is replaced on every change (the API is a replace-set PUT), so each toggle/remove
-  // sends the full next set. Server truth is re-read via the hook's invalidation, not tracked locally.
+  // sends the full next set. The mutation updates optimistically, so the chips reflect the change
+  // instantly and we don't disable them while the write is in flight.
   const setTags = useSetDocumentTags(orgId, documentId);
   const createTag = useCreateTag(orgId);
 
-  const pending = setTags.isPending || createTag.isPending;
+  // Only the create path is guarded — it's not optimistic, and a double-fire would POST twice.
+  const creating = createTag.isPending;
 
   // Quick-create then attach the new tag to this document, and clear the search box.
   function createAndAttach(name: string) {
     createTag.mutate(name, {
       onSuccess: ({ tag }) => {
-        setTags.mutate([...selectedIds, tag.id]);
+        setTags.mutate([...tags, { id: tag.id, name: tag.name, color: tag.color }]);
         setSearch("");
       },
     });
   }
 
-  function toggle(tagId: string) {
-    const next = new Set(selectedIds);
-    if (next.has(tagId)) {
-      next.delete(tagId);
-    } else {
-      next.add(tagId);
-    }
-    setTags.mutate([...next]);
+  function toggle(tag: Tag) {
+    const next = selectedIds.has(tag.id)
+      ? tags.filter((t) => t.id !== tag.id)
+      : [...tags, { id: tag.id, name: tag.name, color: tag.color }];
+    setTags.mutate(next);
   }
 
   function remove(tagId: string) {
-    setTags.mutate(tags.filter((t) => t.id !== tagId).map((t) => t.id));
+    setTags.mutate(tags.filter((t) => t.id !== tagId));
   }
 
   const query = search.trim().toLowerCase();
@@ -65,13 +64,7 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {tags.map((tag) => (
-        <TagChip
-          key={tag.id}
-          name={tag.name}
-          color={tag.color}
-          disabled={pending}
-          onRemove={() => remove(tag.id)}
-        />
+        <TagChip key={tag.id} name={tag.name} color={tag.color} onRemove={() => remove(tag.id)} />
       ))}
 
       <Popover open={open} onOpenChange={setOpen}>
@@ -89,9 +82,8 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => {
-                // Mirror the buttons' pending guard so Enter can't fire a write while a replace-set
-                // PUT is in flight — otherwise a concurrent toggle could be lost (last-write-wins).
-                if (e.key === "Enter" && canCreate && !pending) {
+                // Guard only against a double create-submit; tag toggles are optimistic and safe.
+                if (e.key === "Enter" && canCreate && !creating) {
                   e.preventDefault();
                   createAndAttach(search.trim());
                 }
@@ -103,9 +95,8 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
               <button
                 key={tag.id}
                 type="button"
-                onClick={() => toggle(tag.id)}
-                disabled={pending}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+                onClick={() => toggle(tag)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent"
               >
                 <span
                   className="size-2 shrink-0 rounded-full"
@@ -122,7 +113,7 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
               <button
                 type="button"
                 onClick={() => createAndAttach(search.trim())}
-                disabled={pending}
+                disabled={creating}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
               >
                 <Plus className="size-3.5" />

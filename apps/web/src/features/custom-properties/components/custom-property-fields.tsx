@@ -29,17 +29,17 @@ type DocumentPropertyValue = { definitionId: string; value: unknown };
 type EditorProps = {
   definition: PropertyDefinition;
   value: unknown;
-  disabled: boolean;
   onSet: (value: unknown) => void;
   onClear: () => void;
 };
 
-function PropertyValueEditor({ definition, value, disabled, onSet, onClear }: EditorProps) {
+// Edits are optimistic, so the field never disables while a save is in flight — the value updates
+// instantly and reconciles on settle.
+function PropertyValueEditor({ definition, value, onSet, onClear }: EditorProps) {
   if (definition.type === "boolean") {
     return (
       <Switch
         checked={value === true}
-        disabled={disabled}
         aria-label={definition.name}
         onCheckedChange={(c) => onSet(c)}
       />
@@ -55,7 +55,6 @@ function PropertyValueEditor({ definition, value, disabled, onSet, onClear }: Ed
     return (
       <Select
         value={optionId || NONE_VALUE}
-        disabled={disabled}
         onValueChange={(v) => {
           if (v === NONE_VALUE) {
             onClear();
@@ -86,7 +85,6 @@ function PropertyValueEditor({ definition, value, disabled, onSet, onClear }: Ed
         key={String(current ?? "")}
         type="number"
         defaultValue={current ?? ""}
-        disabled={disabled}
         aria-label={definition.name}
         onBlur={(e) => {
           const raw = e.target.value.trim();
@@ -112,7 +110,6 @@ function PropertyValueEditor({ definition, value, disabled, onSet, onClear }: Ed
         key={current}
         type="date"
         defaultValue={current}
-        disabled={disabled}
         aria-label={definition.name}
         onChange={(e) => {
           const v = e.target.value;
@@ -135,7 +132,6 @@ function PropertyValueEditor({ definition, value, disabled, onSet, onClear }: Ed
       key={current}
       type={definition.type === "url" ? "url" : "text"}
       defaultValue={current}
-      disabled={disabled}
       aria-label={definition.name}
       onBlur={(e) => {
         const v = e.target.value.trim();
@@ -177,28 +173,27 @@ export function CustomPropertyFields({
 
   return (
     <div className="flex flex-col gap-3">
-      {definitions.map((definition) => {
-        // Disable only the field whose save is in flight, so editing another field meanwhile
-        // isn't swallowed.
-        const fieldPending =
-          (setValue.isPending && setValue.variables?.definitionId === definition.id) ||
-          (clearValue.isPending && clearValue.variables === definition.id);
-
-        return (
-          <div key={definition.id} className="flex items-center gap-3">
-            <span className="w-40 shrink-0 text-muted-foreground text-sm">{definition.name}</span>
-            <div className="flex-1">
-              <PropertyValueEditor
-                definition={definition}
-                value={valueByDefinition.get(definition.id)}
-                disabled={fieldPending}
-                onSet={(value) => setValue.mutate({ definitionId: definition.id, value })}
-                onClear={() => clearValue.mutate(definition.id)}
-              />
-            </div>
+      {definitions.map((definition) => (
+        <div key={definition.id} className="flex items-center gap-3">
+          <span className="w-40 shrink-0 text-muted-foreground text-sm">{definition.name}</span>
+          <div className="flex-1">
+            <PropertyValueEditor
+              definition={definition}
+              value={valueByDefinition.get(definition.id)}
+              // A select sends a bare option id to the API, but the detail stores the resolved
+              // { id, label, color }; resolve it here so the optimistic patch matches server shape.
+              onSet={(value) => {
+                const optimisticValue =
+                  definition.type === "select"
+                    ? (definition.options.find((o) => o.id === value) ?? null)
+                    : value;
+                setValue.mutate({ definitionId: definition.id, value, optimisticValue });
+              }}
+              onClear={() => clearValue.mutate(definition.id)}
+            />
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }

@@ -14,16 +14,21 @@ import { Textarea } from "@omnipaper/ui/components/textarea";
 import { CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 import { OcrStatusBadge } from "@/features/documents/components/ocr-status-badge";
-import { useReprocessDocument, useUpdateOcrText } from "@/features/documents/queries/documents";
+import {
+  type OcrStatus,
+  useReprocessDocument,
+  useUpdateOcrText,
+} from "@/features/documents/queries/documents";
 
 type Props = {
   orgId: string;
   documentId: string;
-  ocrStatus: string;
+  ocrStatus: OcrStatus;
   ocrText: string | null;
+  ocrSupported: boolean;
 };
 
-export function OcrTab({ orgId, documentId, ocrStatus, ocrText }: Props) {
+export function OcrTab({ orgId, documentId, ocrStatus, ocrText, ocrSupported }: Props) {
   const [copied, setCopied] = useState(false);
   const inProgress = ocrStatus === "pending" || ocrStatus === "processing";
 
@@ -52,7 +57,11 @@ export function OcrTab({ orgId, documentId, ocrStatus, ocrText }: Props) {
           ) : null}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" disabled={inProgress || rerun.isPending}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={inProgress || rerun.isPending || !ocrSupported}
+              >
                 <RefreshCwIcon className={inProgress ? "animate-spin" : undefined} />
                 Re-run OCR
               </Button>
@@ -73,6 +82,13 @@ export function OcrTab({ orgId, documentId, ocrStatus, ocrText }: Props) {
           </AlertDialog>
         </div>
       </div>
+
+      {!ocrSupported ? (
+        <p className="text-muted-foreground text-xs">
+          The configured OCR engine can’t extract text from this file type. You can still add text
+          manually below.
+        </p>
+      ) : null}
 
       {/* Key on status + text so the draft rebases on any run transition (incl. failed → pending →
           failed), not only when the text changes — otherwise a re-run could leave a pre-rerun dirty

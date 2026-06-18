@@ -1,9 +1,13 @@
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
+  UploadPartCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { StorageDriver } from "../driver";
@@ -18,6 +22,7 @@ export type S3Config = {
 };
 
 const DEFAULT_DOWNLOAD_EXPIRY_SECONDS = 600;
+const DEFAULT_UPLOAD_PART_EXPIRY_SECONDS = 60 * 60;
 
 function isNotFoundError(error: unknown): boolean {
   return (
@@ -62,6 +67,31 @@ export const createS3Driver = (config: S3Config): StorageDriver => {
       return { url };
     },
 
+    getObject: async ({ key }) => {
+      try {
+        const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+
+        if (!result.Body) {
+          return null;
+        }
+
+        const bytes = await result.Body.transformToByteArray();
+        return {
+          body: bytes.buffer.slice(
+            bytes.byteOffset,
+            bytes.byteOffset + bytes.byteLength,
+          ) as ArrayBuffer,
+          contentType: result.ContentType ?? null,
+        };
+      } catch (error) {
+        if (isNotFoundError(error)) {
+          return null;
+        }
+
+        throw error;
+      }
+    },
+
     deleteObject: async ({ key }) => {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },
@@ -93,6 +123,54 @@ export const createS3Driver = (config: S3Config): StorageDriver => {
 
         throw error;
       }
+    },
+
+    createMultipartUpload: async ({ key, contentType }) => {
+      const result = await client.send(
+        new CreateMultipartUploadCommand({ Bucket: bucket, Key: key, ContentType: contentType }),
+      );
+
+      if (!result.UploadId) {
+        throw new Error("S3 did not return an UploadId for the multipart upload");
+      }
+
+      return { uploadId: result.UploadId };
+    },
+
+    signUploadPart: async ({ key, uploadId, partNumber, expiresInSeconds }) => {
+      const command = new UploadPartCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        PartNumber: partNumber,
+      });
+
+      const url = await getSignedUrl(client, command, {
+        expiresIn: expiresInSeconds ?? DEFAULT_UPLOAD_PART_EXPIRY_SECONDS,
+      });
+
+      return { url };
+    },
+
+    completeMultipartUpload: async ({ key, uploadId, parts }) => {
+      await client.send(
+        new CompleteMultipartUploadCommand({
+          Bucket: bucket,
+          Key: key,
+          UploadId: uploadId,
+          MultipartUpload: {
+            Parts: [...parts]
+              .sort((a, b) => a.partNumber - b.partNumber)
+              .map((p) => ({ PartNumber: p.partNumber, ETag: p.etag })),
+          },
+        }),
+      );
+    },
+
+    abortMultipartUpload: async ({ key, uploadId }) => {
+      await client.send(
+        new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }),
+      );
     },
   };
 };

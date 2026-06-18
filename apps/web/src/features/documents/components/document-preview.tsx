@@ -15,9 +15,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 // fine; if we ever hit CJK or non-embedded standard fonts we can point those at the
 // bundled pdfjs-dist assets.
 
-// Render width that fits a normal (A4 portrait) page within the viewport height, so the whole page
-// shows by default without an inner scrollbar. Capped by the container width so it never overflows
-// horizontally; pages taller than A4 simply let the surrounding pane scroll.
+// Render width that fits a normal (A4 portrait) page within the viewport height, so roughly one page
+// shows per screen and the reader scrolls for the next. Capped by the container width so it never
+// overflows horizontally; taller pages just take more scroll.
 function useFitWidth() {
   const ref = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>();
@@ -51,43 +51,53 @@ function useFitWidth() {
     return { ref, width: undefined };
   }
 
-  // ~200px leaves room for the app header, the two page-nav bars and padding. A4 aspect = √2.
-  const heightBudget = Math.max(viewportHeight - 200, 360);
+  // ~160px leaves room for the app header and padding. A4 aspect = √2.
+  const heightBudget = Math.max(viewportHeight - 160, 360);
   const width = Math.min(containerWidth, Math.round(heightBudget / Math.SQRT2));
 
   return { ref, width };
 }
 
-function PageNav({
-  page,
-  numPages,
-  onChange,
-}: {
-  page: number;
-  numPages: number;
-  onChange: (page: number) => void;
-}) {
+// One page in the continuous scroll. The pdf.js canvas is expensive, so we only mount it once the
+// page scrolls near the viewport (a long PDF would otherwise render every page up front); once
+// mounted it stays mounted. Before render, a placeholder of the estimated A4 height keeps the scroll
+// position roughly stable.
+function LazyPage({ pageNumber, width }: { pageNumber: number; width: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  // Render the first page eagerly so something shows immediately on open.
+  const [visible, setVisible] = useState(pageNumber === 1);
+
+  useEffect(() => {
+    if (visible) {
+      return;
+    }
+    const el = ref.current;
+    if (!el) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      // Mount well before the page is on screen so scrolling stays smooth.
+      { rootMargin: "300% 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visible]);
+
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onChange(Math.max(1, page - 1))}
-        disabled={page <= 1}
-      >
-        Previous
-      </Button>
-      <span className="text-muted-foreground">
-        Page {page} of {numPages}
-      </span>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onChange(Math.min(numPages, page + 1))}
-        disabled={page >= numPages}
-      >
-        Next
-      </Button>
+    <div
+      ref={ref}
+      className="flex w-full justify-center"
+      style={{ minHeight: visible ? undefined : Math.round(width * Math.SQRT2) }}
+    >
+      {visible ? (
+        <Page pageNumber={pageNumber} width={width} className="rounded-md border" />
+      ) : null}
     </div>
   );
 }
@@ -95,18 +105,13 @@ function PageNav({
 function PdfPreview({ url, onRetry }: { url: string; onRetry?: () => void }) {
   const { ref, width } = useFitWidth();
   const [numPages, setNumPages] = useState(0);
-  const [page, setPage] = useState(1);
-  const hasPages = numPages > 1;
 
   return (
-    <div ref={ref} className="flex flex-col items-center gap-3">
-      {hasPages ? <PageNav page={page} numPages={numPages} onChange={setPage} /> : null}
+    <div ref={ref} className="w-full">
       <Document
         file={url}
-        onLoadSuccess={({ numPages: total }) => {
-          setNumPages(total);
-          setPage(1);
-        }}
+        onLoadSuccess={({ numPages: total }) => setNumPages(total)}
+        className="flex flex-col items-center gap-4"
         loading={<p className="text-sm text-muted-foreground">Loading preview…</p>}
         error={
           <div className="flex flex-col items-center gap-2">
@@ -119,10 +124,12 @@ function PdfPreview({ url, onRetry }: { url: string; onRetry?: () => void }) {
           </div>
         }
       >
-        {width ? <Page pageNumber={page} width={width} className="rounded-md border" /> : null}
+        {width
+          ? Array.from({ length: numPages }, (_, index) => (
+              <LazyPage key={index} pageNumber={index + 1} width={width} />
+            ))
+          : null}
       </Document>
-
-      {hasPages ? <PageNav page={page} numPages={numPages} onChange={setPage} /> : null}
     </div>
   );
 }
@@ -143,8 +150,8 @@ export function DocumentPreview({
   }
 
   if (mimeType === "application/pdf") {
-    // key={url} remounts on document/url change so page/numPages can't carry over from a
-    // previously viewed document (which would briefly render a page index out of bounds).
+    // key={url} remounts on document/url change so numPages can't carry over from a previously
+    // viewed document (which would briefly render page wrappers out of bounds).
     return <PdfPreview key={url} url={url} onRetry={onRetry} />;
   }
 

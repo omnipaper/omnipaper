@@ -26,7 +26,8 @@
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check --write .",
-    "typecheck": "bun run --filter='@omnipaper/*' typecheck"
+    "typecheck": "bun run --filter='@omnipaper/*' typecheck",
+    "test": "bun test"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.16",

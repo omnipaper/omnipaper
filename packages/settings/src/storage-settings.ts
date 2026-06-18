@@ -7,6 +7,7 @@ export const storageSettingsSchema = z.object({
   endpoint: z.string().optional(),
   accessKeyId: z.string().min(1),
   secretAccessKey: z.string().min(1),
+  forcePathStyle: z.boolean().optional(),
 });
 
 export type StorageSettings = z.infer<typeof storageSettingsSchema>;
@@ -17,6 +18,7 @@ const KEYS = {
   endpoint: "storage.s3.endpoint",
   accessKeyId: "storage.s3.accessKeyId",
   secretAccessKey: "storage.s3.secretAccessKey",
+  forcePathStyle: "storage.s3.forcePathStyle",
 } as const;
 
 export async function getStorageSettings(): Promise<StorageSettings | null> {
@@ -26,6 +28,7 @@ export async function getStorageSettings(): Promise<StorageSettings | null> {
     endpoint: (await getSetting(KEYS.endpoint)) ?? undefined,
     accessKeyId: await getSetting(KEYS.accessKeyId),
     secretAccessKey: await getSetting(KEYS.secretAccessKey),
+    forcePathStyle: (await getSetting(KEYS.forcePathStyle)) === "true",
   };
 
   const parsed = storageSettingsSchema.safeParse(raw);
@@ -42,4 +45,9 @@ export async function setStorageSettings(values: StorageSettings): Promise<void>
   if (values.endpoint) {
     await setSetting({ key: KEYS.endpoint, value: values.endpoint });
   }
+
+  await setSetting({
+    key: KEYS.forcePathStyle,
+    value: values.forcePathStyle ? "true" : "false",
+  });
 }

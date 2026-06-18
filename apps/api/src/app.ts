@@ -8,6 +8,7 @@ import { requireAuth, requireOrganization } from "./middleware";
 import { customPropertiesRoutes } from "./routes/custom-properties";
 import { documentTypesRoutes } from "./routes/document-types";
 import { documentsRoutes } from "./routes/documents";
+import { migrationsRoutes } from "./routes/migrations";
 import { settingsRoutes } from "./routes/settings";
 import { storagePathsRoutes } from "./routes/storage-paths";
 import { tagsRoutes } from "./routes/tags";
@@ -21,7 +22,8 @@ export function createApp() {
     .route("/document-types", documentTypesRoutes)
     .route("/storage-paths", storagePathsRoutes)
     .route("/tags", tagsRoutes)
-    .route("/custom-properties", customPropertiesRoutes);
+    .route("/custom-properties", customPropertiesRoutes)
+    .route("/migrations", migrationsRoutes);
 
   const apiRoutes = new Hono<{ Variables: Variables }>()
     .get("/me", (c) => c.json({ user: c.get("user") }))

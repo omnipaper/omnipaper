@@ -1,36 +1,56 @@
-import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  encodeFilters,
+  encodeSort,
+  type FilterState,
+  type SortState,
+} from "@omnipaper/shared/document-filters";
+import {
+  infiniteQueryOptions,
+  queryOptions,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-
-// One row of the documents list response. Derived from the API so it can never drift from what
-// `GET /documents` actually returns (the server shapes it via toDocumentListItemDto). Shared by the
-// list view and the folder views, which both render <DocumentRows>.
 export type DocumentRow = InferResponseType<
   (typeof api.orgs)[":orgId"]["documents"]["$get"],
   200
 >["documents"][number];
-
-type DocumentRef = { orgId: string; id: string };
-
-// Filters for the documents list, shared by the list view (`query`) and the folder views
-// (`storagePathId` for one path, `unfiled` for documents with none). All optional.
+export type DocumentDetail = InferResponseType<
+  (typeof api.orgs)[":orgId"]["documents"][":id"]["$get"],
+  200
+>["document"];
+// The detail query caches the whole envelope ({ document }); the optimistic tag patch rewrites
+// document.tags inside it. A single tag chip as embedded in the detail/list responses.
+type DocumentDetailData = InferResponseType<
+  (typeof api.orgs)[":orgId"]["documents"][":id"]["$get"],
+  200
+>;
+export type DocumentTag = DocumentDetail["tags"][number];
+export type OcrStatus = DocumentRow["ocrStatus"];
+type DocumentRef = {
+  orgId: string;
+  id: string;
+};
 type DocumentListFilters = {
   orgId: string;
   query?: string;
-  storagePathId?: string;
-  unfiled?: boolean;
+  filters?: FilterState;
+  sort?: SortState;
 };
-
-// Query-key factory for the documents domain. Keys are hierarchical (generic → specific) so we
-// can invalidate at any level: every doc query for an org, just the lists, or a single detail.
-// Reads and invalidations both go through here, so a key can never drift between the two sides.
+export function thumbnailUrl(orgId: string, id: string): string {
+  return api.orgs[":orgId"].documents[":id"].thumb.$url({ param: { orgId, id } }).toString();
+}
 export const documentKeys = {
   root: ["documents"] as const,
   all: (orgId: string) => [...documentKeys.root, orgId] as const,
   lists: (orgId: string) => [...documentKeys.all(orgId), "list"] as const,
-  list: ({ orgId, query = "", storagePathId, unfiled }: DocumentListFilters) =>
-    [...documentKeys.lists(orgId), { query, storagePathId, unfiled }] as const,
+  list: ({ orgId, query = "", filters, sort }: DocumentListFilters) =>
+    [
+      ...documentKeys.lists(orgId),
+      { query, filters: filters ?? null, sort: sort ?? null },
+    ] as const,
   details: (orgId: string) => [...documentKeys.all(orgId), "detail"] as const,
   detail: ({ orgId, id }: DocumentRef) => [...documentKeys.details(orgId), id] as const,
   activity: ({ orgId, id }: DocumentRef) =>
@@ -38,22 +58,20 @@ export const documentKeys = {
   download: ({ orgId, id }: DocumentRef) =>
     [...documentKeys.detail({ orgId, id }), "download"] as const,
 };
-
-export function documentsListQuery({
-  orgId,
-  query = "",
-  storagePathId,
-  unfiled,
-}: DocumentListFilters) {
-  return queryOptions({
-    queryKey: documentKeys.list({ orgId, query, storagePathId, unfiled }),
-    queryFn: async () => {
+export function documentsListQuery({ orgId, query = "", filters, sort }: DocumentListFilters) {
+  return infiniteQueryOptions({
+    queryKey: documentKeys.list({ orgId, query, filters, sort }),
+    queryFn: async ({ pageParam }) => {
       const res = await api.orgs[":orgId"].documents.$get({
         param: { orgId },
         query: {
           ...(query ? { q: query } : {}),
-          ...(storagePathId ? { storagePathId } : {}),
-          ...(unfiled ? { unfiled: "true" as const } : {}),
+          ...(filters && Object.keys(filters).length > 0
+            ? { filters: encodeFilters(filters) }
+            : {}),
+          ...(sort ? { sort: encodeSort(sort) } : {}),
+          // pageParam is the previous page's nextCursor; absent on the first page.
+          ...(pageParam ? { cursor: pageParam } : {}),
         },
       });
       if (!res.ok) {
@@ -61,20 +79,22 @@ export function documentsListQuery({
       }
       return res.json();
     },
-    // Mirror the detail query's polling so a freshly uploaded document's OCR progress
-    // (pending → processing → completed/failed) lands on the list without a manual refresh.
-    // Poll only while *some* document is still in flight; once every row has settled the
-    // interval returns false and network traffic drops back to zero.
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     refetchInterval: (query) => {
-      const documents = query.state.data?.documents ?? [];
+      // Poll only while something on a loaded page is still processing (OCR/thumbnail).
+      const documents = query.state.data?.pages.flatMap((p) => p.documents) ?? [];
       const inFlight = documents.some(
-        (d) => d.ocrStatus === "pending" || d.ocrStatus === "processing",
+        (d) =>
+          d.ocrStatus === "pending" ||
+          d.ocrStatus === "processing" ||
+          d.thumbnailStatus === "pending" ||
+          d.thumbnailStatus === "processing",
       );
       return inFlight ? 3000 : false;
     },
   });
 }
-
 export function documentDetailQuery({ orgId, id }: DocumentRef) {
   return queryOptions({
     queryKey: documentKeys.detail({ orgId, id }),
@@ -85,15 +105,12 @@ export function documentDetailQuery({ orgId, id }: DocumentRef) {
       }
       return res.json();
     },
-    // While OCR is in flight, poll so a re-run's progress (pending → processing → completed/failed)
-    // lands without a manual refresh. Polling stops once the status settles.
     refetchInterval: (query) => {
       const status = query.state.data?.document.ocrStatus;
       return status === "pending" || status === "processing" ? 3000 : false;
     },
   });
 }
-
 export function documentDownloadQuery({ orgId, id }: DocumentRef) {
   return queryOptions({
     queryKey: documentKeys.download({ orgId, id }),
@@ -104,13 +121,9 @@ export function documentDownloadQuery({ orgId, id }: DocumentRef) {
       }
       return res.json();
     },
-    // The /download route signs the URL for 1h; staying fresh for most of that window means a
-    // normal viewing session reuses one URL (no re-download), while a long-open page still
-    // refetches a new URL on the next focus/remount, well before the 1h expiry.
     staleTime: 50 * 60 * 1000,
   });
 }
-
 export function documentActivityQuery({ orgId, id }: DocumentRef) {
   return queryOptions({
     queryKey: documentKeys.activity({ orgId, id }),
@@ -123,24 +136,20 @@ export function documentActivityQuery({ orgId, id }: DocumentRef) {
     },
   });
 }
-
-// --- mutations ---
-// Each write owns its own invalidation + toast, beside the read factories above, so a key can't
-// drift between the read and the write that should refresh it. UI-only side effects (navigation,
-// closing a dialog, clearing input) stay in the component via a per-call `mutate(vars, { onSuccess })`.
-
 export type UpdateDocumentMetadataBody = InferRequestType<
   (typeof api.orgs)[":orgId"]["documents"][":id"]["$patch"]
 >["json"];
-
-// Patch a document's editable metadata (title/date/type/path). exact: refetch only the detail JSON
-// — not the nested download (signed URL) or activity — so a metadata edit doesn't remount the PDF
-// preview. title/date can show in list views, so refresh those too. On error, re-read the detail so
-// the field reverts to server truth instead of keeping a stale optimistic edit.
+// The PATCH takes ids (documentTypeId/storagePathId); the detail cache stores resolved objects
+// (documentType: { id, name }, …). The caller passes both: the API body and the matching detail patch.
+type UpdateDocumentMetadataVars = {
+  body: UpdateDocumentMetadataBody;
+  optimistic: Partial<DocumentDetail>;
+};
 export function useUpdateDocumentMetadata(orgId: string, documentId: string) {
   const queryClient = useQueryClient();
+  const detailKey = documentKeys.detail({ orgId, id: documentId });
   return useMutation({
-    mutationFn: async (body: UpdateDocumentMetadataBody) => {
+    mutationFn: async ({ body }: UpdateDocumentMetadataVars) => {
       const res = await api.orgs[":orgId"].documents[":id"].$patch({
         param: { orgId, id: documentId },
         json: body,
@@ -149,25 +158,31 @@ export function useUpdateDocumentMetadata(orgId: string, documentId: string) {
         throw new Error("Failed to update document");
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: documentKeys.detail({ orgId, id: documentId }),
-        exact: true,
-      });
-      queryClient.invalidateQueries({ queryKey: documentKeys.lists(orgId) });
+    onMutate: async ({ optimistic }) => {
+      await queryClient.cancelQueries({ queryKey: detailKey, exact: true });
+      const previous = queryClient.getQueryData<DocumentDetailData>(detailKey);
+      if (previous) {
+        queryClient.setQueryData<DocumentDetailData>(detailKey, {
+          ...previous,
+          document: { ...previous.document, ...optimistic },
+        });
+      }
+      return { previous };
     },
-    onError: () => {
-      queryClient.invalidateQueries({
-        queryKey: documentKeys.detail({ orgId, id: documentId }),
-        exact: true,
-      });
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(detailKey, context.previous);
+      }
       toast.error("Failed to update document");
+    },
+    onSettled: () => {
+      // PATCH returns only { ok }, so reconcile the detail with server truth; list rows show the
+      // title (and type/path in some views), so refresh those in the background too.
+      queryClient.invalidateQueries({ queryKey: detailKey, exact: true });
+      queryClient.invalidateQueries({ queryKey: documentKeys.lists(orgId) });
     },
   });
 }
-
-// Save a manual OCR-text correction. exact: detail JSON only (not the download URL → no preview
-// remount). Editing text re-indexes search server-side (generated column), so refresh lists too.
 export function useUpdateOcrText(orgId: string, documentId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -191,9 +206,6 @@ export function useUpdateOcrText(orgId: string, documentId: string) {
     onError: () => toast.error("Failed to save text"),
   });
 }
-
-// Re-run OCR. The route resets status to "pending"; refetch the detail (its refetchInterval then
-// polls until the worker settles) and the activity log so the new run shows up.
 export function useReprocessDocument(orgId: string, documentId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -216,8 +228,6 @@ export function useReprocessDocument(orgId: string, documentId: string) {
     onError: () => toast.error("Failed to re-run OCR"),
   });
 }
-
-// Delete a document. Refreshes the list views; the caller handles navigating away from the detail.
 export function useDeleteDocument(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -234,68 +244,124 @@ export function useDeleteDocument(orgId: string) {
     onError: () => toast.error("Delete failed"),
   });
 }
-
-// Replace a document's whole tag set (the API is a replace-set PUT). exact: detail JSON only (no
-// preview remount); the list is a separate branch refreshed for its next view.
 export function useSetDocumentTags(orgId: string, documentId: string) {
   const queryClient = useQueryClient();
+  const detailKey = documentKeys.detail({ orgId, id: documentId });
   return useMutation({
-    mutationFn: async (tagIds: string[]) => {
+    // The picker hands us the full next tag set (with name/color), so chips can render
+    // optimistically; the API only needs the ids, so derive them here.
+    mutationFn: async (nextTags: DocumentTag[]) => {
       const res = await api.orgs[":orgId"].documents[":id"].tags.$put({
         param: { orgId, id: documentId },
-        json: { tagIds },
+        json: { tagIds: nextTags.map((t) => t.id) },
       });
       if (!res.ok) {
         throw new Error("Failed to update tags");
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: documentKeys.detail({ orgId, id: documentId }),
-        exact: true,
-      });
+    // The PUT replaces the whole set, so overlapping writes for one document could drop a
+    // concurrent toggle. Same-scope mutations run one at a time, making rapid toggles safe.
+    scope: { id: `document-tags:${documentId}` },
+    onMutate: async (nextTags) => {
+      // Stop any in-flight detail refetch from clobbering the optimistic write.
+      await queryClient.cancelQueries({ queryKey: detailKey, exact: true });
+      const previous = queryClient.getQueryData<DocumentDetailData>(detailKey);
+      if (previous) {
+        queryClient.setQueryData<DocumentDetailData>(detailKey, {
+          ...previous,
+          document: { ...previous.document, tags: nextTags },
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(detailKey, context.previous);
+      }
+      toast.error("Failed to update tags");
+    },
+    onSuccess: ({ tags }) => {
+      // The PUT returns the authoritative tag set — write it straight in, no detail refetch.
+      queryClient.setQueryData<DocumentDetailData>(detailKey, (old) =>
+        old ? { ...old, document: { ...old.document, tags } } : old,
+      );
+    },
+    onSettled: () => {
+      // List rows embed tag chips; refresh them in the background (the user is on the detail).
       queryClient.invalidateQueries({ queryKey: documentKeys.lists(orgId) });
     },
-    onError: () => toast.error("Failed to update tags"),
   });
 }
-
-// Set one custom-property value on a document. exact: detail JSON only (a property edit changes only
-// the detail payload). On error, re-read so the uncontrolled field reverts to server truth.
+// Optimistically upsert (value given) or remove (value === undefined) a custom-property value inside
+// the cached detail envelope, leaving every other field untouched.
+function patchDetailProperty(
+  data: DocumentDetailData,
+  definitionId: string,
+  value: unknown | undefined,
+): DocumentDetailData {
+  const current = data.document.customProperties;
+  const next =
+    value === undefined
+      ? current.filter((p) => p.definitionId !== definitionId)
+      : current.some((p) => p.definitionId === definitionId)
+        ? current.map((p) => (p.definitionId === definitionId ? { ...p, value } : p))
+        : [...current, { definitionId, value }];
+  // The cache value type is JSONValue; the optimistic value is best-effort and reconciled on
+  // settle, so assert rather than thread JSONValue through every call site.
+  return {
+    ...data,
+    document: {
+      ...data.document,
+      customProperties: next as DocumentDetail["customProperties"],
+    },
+  };
+}
+// The PUT takes a bare value (a select sends an option id); the detail cache stores the resolved
+// shape (select → { id, label, color }), so the caller passes the stored form as optimisticValue.
+type SetPropertyValueVars = { definitionId: string; value: unknown; optimisticValue: unknown };
 export function useSetDocumentPropertyValue(orgId: string, documentId: string) {
   const queryClient = useQueryClient();
+  const detailKey = documentKeys.detail({ orgId, id: documentId });
   return useMutation({
-    mutationFn: async (vars: { definitionId: string; value: unknown }) => {
+    mutationFn: async ({ definitionId, value }: SetPropertyValueVars) => {
       const res = await api.orgs[":orgId"].documents[":id"]["custom-properties"][
         ":definitionId"
       ].$put({
-        param: { orgId, id: documentId, definitionId: vars.definitionId },
-        json: { value: vars.value },
+        param: { orgId, id: documentId, definitionId },
+        json: { value },
       });
       if (!res.ok) {
         throw new Error("Failed to save property");
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: documentKeys.detail({ orgId, id: documentId }),
-        exact: true,
-      });
+    onMutate: async ({ definitionId, optimisticValue }) => {
+      await queryClient.cancelQueries({ queryKey: detailKey, exact: true });
+      const previous = queryClient.getQueryData<DocumentDetailData>(detailKey);
+      if (previous) {
+        queryClient.setQueryData<DocumentDetailData>(
+          detailKey,
+          patchDetailProperty(previous, definitionId, optimisticValue),
+        );
+      }
+      return { previous };
     },
-    onError: () => {
-      queryClient.invalidateQueries({
-        queryKey: documentKeys.detail({ orgId, id: documentId }),
-        exact: true,
-      });
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(detailKey, context.previous);
+      }
       toast.error("Failed to save property");
+    },
+    // PUT returns only { ok }; reconcile the detail with server truth. Property values aren't on the
+    // list, so no list invalidation needed.
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: detailKey, exact: true });
     },
   });
 }
-
-// Clear one custom-property value from a document. Same invalidation as set.
 export function useClearDocumentPropertyValue(orgId: string, documentId: string) {
   const queryClient = useQueryClient();
+  const detailKey = documentKeys.detail({ orgId, id: documentId });
   return useMutation({
     mutationFn: async (definitionId: string) => {
       const res = await api.orgs[":orgId"].documents[":id"]["custom-properties"][
@@ -305,18 +371,25 @@ export function useClearDocumentPropertyValue(orgId: string, documentId: string)
         throw new Error("Failed to clear property");
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: documentKeys.detail({ orgId, id: documentId }),
-        exact: true,
-      });
+    onMutate: async (definitionId) => {
+      await queryClient.cancelQueries({ queryKey: detailKey, exact: true });
+      const previous = queryClient.getQueryData<DocumentDetailData>(detailKey);
+      if (previous) {
+        queryClient.setQueryData<DocumentDetailData>(
+          detailKey,
+          patchDetailProperty(previous, definitionId, undefined),
+        );
+      }
+      return { previous };
     },
-    onError: () => {
-      queryClient.invalidateQueries({
-        queryKey: documentKeys.detail({ orgId, id: documentId }),
-        exact: true,
-      });
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(detailKey, context.previous);
+      }
       toast.error("Failed to clear property");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: detailKey, exact: true });
     },
   });
 }

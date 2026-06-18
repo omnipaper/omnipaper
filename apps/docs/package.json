@@ -1,0 +1,37 @@
+{
+  "name": "@omnipaper/docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "serve .output/public",
+    "typecheck": "fumadocs-mdx && tsc --noEmit"
+  },
+  "devDependencies": {
+    "@orama/orama": "3.1.18",
+    "@tailwindcss/vite": "4.3.0",
+    "@tanstack/react-router": "1.170.15",
+    "@tanstack/react-start": "1.168.25",
+    "@tanstack/start-static-server-functions": "1.167.17",
+    "@types/mdx": "2.0.14",
+    "@types/node": "25.9.3",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "6.0.2",
+    "fumadocs-core": "16.10.0",
+    "fumadocs-mdx": "15.0.12",
+    "fumadocs-ui": "16.10.0",
+    "lucide-react": "catalog:",
+    "nitro": "3.0.260603-beta",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "serve": "14.2.6",
+    "srvx": "0.11.16",
+    "tailwindcss": "4.3.0",
+    "typescript": "catalog:",
+    "vite": "8.0.16"
+  }
+}

@@ -7,7 +7,7 @@ export function defineTask<TName extends JobName>(
   handler: (payload: JobPayload<TName>) => Promise<void>,
 ): Task {
   return async (rawPayload) => {
-    const payload = jobSchemas[name].parse(rawPayload);
+    const payload = jobSchemas[name].parse(rawPayload) as JobPayload<TName>;
     await handler(payload);
   };
 }

@@ -1,9 +1,18 @@
 import { createHash } from "node:crypto";
 import type { Database } from "@omnipaper/database/client";
 import { createId } from "@omnipaper/database/id";
-import { createDocument, getDocumentByHash } from "@omnipaper/database/queries/documents";
+import {
+  completeDocumentOcr,
+  createDocument,
+  getDocumentByHash,
+  markDocumentOcrUnsupported,
+  markDocumentThumbnailUnsupported,
+} from "@omnipaper/database/queries/documents";
+import { supportsMime } from "@omnipaper/ocr/resolve";
 import { enqueue } from "@omnipaper/queue/producer";
+import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
 import type { StorageDriver } from "@omnipaper/storage/driver";
+import { isTextExtractable } from "./text-extract";
 
 // The single ingest funnel: hash → dedupe (per org) → store → enqueue OCR, in one place. Browser
 // uploads call it today; future sources (email, public API) call it the same way with bytes in hand.
@@ -21,6 +30,10 @@ export type IngestDocumentInput = {
   bytes: Uint8Array;
   filename: string;
   mimeType: string;
+  title?: string;
+  ocrText?: string;
+  documentDate?: string;
+  createdAt?: Date;
 };
 
 export async function ingestDocument(input: IngestDocumentInput): Promise<IngestResult> {
@@ -36,7 +49,7 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
 
   const id = createId("doc");
   const storageKey = `${organizationId}/${id}`;
-  const title = stripExtension(filename);
+  const title = input.title?.trim() || stripExtension(filename);
 
   // Object first, then row. If the insert loses a race on the (org, sha256) unique index, we delete
   // the object we just wrote so a rejected duplicate leaves no orphan.
@@ -48,10 +61,13 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
       organizationId,
       createdBy,
       title,
+      originalFilename: filename,
       storageKey,
       mimeType,
       sizeBytes: bytes.byteLength,
       sha256,
+      documentDate: input.documentDate,
+      createdAt: input.createdAt,
     });
   } catch (err) {
     await driver.deleteObject({ key: storageKey });
@@ -66,8 +82,33 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
     throw err;
   }
 
-  // The funnel enqueues OCR, not the caller — so every source gets it.
-  await enqueue("ocr-extract", { documentId: id });
+  const { definitionId } = await getOcrSettings();
+  const carriedText = input.ocrText?.trim() ? input.ocrText : undefined;
+
+  // Pick the lane that yields the document's text: OCR (PDF + images, external provider), native
+  // extraction (txt, docx — no provider), or none. When upstream already carried text (migration),
+  // store it as-is regardless of lane; only genuinely text-less unsupported types fall through.
+  const lane = supportsMime(definitionId, mimeType)
+    ? "ocr"
+    : isTextExtractable(mimeType)
+      ? "text"
+      : "unsupported";
+
+  if (lane === "unsupported") {
+    await markDocumentOcrUnsupported(db, { id });
+  } else if (carriedText) {
+    await completeDocumentOcr(db, { id, organizationId, title, text: carriedText });
+  } else {
+    await enqueue(lane === "ocr" ? "ocr-extract" : "text-extract", { documentId: id });
+  }
+
+  // Thumbnails: PDFs get a first-page render in the background; everything else shows a generic
+  // icon in the UI, so mark it unsupported up front. Independent of OCR support above.
+  if (mimeType === "application/pdf") {
+    await enqueue("thumbnail-generate", { documentId: id });
+  } else {
+    await markDocumentThumbnailUnsupported(db, { id });
+  }
 
   return { status: "created", document: { id, title } };
 }

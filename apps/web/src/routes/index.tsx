@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@omnipaper/ui/components/card";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { config } from "@/lib/config";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -17,10 +18,8 @@ function Landing() {
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">omnipaper</CardTitle>
-          <CardDescription>
-            Document management, cloud-native. Landing page coming soon.
-          </CardDescription>
+          <CardTitle className="text-2xl">{config.appName}</CardTitle>
+          <CardDescription>{config.appDescription}. Landing page coming soon.</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-3">
           <Button asChild>

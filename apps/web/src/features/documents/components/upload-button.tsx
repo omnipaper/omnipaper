@@ -1,3 +1,4 @@
+import { ACCEPT_ATTRIBUTE } from "@omnipaper/shared/formats";
 import { Button } from "@omnipaper/ui/components/button";
 import { type ChangeEvent, useRef } from "react";
 import { useUploadDocuments } from "@/features/documents/queries/upload";
@@ -14,7 +15,14 @@ export function UploadButton({ orgId }: { orgId: string }) {
 
   return (
     <>
-      <input ref={inputRef} type="file" multiple className="hidden" onChange={handleChange} />
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept={ACCEPT_ATTRIBUTE}
+        className="hidden"
+        onChange={handleChange}
+      />
       <Button onClick={() => inputRef.current?.click()} disabled={isPending}>
         {progress ? `Uploading ${progress.done}/${progress.total}…` : "Upload"}
       </Button>

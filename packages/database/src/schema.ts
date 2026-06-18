@@ -23,7 +23,21 @@ const tsvector = customType<{ data: string }>({
   },
 });
 
-export const ocrStatusEnum = pgEnum("ocr_status", ["pending", "processing", "completed", "failed"]);
+export const ocrStatusEnum = pgEnum("ocr_status", [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  "unsupported",
+]);
+
+export const thumbnailStatusEnum = pgEnum("thumbnail_status", [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  "unsupported",
+]);
 
 // Built-in, single-pick document metadata kept as first-class tables (not custom properties)
 // because each entry carries a `description` — for the user, and for planned AI auto-assignment
@@ -39,8 +53,8 @@ export const documentTypes = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -67,8 +81,8 @@ export const storagePaths = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     path: text("path").notNull(),
     description: text("description"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -93,13 +107,14 @@ export const documents = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     title: text("title").notNull(),
+    originalFilename: text("original_filename"),
     storageKey: text("storage_key").notNull(),
     mimeType: text("mime_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
     sha256: text("sha256").notNull(),
     ocrStatus: ocrStatusEnum("ocr_status").notNull().default("pending"),
     ocrText: text("ocr_text"),
-    ocrMetadata: jsonb("ocr_metadata").$type<Record<string, unknown>>(),
+    thumbnailStatus: thumbnailStatusEnum("thumbnail_status").notNull().default("pending"),
     documentDate: date("document_date"),
     documentTypeId: text("document_type_id").references(() => documentTypes.id, {
       onDelete: "set null",
@@ -111,8 +126,8 @@ export const documents = pgTable(
       (): SQL =>
         sql`setweight(to_tsvector('simple', ${documents.title}), 'A') || setweight(to_tsvector('simple', coalesce(${documents.ocrText}, '')), 'B')`,
     ),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -124,6 +139,10 @@ export const documents = pgTable(
     index("documents_org_document_type_id_idx").on(t.organizationId, t.documentTypeId),
     index("documents_org_storage_path_id_idx").on(t.organizationId, t.storagePathId),
     index("documents_org_document_date_idx").on(t.organizationId, t.documentDate),
+    // Sort/pagination support: the default feed (createdAt) plus the other sortable columns.
+    index("documents_org_created_at_idx").on(t.organizationId, t.createdAt),
+    index("documents_org_title_idx").on(t.organizationId, t.title),
+    index("documents_org_size_bytes_idx").on(t.organizationId, t.sizeBytes),
   ],
 );
 
@@ -142,8 +161,8 @@ export const tags = pgTable(
     name: text("name").notNull(),
     color: text("color").notNull().default("#94a3b8"),
     description: text("description"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -166,7 +185,7 @@ export const documentsTags = pgTable(
     tagId: text("tag_id")
       .notNull()
       .references(() => tags.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     primaryKey({ columns: [t.documentId, t.tagId] }),
@@ -200,8 +219,8 @@ export const customPropertyDefinitions = pgTable(
     description: text("description"),
     // Immutable after creation — changing the type would require migrating existing values.
     type: customPropertyTypeEnum("type").notNull(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -227,8 +246,8 @@ export const customPropertySelectOptions = pgTable(
       .references(() => customPropertyDefinitions.id, { onDelete: "cascade" }),
     label: text("label").notNull(),
     color: text("color"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -261,8 +280,8 @@ export const documentCustomPropertyValues = pgTable(
     selectOptionId: text("select_option_id").references(() => customPropertySelectOptions.id, {
       onDelete: "cascade",
     }),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdateFn(() => new Date()),
@@ -280,7 +299,7 @@ export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
   encrypted: boolean("encrypted").notNull().default(false),
-  updatedAt: timestamp("updated_at")
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()
     .$onUpdateFn(() => new Date()),
@@ -316,7 +335,7 @@ export const activityEvents = pgTable(
     actorType: activityActorTypeEnum("actor_type").notNull().default("user"),
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
     data: jsonb("data").$type<Record<string, unknown>>(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("activity_events_resource_idx").on(t.resourceType, t.resourceId, t.createdAt),
@@ -326,3 +345,55 @@ export const activityEvents = pgTable(
 
 export type ActivityEventRow = typeof activityEvents.$inferSelect;
 export type NewActivityEvent = typeof activityEvents.$inferInsert;
+
+export const migrationStatusEnum = pgEnum("migration_status", [
+  "created",
+  "analyzing",
+  "awaiting_confirmation",
+  "importing",
+  "done",
+  "failed",
+]);
+
+export type MigrationOptions = {
+  importOcr?: boolean;
+  timezone?: string;
+};
+
+export const migrations = pgTable(
+  "migrations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("mig")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    source: text("source").notNull(),
+    status: migrationStatusEnum("status").notNull().default("created"),
+    uploadKey: text("upload_key").notNull(),
+    uploadId: text("upload_id"),
+    options: jsonb("options").$type<MigrationOptions>().notNull().default({}),
+    preview: jsonb("preview").$type<unknown>(),
+    report: jsonb("report").$type<unknown>(),
+    docsTotal: integer("docs_total").notNull().default(0),
+    docsImported: integer("docs_imported").notNull().default(0),
+    docsDuplicate: integer("docs_duplicate").notNull().default(0),
+    docsFailed: integer("docs_failed").notNull().default(0),
+    checkpoint: jsonb("checkpoint").$type<unknown>(),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    index("migrations_org_status_idx").on(t.organizationId, t.status),
+    index("migrations_organization_id_idx").on(t.organizationId),
+  ],
+);
+
+export type Migration = typeof migrations.$inferSelect;
+export type NewMigration = typeof migrations.$inferInsert;

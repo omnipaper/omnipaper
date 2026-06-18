@@ -7,6 +7,7 @@ WORKDIR /app
 FROM base AS build
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
+COPY apps/docs/package.json apps/docs/
 COPY apps/web/package.json apps/web/
 COPY packages/database/package.json packages/database/
 COPY packages/env/package.json packages/env/
@@ -24,6 +25,8 @@ RUN bun run --cwd apps/web build
 FROM base AS prod-deps
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
+# apps/docs ships only devDependencies, so --production installs nothing from it
+COPY apps/docs/package.json apps/docs/
 COPY apps/web/package.json apps/web/
 COPY packages/database/package.json packages/database/
 COPY packages/env/package.json packages/env/

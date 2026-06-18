@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@omnipaper/ui/componen
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeftIcon, DownloadIcon, Trash2Icon } from "lucide-react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { ActivityTab } from "@/features/documents/components/document-detail/activity-tab";
 import { DetailsTab } from "@/features/documents/components/document-detail/details-tab";
@@ -26,6 +27,7 @@ import {
   documentKeys,
   useDeleteDocument,
 } from "@/features/documents/queries/documents";
+import { pushRecent } from "@/features/documents/recent/recent-documents-store";
 import { useOrgMember } from "@/features/organization/queries/organization";
 import { api } from "@/lib/api";
 
@@ -46,6 +48,16 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
     queryClient.invalidateQueries({ queryKey: documentKeys.download({ orgId, id }) });
 
   const deleteDocument = useDeleteDocument(orgId);
+
+  // Record this doc as "open" once the detail actually loads — that's a confirmed open (not a 404,
+  // and it catches direct-URL / back-forward navigation a click handler would miss). Keyed on the
+  // title so it fires once per open, NOT on every OCR refetch (the detail re-polls every 3s while
+  // processing); revisiting an already-open doc is a no-op in the store anyway.
+  const openTitle = data?.document.title;
+  useEffect(() => {
+    if (openTitle === undefined) return;
+    pushRecent(orgId, { id, title: openTitle });
+  }, [orgId, id, openTitle]);
 
   async function handleDownload() {
     const res = await api.orgs[":orgId"].documents[":id"].download.$get({ param: { orgId, id } });
@@ -74,7 +86,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
         <div className="flex shrink-0 flex-col gap-3 border-b p-4">
           <div className="flex items-center justify-between gap-2">
             <Button asChild variant="ghost" size="sm">
-              <Link to="/dashboard/orgs/$orgId/views/list" params={{ orgId }}>
+              <Link to="/dashboard/orgs/$orgId/documents" params={{ orgId }}>
                 <ArrowLeftIcon />
                 Back
               </Link>
@@ -111,7 +123,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                           deleteDocument.mutate(id, {
                             onSuccess: () =>
                               navigate({
-                                to: "/dashboard/orgs/$orgId/views/list",
+                                to: "/dashboard/orgs/$orgId/documents",
                                 params: { orgId },
                               }),
                           })
@@ -158,6 +170,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                 documentId={id}
                 ocrStatus={doc.ocrStatus}
                 ocrText={doc.ocrText}
+                ocrSupported={doc.ocrSupported}
               />
             </TabsContent>
             <TabsContent value="activity">
