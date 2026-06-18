@@ -47,7 +47,7 @@ export function SignInForm() {
         <CardTitle>Sign in</CardTitle>
         <CardDescription>Welcome back to {config.appName}.</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>

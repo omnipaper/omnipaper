@@ -5,7 +5,6 @@ import type { DocumentSearch } from "@/features/documents/filters/types";
 import { useDocumentSelection } from "./use-document-selection";
 import { useExportDocuments } from "./use-export-documents";
 
-
 export function SelectionBar({ orgId }: { orgId: string }) {
   const { hasSelection, allSelected, count, selectedIds, selectAllMatching, clear } =
     useDocumentSelection();

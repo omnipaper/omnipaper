@@ -33,7 +33,7 @@ function resolveFilter(
     return type ? customPropertyFilter(definitionId, type, value) : undefined;
   }
   switch (key) {
-    case "type":
+    case "documentType":
       return value.kind === "in"
         ? nullableRelationFilter(documents.documentTypeId, value.values)
         : undefined;

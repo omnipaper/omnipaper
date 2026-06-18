@@ -55,6 +55,13 @@ export const ACCEPT_ATTRIBUTE: string = [
   ...UPLOAD_FORMATS.flatMap((format) => format.mimeTypes),
 ].join(",");
 
+// Strip the parameters off a MIME type and canonicalise it: "text/plain;charset=utf-8" → "text/plain".
+// Browsers attach params like ";charset=utf-8" to File.type; our matching (allow-list, ingest lane
+// triage, OCR support, the type badge) is exact, so the bare type must be the one source of truth.
+export function normalizeMimeType(value: string): string {
+  return value.split(";")[0]?.trim().toLowerCase() ?? "";
+}
+
 /** Lower-cased extension including the dot, or "" when the name carries none. */
 function extensionOf(filename: string): string {
   const dot = filename.lastIndexOf(".");
@@ -72,7 +79,7 @@ export function isUploadAllowed(input: { filename?: string; mimeType?: string })
     return ACCEPTED_EXTENSIONS.has(ext);
   }
 
-  return input.mimeType ? ACCEPTED_MIME_TYPES.has(input.mimeType) : false;
+  return input.mimeType ? ACCEPTED_MIME_TYPES.has(normalizeMimeType(input.mimeType)) : false;
 }
 
 /** Human-readable list of accepted formats for error messages and UI, e.g. "PDF, JPEG image, …". */

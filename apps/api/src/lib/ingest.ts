@@ -5,16 +5,15 @@ import {
   createDocument,
   getDocumentByHash,
   markDocumentOcrUnsupported,
+  markDocumentThumbnailCompleted,
   markDocumentThumbnailUnsupported,
 } from "@omnipaper/database/queries/documents";
 import { supportsMime } from "@omnipaper/ocr/resolve";
 import { enqueue } from "@omnipaper/queue/producer";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
+import { normalizeMimeType } from "@omnipaper/shared/formats";
 import type { StorageDriver } from "@omnipaper/storage/driver";
 import { isTextExtractable } from "./text-extract";
-
-// The single ingest funnel: hash → dedupe (per org) → store → enqueue OCR, in one place. Browser
-// uploads call it today; future sources (email, public API) call it the same way with bytes in hand.
 
 export type IngestResult = {
   status: "created" | "duplicate";
@@ -35,7 +34,10 @@ export type IngestDocumentInput = {
 };
 
 export async function ingestDocument(input: IngestDocumentInput): Promise<IngestResult> {
-  const { db, driver, organizationId, createdBy, bytes, filename, mimeType } = input;
+  const { db, driver, organizationId, createdBy, bytes, filename } = input;
+  // Canonicalise the MIME up front: every downstream decision (storage content-type, lane triage,
+  // OCR support) keys off the bare type, never the browser's ";charset=…"-tagged variant.
+  const mimeType = normalizeMimeType(input.mimeType);
 
   const sha256 = createHash("sha256").update(bytes).digest("hex");
 
@@ -49,8 +51,6 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
   const storageKey = `${organizationId}/${id}`;
   const title = input.title?.trim() || stripExtension(filename);
 
-  // Object first, then row. If the insert loses a race on the (org, sha256) unique index, we delete
-  // the object we just wrote so a rejected duplicate leaves no orphan.
   await driver.putObject({ key: storageKey, body: bytes, contentType: mimeType });
 
   try {
@@ -96,10 +96,13 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
     await enqueue(lane === "ocr" ? "ocr-extract" : "text-extract", { documentId: id });
   }
 
-  // Thumbnails: PDFs get a first-page render in the background; everything else shows a generic
-  // icon in the UI, so mark it unsupported up front. Independent of OCR support above.
+  // Thumbnails: PDFs get a first-page render in the background; images are their own preview (the
+  // /thumb endpoint serves the original bytes for them — no render needed), so mark them complete up
+  // front; everything else shows a generic icon, so mark it unsupported. Independent of OCR above.
   if (mimeType === "application/pdf") {
     await enqueue("thumbnail-generate", { documentId: id });
+  } else if (mimeType.startsWith("image/")) {
+    await markDocumentThumbnailCompleted(db, { id });
   } else {
     await markDocumentThumbnailUnsupported(db, { id });
   }

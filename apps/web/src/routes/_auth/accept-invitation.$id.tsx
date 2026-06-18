@@ -171,7 +171,7 @@ function AcceptInvitationPage() {
             : `Sign in to join ${orgName}.`}
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleAuthSubmit}>
+      <form onSubmit={handleAuthSubmit} className="flex flex-col gap-4">
         <CardContent className="flex flex-col gap-4">
           {mode === "sign-up" ? (
             <div className="flex flex-col gap-2">

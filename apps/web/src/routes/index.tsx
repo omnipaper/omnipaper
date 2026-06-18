@@ -1,11 +1,5 @@
 import { Button } from "@omnipaper/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@omnipaper/ui/components/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@omnipaper/ui/components/card";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { config } from "@/lib/config";
 
@@ -19,7 +13,6 @@ function Landing() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">{config.appName}</CardTitle>
-          <CardDescription>{config.appDescription}. Landing page coming soon.</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-3">
           <Button asChild>

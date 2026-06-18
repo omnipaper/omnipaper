@@ -71,6 +71,9 @@ export function registrationSettingsQuery() {
 export type SaveStorageInput = InferRequestType<typeof api.settings.storage.$put>["json"];
 export type TestStorageInput = InferRequestType<typeof api.settings.storage.test.$post>["json"];
 
+// The valid engine ids come from the API contract (the registry enum), not a local union.
+export type StorageEngineId = InferRequestType<typeof api.settings.storage.$put>["json"]["engine"];
+
 // Persist S3/R2 credentials, then refresh the storage card so it reflects the configured state.
 export function useSaveStorageSettings() {
   const queryClient = useQueryClient();

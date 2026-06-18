@@ -6,7 +6,6 @@ import { FilterBar } from "@/features/documents/filters/filter-bar";
 import type { DocumentSearch } from "@/features/documents/filters/types";
 import { SelectionBar } from "@/features/documents/selection/selection-bar";
 
-
 export function DocumentsShell({ orgId, children }: { orgId: string; children: ReactNode }) {
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as DocumentSearch;

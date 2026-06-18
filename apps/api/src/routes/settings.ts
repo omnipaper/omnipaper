@@ -20,10 +20,13 @@ import {
 import { SECRET_MASK, unmaskSecret } from "@omnipaper/settings/secret";
 import {
   getStorageSettings,
+  resolveStorageConfig,
   setStorageSettings,
   storageSettingsSchema,
 } from "@omnipaper/settings/storage-settings";
 import { redactSecrets } from "@omnipaper/shared/redact";
+import { DEFAULT_STORAGE_ENGINE } from "@omnipaper/storage/registry";
+import { listStorageDefinitions } from "@omnipaper/storage/resolve";
 import { createS3Driver } from "@omnipaper/storage/s3";
 import { Hono } from "hono";
 import type { Variables } from "../context";
@@ -37,12 +40,20 @@ const adminSettings = new Hono<{ Variables: Variables }>()
 
     return c.json({
       configured: stored !== null,
+      engine: stored?.engine ?? DEFAULT_STORAGE_ENGINE,
       bucket: stored?.bucket ?? null,
       region: stored?.region ?? null,
       endpoint: stored?.endpoint ?? null,
-      forcePathStyle: stored?.forcePathStyle ?? false,
       accessKeyId: stored ? SECRET_MASK : null,
       secretAccessKey: stored ? SECRET_MASK : null,
+      // Field-shaping metadata for the form: which engines exist and how each treats
+      // region/endpoint. forcePathStyle stays server-side — the admin never sets it.
+      engines: listStorageDefinitions().map((d) => ({
+        id: d.id,
+        label: d.label,
+        endpoint: d.endpoint,
+        region: { shown: d.region.shown, placeholder: d.region.placeholder },
+      })),
     });
   })
   .put("/storage", zValidator("json", storageSettingsSchema), async (c) => {
@@ -62,11 +73,13 @@ const adminSettings = new Hono<{ Variables: Variables }>()
     const incoming = c.req.valid("json");
     const stored = await getStorageSettings();
 
-    const driver = createS3Driver({
-      ...incoming,
-      accessKeyId: unmaskSecret(incoming.accessKeyId, stored?.accessKeyId),
-      secretAccessKey: unmaskSecret(incoming.secretAccessKey, stored?.secretAccessKey),
-    });
+    const driver = createS3Driver(
+      resolveStorageConfig({
+        ...incoming,
+        accessKeyId: unmaskSecret(incoming.accessKeyId, stored?.accessKeyId),
+        secretAccessKey: unmaskSecret(incoming.secretAccessKey, stored?.secretAccessKey),
+      }),
+    );
 
     try {
       await driver.testConnection();

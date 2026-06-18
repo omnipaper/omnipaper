@@ -419,7 +419,9 @@ export const documentsRoutes = new Hono<{
     if (!driver) {
       throw errors.badRequest("storage_not_configured", "Storage is not configured");
     }
-    const object = await driver.getObject({ key: `${doc.storageKey}.thumb.png` });
+    // Images are their own thumbnail — serve the original bytes; PDFs serve the rendered .thumb.png.
+    const key = doc.mimeType.startsWith("image/") ? doc.storageKey : `${doc.storageKey}.thumb.png`;
+    const object = await driver.getObject({ key });
     if (!object) {
       throw errors.notFound("Thumbnail not available");
     }

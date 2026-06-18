@@ -1,6 +1,7 @@
 import { Button } from "@omnipaper/ui/components/button";
 import { useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
+import { fileTypeLabel } from "@/lib/format";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
@@ -166,8 +167,11 @@ export function DocumentPreview({
   }
 
   return (
-    <p className="text-sm text-muted-foreground">
-      Preview not available for this file type ({mimeType}). Use the Download button.
-    </p>
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <p className="max-w-sm text-center text-sm text-muted-foreground">
+        Preview not available for this file type ({fileTypeLabel(mimeType)}). Use the Download
+        button.
+      </p>
+    </div>
   );
 }

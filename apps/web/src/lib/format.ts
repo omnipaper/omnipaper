@@ -1,4 +1,4 @@
-import { UPLOAD_FORMATS } from "@omnipaper/shared/formats";
+import { normalizeMimeType, UPLOAD_FORMATS } from "@omnipaper/shared/formats";
 
 const MEDIUM_DATE = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 export function formatInstantDate(value: string | Date): string {
@@ -26,8 +26,11 @@ export function toISODate(date: Date): string {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+// A short, uniform type token for the badges — the format id upper-cased (PDF, JPEG, PNG, WEBP, TXT,
+// DOCX) rather than the prose labels ("WebP image", "Word document (.docx)") which read inconsistently
+// and overflow the fixed-width row badge. Falls back to the raw MIME for anything off the allow-list.
 export function fileTypeLabel(mimeType: string): string {
-  return (
-    UPLOAD_FORMATS.find((format) => format.mimeTypes.some((m) => m === mimeType))?.label ?? mimeType
-  );
+  const normalized = normalizeMimeType(mimeType);
+  const format = UPLOAD_FORMATS.find((f) => f.mimeTypes.some((m) => m === normalized));
+  return format ? format.id.toUpperCase() : mimeType;
 }

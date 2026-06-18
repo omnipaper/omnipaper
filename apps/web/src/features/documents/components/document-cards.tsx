@@ -51,7 +51,7 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
     const Icon = iconForMime(doc.mimeType);
     const selected = isSelected(doc.id);
     const fileType = isOn("fileType") ? fileTypeLabel(doc.mimeType) : null;
-    const typeName = isOn("type") ? doc.documentTypeName : null;
+    const typeName = isOn("documentType") ? doc.documentTypeName : null;
     const showTags = isOn("tags") && doc.tags.length > 0;
     const docDate = isOn("date") && doc.documentDate ? formatCalendarDate(doc.documentDate) : null;
     const added = isOn("created") ? `Added ${formatRelativeDay(doc.createdAt)}` : null;

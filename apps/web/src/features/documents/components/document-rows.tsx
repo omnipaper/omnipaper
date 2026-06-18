@@ -34,7 +34,7 @@ export function DocumentRows({ orgId, documents, isSelected, onToggle }: Documen
     // Each field has a fixed slot so columns line up down the list: file type pinned left, the dates
     // pinned right, and the variable-length document type bounded to a chip in between — so nothing
     // shifts the others around (the old "·"-joined line was unreadable because items slid sideways).
-    const typeName = isOn("type") ? doc.documentTypeName : null;
+    const typeName = isOn("documentType") ? doc.documentTypeName : null;
     const showTags = isOn("tags") && doc.tags.length > 0;
     const docDate = isOn("date") && doc.documentDate ? formatCalendarDate(doc.documentDate) : null;
     const added = isOn("created") ? `Added ${formatRelativeDay(doc.createdAt)}` : null;

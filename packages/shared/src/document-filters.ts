@@ -24,7 +24,13 @@ export const sortStateSchema = z.object({
 export type SortState = z.infer<typeof sortStateSchema>;
 // The built-in filter keys the db resolver (buildDocumentWhere) handles directly over real columns.
 // Custom properties are keyed "cp:<definitionId>" instead. Keep this in sync with resolveFilter.
-export const BUILT_IN_FILTER_KEYS = ["type", "path", "tags", "documentDate", "createdAt"] as const;
+export const BUILT_IN_FILTER_KEYS = [
+  "documentType",
+  "path",
+  "tags",
+  "documentDate",
+  "createdAt",
+] as const;
 export type BuiltInFilterKey = (typeof BUILT_IN_FILTER_KEYS)[number];
 const CUSTOM_PROP_PREFIX = "cp:";
 export function customPropertyKey(definitionId: string): string {

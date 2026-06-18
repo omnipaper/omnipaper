@@ -30,6 +30,7 @@ import {
 import { pushRecent } from "@/features/documents/recent/recent-documents-store";
 import { useOrgMember } from "@/features/organization/queries/organization";
 import { api } from "@/lib/api";
+import { fileTypeLabel } from "@/lib/format";
 
 export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
   const navigate = useNavigate();
@@ -141,7 +142,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
             <h1 className="truncate font-semibold text-lg" title={doc.title}>
               {doc.title}
             </h1>
-            <p className="text-muted-foreground text-xs">{doc.mimeType}</p>
+            <p className="text-muted-foreground text-xs">{fileTypeLabel(doc.mimeType)}</p>
           </div>
         </div>
 

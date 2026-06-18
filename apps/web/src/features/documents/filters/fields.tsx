@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import {
   CalendarIcon,
   CalendarPlusIcon,
-  FileTypeIcon,
   FolderTreeIcon,
   ListIcon,
+  ShapesIcon,
   TagIcon,
   ToggleLeftIcon,
 } from "lucide-react";
@@ -66,9 +66,9 @@ export function useDocumentFilterFields(orgId: string): FilterFieldDef[] {
   const customProps = useQuery(orgPropertyDefinitionsQuery({ orgId })).data?.definitions ?? [];
   return [
     {
-      key: "type",
-      label: "Type",
-      icon: FileTypeIcon,
+      key: "documentType",
+      label: "Document type",
+      icon: ShapesIcon,
       group: GROUP_DEFAULT,
       picker: {
         kind: "in",

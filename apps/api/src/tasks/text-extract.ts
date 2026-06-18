@@ -6,7 +6,7 @@ import {
   markDocumentOcrProcessing,
 } from "@omnipaper/database/queries/documents";
 import { defineTask } from "@omnipaper/queue/worker";
-import { getStorageSettings } from "@omnipaper/settings/storage-settings";
+import { getStorageConfig } from "@omnipaper/settings/storage-settings";
 import { createS3Driver } from "@omnipaper/storage/s3";
 import { extractDocumentText } from "../lib/text-extract";
 
@@ -28,13 +28,13 @@ export const textExtractTask = defineTask("text-extract", async ({ documentId })
   await markDocumentOcrProcessing(db, { id: documentId });
 
   try {
-    const storageSettings = await getStorageSettings();
+    const storageConfig = await getStorageConfig();
 
-    if (!storageSettings) {
+    if (!storageConfig) {
       throw new Error("Storage is not configured");
     }
 
-    const storage = createS3Driver(storageSettings);
+    const storage = createS3Driver(storageConfig);
     const original = await storage.getObject({ key: doc.storageKey });
 
     if (!original) {

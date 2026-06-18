@@ -19,6 +19,7 @@
     "@omnipaper/env": "workspace:*",
     "@omnipaper/ocr": "workspace:*",
     "@omnipaper/shared": "workspace:*",
+    "@omnipaper/storage": "workspace:*",
     "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },

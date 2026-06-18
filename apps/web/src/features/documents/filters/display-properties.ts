@@ -1,17 +1,23 @@
 import { useCallback, useSyncExternalStore } from "react";
 
-export const DISPLAY_PROPERTY_KEYS = ["type", "date", "tags", "fileType", "created"] as const;
+export const DISPLAY_PROPERTY_KEYS = [
+  "documentType",
+  "date",
+  "tags",
+  "fileType",
+  "created",
+] as const;
 export type DisplayPropertyKey = (typeof DISPLAY_PROPERTY_KEYS)[number];
 
 export const DISPLAY_PROPERTIES: { key: DisplayPropertyKey; label: string }[] = [
-  { key: "type", label: "Type" },
+  { key: "documentType", label: "Document type" },
   { key: "date", label: "Date" },
   { key: "tags", label: "Tags" },
   { key: "fileType", label: "File type" },
   { key: "created", label: "Added" },
 ];
 
-const DEFAULT_ENABLED: DisplayPropertyKey[] = ["type", "date", "tags"];
+const DEFAULT_ENABLED: DisplayPropertyKey[] = ["documentType", "date", "tags"];
 const DISPLAY_STORAGE_KEY = "omnipaper.documents.displayProperties";
 
 const isKey = (value: string): value is DisplayPropertyKey =>

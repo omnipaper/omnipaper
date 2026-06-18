@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     "./driver": "./src/driver.ts",
-    "./s3": "./src/drivers/s3.ts"
+    "./s3": "./src/drivers/s3.ts",
+    "./registry": "./src/registry.ts",
+    "./resolve": "./src/resolve.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
