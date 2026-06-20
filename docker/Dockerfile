@@ -26,7 +26,7 @@ RUN bun run --cwd apps/web build
 FROM base AS prod-deps
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
-# apps/docs ships only devDependencies, so --production installs nothing from it
+# copied only so --frozen-lockfile can resolve the workspace graph (docs builds + deploys separately)
 COPY apps/docs/package.json apps/docs/
 COPY apps/web/package.json apps/web/
 COPY packages/database/package.json packages/database/

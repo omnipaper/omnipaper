@@ -5,9 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "fumadocs-mdx && next build",
     "preview": "serve out",
-    "postinstall": "fumadocs-mdx",
     "typecheck": "fumadocs-mdx && tsc --noEmit"
   },
   "devDependencies": {
@@ -27,5 +26,8 @@
     "serve": "14.2.6",
     "tailwindcss": "4.3.0",
     "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@openpanel/nextjs": "1.5.1"
   }
 }

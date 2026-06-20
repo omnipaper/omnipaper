@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/branding/logos/26-archive-drawer-big-transparent.png" alt="omnipaper" width="120" />
+<img src="apps/web/public/apple-touch-icon.png" alt="omnipaper" width="96" />
 
 # omnipaper
 
@@ -22,9 +22,9 @@ Where paperless-ngx is capable but dense, omnipaper bets on a clean, responsive 
 
 ## Screenshot
 
-<!-- TODO: drop your app screenshot here — save it as docs/branding/screenshots/app.png (the directory exists; only .gitkeep is there now). Until then this image renders broken. -->
+<!-- TODO: drop your app screenshot here — save it as .github/screenshot.png (./docs is gitignored, so README assets live under .github/). Until then this image renders broken. -->
 <a href="https://demo.omnipaper.app">
-  <img src="docs/branding/screenshots/app.png" alt="omnipaper" width="100%" />
+  <img src=".github/screenshot.png" alt="omnipaper" width="100%" />
 </a>
 
 Try it live at **[demo.omnipaper.app](https://demo.omnipaper.app)**.
