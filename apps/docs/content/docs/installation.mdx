@@ -27,7 +27,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   app:
-    image: ghcr.io/omnipaper/omnipaper:0.3.0
+    image: ghcr.io/omnipaper/omnipaper:0
     restart: unless-stopped
     depends_on:
       - postgres
@@ -47,10 +47,10 @@ volumes:
 ### Image tags
 
 - `0` — the latest pre-1.0 release (tracks the `0.x` line).
-- `0.3` — the latest patch within the `0.3` minor line.
-- `0.3.0` — a specific, pinned version.
+- `0.1` — the latest patch within the `0.3` minor line.
+- `0.1.1` — a specific, pinned version.
 
-Pin a specific `0.x.x` version (as in the file above). The rolling `0` and `0.3` tags move
+Pin a specific `0.x.x` version (as in the file above). The rolling `0` and `0.x` tags move
 as new builds ship and may be unstable before 1.0.
 
 ## Start it

@@ -24,7 +24,7 @@ type NavUserProps = {
     image?: string | null;
   };
   orgId: string;
-  onSignOut: () => void;
+  onSignOut?: () => void;
 };
 
 export function NavUser({ user, orgId, onSignOut }: NavUserProps) {
@@ -78,11 +78,15 @@ export function NavUser({ user, orgId, onSignOut }: NavUserProps) {
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onSignOut}>
-              <LogOutIcon />
-              Log out
-            </DropdownMenuItem>
+            {onSignOut ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onSignOut}>
+                  <LogOutIcon />
+                  Log out
+                </DropdownMenuItem>
+              </>
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

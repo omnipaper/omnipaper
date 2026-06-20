@@ -230,9 +230,11 @@ function OrgLayout() {
               ) : null}
             </SidebarContent>
             <SidebarFooter>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                Sign out
-              </Button>
+              {isDemo ? null : (
+                <Button variant="outline" size="sm" onClick={handleSignOut}>
+                  Sign out
+                </Button>
+              )}
             </SidebarFooter>
           </>
         ) : (
@@ -259,7 +261,11 @@ function OrgLayout() {
             </SidebarContent>
             <SidebarFooter>
               {session?.user ? (
-                <NavUser user={session.user} orgId={orgId} onSignOut={handleSignOut} />
+                <NavUser
+                  user={session.user}
+                  orgId={orgId}
+                  onSignOut={isDemo ? undefined : handleSignOut}
+                />
               ) : null}
             </SidebarFooter>
           </>
