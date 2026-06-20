@@ -22,8 +22,7 @@ export const sortStateSchema = z.object({
   dir: z.enum(["asc", "desc"]),
 });
 export type SortState = z.infer<typeof sortStateSchema>;
-// The built-in filter keys the db resolver (buildDocumentWhere) handles directly over real columns.
-// Custom properties are keyed "cp:<definitionId>" instead. Keep this in sync with resolveFilter.
+
 export const BUILT_IN_FILTER_KEYS = [
   "documentType",
   "fileType",
@@ -40,10 +39,6 @@ export function customPropertyKey(definitionId: string): string {
 export function parseCustomPropertyKey(key: string): string | null {
   return key.startsWith(CUSTOM_PROP_PREFIX) ? key.slice(CUSTOM_PROP_PREFIX.length) : null;
 }
-// A filter key is valid only if it's a built-in field or a well-formed custom-property key
-// (cp:<non-empty id>). The API uses this to reject unknown/malformed keys with a clean 400 instead
-// of silently dropping the predicate (which would widen the result set). A well-formed but stale
-// cp: id still passes here and degrades gracefully at the resolver.
 export function isKnownFilterKey(key: string): boolean {
   if ((BUILT_IN_FILTER_KEYS as readonly string[]).includes(key)) {
     return true;

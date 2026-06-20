@@ -18,3 +18,7 @@ docs
 
 # docker build files — not needed inside the image
 docker
+
+# env files
+.env
+.env.*

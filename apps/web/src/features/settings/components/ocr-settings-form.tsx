@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@omnipaper/ui/components/select";
 import { useQuery } from "@tanstack/react-query";
+import { ExternalLinkIcon } from "lucide-react";
 import { type SubmitEvent, useEffect, useState } from "react";
 import {
   type OcrDefinitionId,
@@ -88,6 +89,15 @@ export function OcrSettingsForm() {
             ? "OCR is configured. Leave a masked key as-is to keep it."
             : "Pick an engine and add the matching provider API key to enable text extraction."}
         </CardDescription>
+        <a
+          href="https://docs.omnipaper.app/ocr"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 inline-flex w-fit items-center gap-1 text-muted-foreground text-xs hover:text-foreground hover:underline"
+        >
+          Setup guide
+          <ExternalLinkIcon className="size-3" />
+        </a>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="flex flex-col gap-4">
@@ -136,11 +146,6 @@ export function OcrSettingsForm() {
                     : setMistralKey(e.target.value)
                 }
               />
-              {requiredKey ? null : (
-                <p className="text-muted-foreground text-sm">
-                  Needed to enable text extraction with {selected.label}.
-                </p>
-              )}
             </div>
           ) : null}
 
@@ -151,6 +156,7 @@ export function OcrSettingsForm() {
             <Button
               type="button"
               variant="outline"
+              className="ml-auto"
               onClick={() =>
                 selected &&
                 testMutation.mutate({ provider: selected.provider, apiKey: requiredKey })

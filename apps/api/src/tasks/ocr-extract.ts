@@ -10,8 +10,7 @@ import { extractText } from "@omnipaper/ocr/runner";
 import { defineTask } from "@omnipaper/queue/worker";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
 import { getProviderKeys } from "@omnipaper/settings/provider-settings";
-import { getStorageConfig } from "@omnipaper/settings/storage-settings";
-import { createS3Driver } from "@omnipaper/storage/s3";
+import { getStorageDriver } from "../lib/storage";
 
 export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }) => {
   const doc = await getDocumentById(db, { id: documentId });
@@ -27,9 +26,9 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }) =
   await markDocumentOcrProcessing(db, { id: documentId });
 
   try {
-    const storageConfig = await getStorageConfig();
+    const storage = await getStorageDriver();
 
-    if (!storageConfig) {
+    if (!storage) {
       throw new Error("Storage is not configured");
     }
 
@@ -43,7 +42,6 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }) =
       throw new Error(`OCR is not configured: missing ${provider} API key`);
     }
 
-    const storage = createS3Driver(storageConfig);
     const { url } = await storage.createDownloadUrl({ key: doc.storageKey });
 
     const { text } = await extractText({

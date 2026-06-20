@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
+import { FilesIcon, SearchXIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { DocumentCards } from "@/features/documents/components/document-cards";
 import { DocumentRows } from "@/features/documents/components/document-rows";
@@ -53,9 +54,21 @@ export function DocumentResults({ orgId }: { orgId: string }) {
 
   if (documents.length === 0) {
     return (
-      <p className="text-muted-foreground">
-        {hasCriteria ? "No documents match your filters." : "No documents yet. Upload one above."}
-      </p>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          {hasCriteria ? <SearchXIcon className="size-6" /> : <FilesIcon className="size-6" />}
+        </div>
+        <div className="flex flex-col gap-1">
+          <p className="font-medium text-foreground">
+            {hasCriteria ? "No matching documents" : "No documents yet"}
+          </p>
+          <p className="max-w-xs text-muted-foreground text-sm">
+            {hasCriteria
+              ? "Try adjusting your search or filters."
+              : "Drag a file anywhere, or use the Upload button to add your first one."}
+          </p>
+        </div>
+      </div>
     );
   }
 

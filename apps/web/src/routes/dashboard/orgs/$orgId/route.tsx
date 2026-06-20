@@ -42,6 +42,7 @@ import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/sessio
 import { GlobalDropArea } from "@/features/documents/components/global-drop-area";
 import { useUploadDocuments } from "@/features/documents/queries/upload";
 import { RecentDocuments } from "@/features/documents/recent/recent-documents";
+import { OnboardingChecklist } from "@/features/onboarding/components/onboarding-checklist";
 import { NavUser } from "@/features/organization/components/nav-user";
 import { OrgSwitcher } from "@/features/organization/components/org-switcher";
 import { fullOrganizationQuery, useOrgMember } from "@/features/organization/queries/organization";
@@ -270,6 +271,7 @@ function OrgLayout() {
           <Outlet />
         </div>
       </SidebarInset>
+      <OnboardingChecklist orgId={orgId} />
     </SidebarProvider>
   );
 }

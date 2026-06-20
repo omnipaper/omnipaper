@@ -119,5 +119,11 @@ export const createS3Driver = (config: S3Config): StorageDriver => {
         throw error;
       }
     },
+
+    destroy: () => {
+      // Closes the SDK's NodeHttpHandler agent and its keep-alive socket pool. Without this every
+      // client leaks an agent (plus idle sockets) until GC reclaims it.
+      client.destroy();
+    },
   };
 };

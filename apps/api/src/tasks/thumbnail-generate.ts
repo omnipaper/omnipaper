@@ -7,9 +7,8 @@ import {
   markDocumentThumbnailProcessing,
 } from "@omnipaper/database/queries/documents";
 import { defineTask } from "@omnipaper/queue/worker";
-import { getStorageConfig } from "@omnipaper/settings/storage-settings";
-import { createS3Driver } from "@omnipaper/storage/s3";
 import { PNG } from "pngjs";
+import { getStorageDriver } from "../lib/storage";
 
 const THUMBNAIL_WIDTH = 500;
 
@@ -32,13 +31,11 @@ export const thumbnailGenerateTask = defineTask("thumbnail-generate", async ({ d
   await markDocumentThumbnailProcessing(db, { id: documentId });
 
   try {
-    const storageConfig = await getStorageConfig();
+    const storage = await getStorageDriver();
 
-    if (!storageConfig) {
+    if (!storage) {
       throw new Error("Storage is not configured");
     }
-
-    const storage = createS3Driver(storageConfig);
 
     const original = await storage.getObject({ key: doc.storageKey });
 
@@ -64,28 +61,37 @@ export const thumbnailGenerateTask = defineTask("thumbnail-generate", async ({ d
   }
 });
 
+// PDFium's WASM heap is allocated once and reused for every job. The old code ran PDFiumLibrary.init()
+// per render, and each init builds a fresh Emscripten module with its own ~18MB WebAssembly.Memory.
+// library.destroy() only runs pdfium's C-level teardown (_FPDF_DestroyLibrary) — it cannot release
+// that WASM heap, and WASM memory never shrinks, so every processed PDF abandoned a heap the GC
+// reclaimed slowly and RSS climbed monotonically until restart. One shared library fixes it: pdfium
+// is designed to init once and load many documents, and graphile-worker concurrency is async on a
+// single JS thread (renders never truly overlap), so concurrent jobs just load and destroy their own
+// document handles against the one bounded heap.
+let pdfiumLibraryPromise: Promise<PDFiumLibrary> | null = null;
+
+function getPdfiumLibrary(): Promise<PDFiumLibrary> {
+  pdfiumLibraryPromise ??= PDFiumLibrary.init();
+  return pdfiumLibraryPromise;
+}
+
 async function renderFirstPagePng(pdfBytes: Uint8Array): Promise<Uint8Array> {
-  // The node build embeds the WASM as base64, so init() needs no path/network. Init per job keeps
-  // each render isolated (own WASM heap); a shared singleton is a later optimization if needed.
-  const library = await PDFiumLibrary.init();
+  const library = await getPdfiumLibrary();
+  const document = await library.loadDocument(pdfBytes);
 
   try {
-    const document = await library.loadDocument(pdfBytes);
+    // Render the first page straight at the target pixel width (pdfium scales it), so there's no
+    // separate resize step — which is why we don't need sharp/libvips at all.
+    const bitmap = await document.getPage(0).render({ width: THUMBNAIL_WIDTH, render: "bitmap" });
 
-    try {
-      // Render the first page straight at the target pixel width (pdfium scales it), so there's no
-      // separate resize step — which is why we don't need sharp/libvips at all.
-      const bitmap = await document.getPage(0).render({ width: THUMBNAIL_WIDTH, render: "bitmap" });
-
-      // pdfium's "bitmap" engine already returns RGBA (verified: a pure-red page renders to bytes
-      // [255,0,0,255]), so the buffer feeds straight into pngjs — no channel swap needed.
-      const png = new PNG({ width: bitmap.width, height: bitmap.height });
-      png.data = Buffer.from(bitmap.data);
-      return new Uint8Array(PNG.sync.write(png));
-    } finally {
-      document.destroy();
-    }
+    // pdfium's "bitmap" engine already returns RGBA (verified: a pure-red page renders to bytes
+    // [255,0,0,255]), so the buffer feeds straight into pngjs — no channel swap needed.
+    const png = new PNG({ width: bitmap.width, height: bitmap.height });
+    png.data = Buffer.from(bitmap.data);
+    return new Uint8Array(PNG.sync.write(png));
   } finally {
-    library.destroy();
+    // Frees this document's memory inside the shared heap; the heap itself stays put for reuse.
+    document.destroy();
   }
 }

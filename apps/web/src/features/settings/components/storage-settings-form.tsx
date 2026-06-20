@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@omnipaper/ui/components/select";
 import { useQuery } from "@tanstack/react-query";
+import { ExternalLinkIcon } from "lucide-react";
 import { type SubmitEvent, useEffect, useState } from "react";
 import {
   type StorageEngineId,
@@ -128,6 +129,15 @@ export function StorageSettingsForm() {
             ? "Storage is configured. Leave the masked keys as-is to keep them."
             : "Pick a provider and enter your bucket credentials."}
         </CardDescription>
+        <a
+          href="https://docs.omnipaper.app/storage"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 inline-flex w-fit items-center gap-1 text-muted-foreground text-xs hover:text-foreground hover:underline"
+        >
+          Setup guide
+          <ExternalLinkIcon className="size-3" />
+        </a>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="flex flex-col gap-4">
@@ -212,6 +222,7 @@ export function StorageSettingsForm() {
             <Button
               type="button"
               variant="outline"
+              className="ml-auto"
               onClick={() => testMutation.mutate(credentials)}
               disabled={testMutation.isPending || !selected}
             >

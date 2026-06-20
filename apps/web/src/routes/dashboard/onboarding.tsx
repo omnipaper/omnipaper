@@ -59,7 +59,7 @@ function OnboardingPage() {
             A workspace holds your documents. You can rename it later.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <CardContent>
             <div className="flex flex-col gap-2">
               <Label htmlFor="workspace-name">Workspace name</Label>

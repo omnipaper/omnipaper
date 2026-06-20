@@ -7,7 +7,6 @@ WORKDIR /app
 FROM base AS build
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
-COPY apps/docs/package.json apps/docs/
 COPY apps/web/package.json apps/web/
 COPY packages/database/package.json packages/database/
 COPY packages/env/package.json packages/env/
@@ -26,8 +25,6 @@ RUN bun run --cwd apps/web build
 FROM base AS prod-deps
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
-# copied only so --frozen-lockfile can resolve the workspace graph (docs builds + deploys separately)
-COPY apps/docs/package.json apps/docs/
 COPY apps/web/package.json apps/web/
 COPY packages/database/package.json packages/database/
 COPY packages/env/package.json packages/env/
@@ -38,9 +35,11 @@ COPY packages/settings/package.json packages/settings/
 COPY packages/shared/package.json packages/shared/
 COPY packages/storage/package.json packages/storage/
 COPY packages/ui/package.json packages/ui/
-RUN bun install --frozen-lockfile --production
 
-# ---- runtime: slim final image ----
+# only the API workspace's prod dependency closure — not web/docs/ui or any devDeps
+RUN bun install --frozen-lockfile --production --filter='@omnipaper/api'
+
+# ---- runtime: final image ----
 FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=prod-deps /app/node_modules ./node_modules

@@ -14,4 +14,9 @@ export type StorageDriver = {
   objectExists: (args: { key: string }) => Promise<boolean>;
 
   testConnection: () => Promise<void>;
+
+  // Tear down the underlying client (its keep-alive HTTP agent + pooled sockets). Only call this for
+  // a driver built from a transient/one-off config that won't be reused — the shared cached driver
+  // (see apps/api/src/lib/storage.ts) is meant to live for the whole process.
+  destroy: () => void;
 };

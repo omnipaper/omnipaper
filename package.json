@@ -5,7 +5,8 @@
   "description": "Modern source-available document management with native S3-compatible storage support",
   "license": "SEE LICENSE IN LICENSE",
   "workspaces": [
-    "apps/*",
+    "apps/api",
+    "apps/web",
     "packages/*"
   ],
   "catalog": {

@@ -75,6 +75,8 @@ const adminSettings = new Hono<{ Variables: Variables }>()
     const incoming = c.req.valid("json");
     const stored = await getStorageSettings();
 
+    // One-off driver from the admin-submitted config — destroy it after the probe so its keep-alive
+    // agent doesn't linger (this is NOT the shared cached client from lib/storage.ts).
     const driver = createS3Driver(
       resolveStorageConfig({
         ...incoming,
@@ -84,26 +86,30 @@ const adminSettings = new Hono<{ Variables: Variables }>()
     );
 
     try {
-      await driver.testConnection();
-    } catch (error) {
-      return c.json({
-        ok: false,
-        error: error instanceof Error ? error.message : "Connection failed",
-        privacy: "unknown" as BucketPrivacy,
-      });
-    }
+      try {
+        await driver.testConnection();
+      } catch (error) {
+        return c.json({
+          ok: false,
+          error: error instanceof Error ? error.message : "Connection failed",
+          privacy: "unknown" as BucketPrivacy,
+        });
+      }
 
-    // Connection works — also flag a world-readable bucket (a confidentiality risk for documents).
-    // Advisory only: never blocks saving, and stays silent when it can't tell.
-    let privacy: BucketPrivacy = "unknown";
-    try {
-      const { url } = await driver.createDownloadUrl({ key: "__omnipaper_connection_test__" });
-      privacy = await probeBucketPrivacy({ url });
-    } catch {
-      privacy = "unknown";
-    }
+      // Connection works — also flag a world-readable bucket (a confidentiality risk for documents).
+      // Advisory only: never blocks saving, and stays silent when it can't tell.
+      let privacy: BucketPrivacy = "unknown";
+      try {
+        const { url } = await driver.createDownloadUrl({ key: "__omnipaper_connection_test__" });
+        privacy = await probeBucketPrivacy({ url });
+      } catch {
+        privacy = "unknown";
+      }
 
-    return c.json({ ok: true, error: null, privacy });
+      return c.json({ ok: true, error: null, privacy });
+    } finally {
+      driver.destroy();
+    }
   })
   .post("/storage/cors-check", zValidator("json", storageSettingsSchema), async (c) => {
     const incoming = c.req.valid("json");
@@ -126,8 +132,12 @@ const adminSettings = new Hono<{ Variables: Variables }>()
         return host ? `${c.req.header("x-forwarded-proto") ?? "https"}://${host}` : undefined;
       })();
 
-    const { url } = await driver.createDownloadUrl({ key: "__omnipaper_cors_probe__" });
-    return c.json(await probePreviewCors({ url, origin }));
+    try {
+      const { url } = await driver.createDownloadUrl({ key: "__omnipaper_cors_probe__" });
+      return c.json(await probePreviewCors({ url, origin }));
+    } finally {
+      driver.destroy();
+    }
   })
   .get("/ocr", async (c) => {
     const ocr = await getOcrSettings();
