@@ -7,7 +7,7 @@
     "./app": "./src/app.ts"
   },
   "scripts": {
-    "dev": "bun --watch --env-file=../../.env src/index.ts",
+    "dev": "bun --watch --env-file=../../.env.local src/index.ts",
     "start": "bun src/index.ts",
     "typecheck": "tsc --noEmit"
   },

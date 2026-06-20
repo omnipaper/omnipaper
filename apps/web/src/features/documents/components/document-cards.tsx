@@ -8,7 +8,7 @@ import {
   Loader2Icon,
   MailIcon,
 } from "lucide-react";
-import type { ComponentType } from "react";
+import { type ComponentType, useEffect, useRef, useState } from "react";
 import { useDisplayProperties } from "@/features/documents/filters/display-properties";
 import { type DocumentRow, thumbnailUrl } from "@/features/documents/queries/documents";
 import { SelectCheckbox } from "@/features/documents/selection/select-checkbox";
@@ -40,6 +40,53 @@ function iconForMime(mimeType: string): ComponentType<{ className?: string }> {
     return FileSpreadsheetIcon;
   }
   return FileIcon;
+}
+
+// Thumbnails are fetched lazily, so there's a gap between mounting the <img> and the bytes
+// arriving — during which the browser paints the alt text (the title) on the bare box. Show a
+// pulsing skeleton until the image actually loads, then fade it in; fall back to the file-type
+// icon if the fetch fails.
+function Thumbnail({
+  src,
+  alt,
+  Icon,
+}: {
+  src: string;
+  alt: string;
+  Icon: ComponentType<{ className?: string }>;
+}) {
+  const ref = useRef<HTMLImageElement>(null);
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
+
+  // A cached thumbnail can finish loading before React attaches onLoad — catch that on mount.
+  useEffect(() => {
+    const img = ref.current;
+    if (img?.complete) {
+      setStatus(img.naturalWidth > 0 ? "loaded" : "error");
+    }
+  }, []);
+
+  if (status === "error") {
+    return <Icon className="size-10 text-muted-foreground" />;
+  }
+
+  return (
+    <>
+      {status === "loading" ? <div className="absolute inset-0 animate-pulse bg-muted" /> : null}
+      <img
+        ref={ref}
+        src={src}
+        alt={alt}
+        loading="lazy"
+        onLoad={() => setStatus("loaded")}
+        onError={() => setStatus("error")}
+        className={cn(
+          "h-full w-full object-cover object-top transition-opacity duration-300 group-hover:opacity-90",
+          status === "loaded" ? "opacity-100" : "opacity-0",
+        )}
+      />
+    </>
+  );
 }
 
 // Gallery layout. Each card shows the same Display properties as the list rows (driven by the shared
@@ -76,14 +123,9 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
           params={{ orgId, id: doc.id }}
           className="group flex flex-col gap-2"
         >
-          <div className="flex aspect-[3/4] items-center justify-center overflow-hidden rounded-md border bg-muted">
+          <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-md border bg-muted">
             {doc.thumbnailStatus === "completed" ? (
-              <img
-                src={thumbnailUrl(orgId, doc.id)}
-                alt={doc.title}
-                loading="lazy"
-                className="h-full w-full object-cover object-top transition group-hover:opacity-90"
-              />
+              <Thumbnail src={thumbnailUrl(orgId, doc.id)} alt={doc.title} Icon={Icon} />
             ) : doc.thumbnailStatus === "pending" || doc.thumbnailStatus === "processing" ? (
               <Loader2Icon className="size-8 animate-spin text-muted-foreground" />
             ) : (

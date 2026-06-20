@@ -33,8 +33,10 @@ export function OcrSettingsForm() {
 
   const definitions = ocrQuery.data?.definitions ?? [];
 
-  const [definitionId, setDefinitionId] = useState("");
-  const [model, setModel] = useState("");
+  // Init from the react-query cache so a revisit (data already cached) has the right value on the
+  // FIRST render — radix Select won't reliably repaint the label if the value arrives a tick later.
+  const [definitionId, setDefinitionId] = useState(() => ocrQuery.data?.definitionId ?? "");
+  const [model, setModel] = useState(() => ocrQuery.data?.model ?? "");
   const [mistralKey, setMistralKey] = useState("");
   const [googleKey, setGoogleKey] = useState("");
 
@@ -93,7 +95,9 @@ export function OcrSettingsForm() {
             <Label htmlFor="engine">Engine</Label>
             <Select value={definitionId} onValueChange={selectDefinition}>
               <SelectTrigger id="engine" className="w-full">
-                <SelectValue placeholder="Select an engine" />
+                {/* Label passed explicitly — radix only learns an item's text when it mounts (on
+                    open), so a value restored from settings wouldn't show until the dropdown opens. */}
+                <SelectValue placeholder="Select an engine">{selected?.label}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {definitions.map((d) => (

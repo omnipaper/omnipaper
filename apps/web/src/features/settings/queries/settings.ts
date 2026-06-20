@@ -107,14 +107,55 @@ export function useTestStorageConnection() {
       return res.json();
     },
     onSuccess: (result) => {
-      if (result.ok) {
-        toast.success("Connection successful");
-      } else {
+      if (!result.ok) {
         toast.error(result.error ?? "Connection failed");
+        return;
       }
+      // Connection is fine; surface the security advisory if the bucket looks world-readable.
+      if (result.privacy === "public") {
+        toast.warning(
+          "Connected — but the bucket looks publicly readable. Anyone with a file URL could read your documents; make the bucket private.",
+        );
+        return;
+      }
+      toast.success("Connection successful");
     },
     onError: () => {
       toast.error("Test failed");
+    },
+  });
+}
+
+// Dry-run whether in-browser PDF preview will work: the server sends the same CORS preflight the
+// browser would and reads the bucket's response. Returns a checked status, never throws on a "no".
+export function useCheckStorageCors() {
+  return useMutation({
+    mutationFn: async (input: TestStorageInput) => {
+      const res = await api.settings.storage["cors-check"].$post({ json: input });
+      if (!res.ok) {
+        throw new Error("Check failed");
+      }
+      return res.json();
+    },
+    // Verdict shows as a toast, like Test connection. On cors_missing the form also renders the
+    // ready-to-paste config block (a multi-line snippet doesn't belong in a transient toast).
+    onSuccess: (result) => {
+      if (result.status === "ok") {
+        toast.success("In-browser PDF preview will work.");
+      } else if (result.status === "mixed_content") {
+        toast.error(
+          "Storage endpoint is http:// but the app is served over https:// — use an https:// endpoint.",
+        );
+      } else if (result.status === "no_origin") {
+        toast.error("Couldn't determine your app's origin. Open omnipaper from its real URL.");
+      } else if (result.status === "unreachable") {
+        toast.error(`Couldn't reach the bucket${result.error ? `: ${result.error}` : ""}.`);
+      } else {
+        toast.error("Preview is blocked by CORS — paste the rule shown below into your bucket.");
+      }
+    },
+    onError: () => {
+      toast.error("Preview check failed");
     },
   });
 }

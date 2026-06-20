@@ -1,8 +1,10 @@
 import { customPropertyKey, FILTER_NONE } from "@omnipaper/shared/document-filters";
+import { UPLOAD_FORMATS } from "@omnipaper/shared/formats";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarIcon,
   CalendarPlusIcon,
+  FileTypeIcon,
   FolderTreeIcon,
   ListIcon,
   ShapesIcon,
@@ -23,8 +25,8 @@ export const GROUP_DEFAULT = "";
 export const GROUP_CUSTOM = "Custom properties";
 
 const BOOLEAN_OPTIONS: FilterOption[] = [
-  { value: "true", label: "Yes" },
-  { value: "false", label: "No" },
+  { value: "true", label: "True" },
+  { value: "false", label: "False" },
 ];
 function noneOption(): FilterOption {
   return { value: FILTER_NONE, label: "None" };
@@ -93,6 +95,16 @@ export function useDocumentFilterFields(orgId: string): FilterFieldDef[] {
       picker: {
         kind: "in",
         options: tags.map((t) => ({ value: t.id, label: t.name, color: t.color })),
+      },
+    },
+    {
+      key: "fileType",
+      label: "File type",
+      icon: FileTypeIcon,
+      group: GROUP_DEFAULT,
+      picker: {
+        kind: "in",
+        options: UPLOAD_FORMATS.map((f) => ({ value: f.id, label: f.id.toUpperCase() })),
       },
     },
     {

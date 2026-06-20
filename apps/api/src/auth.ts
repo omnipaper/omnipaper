@@ -39,6 +39,7 @@ export const auth = betterAuth({
       // Always return a string: our text PKs have no DB default, so false/undefined inserts NULL.
       generateId: ({ model }) => createId(ID_PREFIXES[model] ?? model),
     },
+    trustedProxyHeaders: true,
   },
   emailAndPassword: {
     enabled: true,
@@ -118,7 +119,9 @@ export const auth = betterAuth({
     },
   },
   secret: env.AUTH_SECRET,
+  // Set → pins the trusted origin to APP_URL (strict; every other origin rejected). Unset →
+  // derived per-request from X-Forwarded-Host via advanced.trustedProxyHeaders (zero-config).
   baseURL: env.APP_URL,
-  // better-auth auto-trusts the baseURL (APP_URL) origin; add any extras (e.g. the dev frontend).
+  // Extra origins to trust beyond the derived/pinned one (e.g. the Vite dev frontend on :5173).
   trustedOrigins: env.EXTRA_TRUSTED_ORIGINS,
 });

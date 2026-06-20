@@ -1,0 +1,126 @@
+---
+title: Storage
+description: Connect S3-compatible object storage and configure CORS for in-browser PDF preview.
+icon: HardDrive
+---
+
+omnipaper keeps your document files in **S3-compatible object storage** — Postgres only
+holds metadata (titles, tags, OCR text). You connect a bucket *after* your first login,
+from **Settings → Storage**. There is no storage env var; credentials are saved in the
+database, encrypted with your `ENCRYPTION_KEY`, and are never sent to the browser.
+
+Three providers are supported:
+
+- **Cloudflare R2**
+- **AWS S3**
+- **MinIO**
+
+## Connect a bucket
+
+In **Settings → Storage**, pick a provider and fill in the fields it shows, then use
+**Test connection** before **Save**:
+
+| Provider | You enter | Example |
+| --- | --- | --- |
+| Cloudflare R2 | Bucket, **Endpoint**, Access Key ID, Secret Access Key | `https://<account_id>.r2.cloudflarestorage.com` |
+| AWS S3 | Bucket, **Region**, Access Key ID, Secret Access Key | Region `eu-central-1` |
+| MinIO | Bucket, **Endpoint**, Access Key ID, Secret Access Key | `https://minio.example.com` |
+
+Region (S3) and endpoint (R2, MinIO) are the only provider-specific fields — everything
+else is derived for you. **Test connection** does a real round-trip to the bucket, so a
+green result means the credentials and bucket name are correct.
+
+<Callout type="warn">
+  Storage credentials are encrypted with `ENCRYPTION_KEY`. If that key changes, omnipaper
+  can no longer decrypt them and you'll have to re-enter the bucket credentials.
+</Callout>
+
+## CORS (for in-browser PDF preview)
+
+This is the one piece of bucket setup that's easy to miss.
+
+**Almost nothing needs CORS.** Uploads, thumbnails, the **Download** button, and ZIP
+export all stream through omnipaper's API — the browser only ever talks to omnipaper, not
+to your bucket. None of that is affected by bucket CORS.
+
+The **one exception** is the inline **PDF preview**. To render a PDF in the page,
+omnipaper hands the browser a short-lived signed URL and the in-browser viewer (pdf.js)
+fetches the file **directly from your storage endpoint**. That request is cross-origin, so
+the browser enforces CORS — and the bucket must allow your omnipaper origin.
+
+<Callout>
+  Without a CORS rule, everything still works **except** the inline PDF preview: you'll see
+  *"Could not load PDF"*, but the **Download** button still opens the file (it's a normal
+  navigation, not a cross-origin fetch). Image previews are unaffected too.
+</Callout>
+
+The rule you need is the same everywhere: allow `GET`, `HEAD`, and `PUT` from your omnipaper
+origin, allow the `Range` request header, and expose the range response headers — pdf.js
+loads PDFs in chunks using HTTP range requests.
+
+<Callout type="warn">
+  `AllowedOrigins` must be your **omnipaper URL** — the address you open the app at (your
+  `APP_URL`). Include the scheme and **no** trailing slash: `https://omnipaper.example.com`.
+</Callout>
+
+### Cloudflare R2
+
+Add it in the dashboard under your bucket → **Settings → CORS Policy**, or via the AWS CLI
+pointed at your R2 endpoint:
+
+```json title="cors.json"
+[
+  {
+    "AllowedOrigins": ["https://omnipaper.example.com"],
+    "AllowedMethods": ["GET", "HEAD", "PUT"],
+    "AllowedHeaders": ["Range"],
+    "ExposeHeaders": ["Content-Range", "Accept-Ranges", "Content-Length"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+### AWS S3
+
+S3 uses the **same JSON** as R2. Set it on the bucket under **Permissions → Cross-origin
+resource sharing (CORS)**, or with the CLI:
+
+```json title="cors.json"
+[
+  {
+    "AllowedOrigins": ["https://omnipaper.example.com"],
+    "AllowedMethods": ["GET", "HEAD", "PUT"],
+    "AllowedHeaders": ["Range"],
+    "ExposeHeaders": ["Content-Range", "Accept-Ranges", "Content-Length"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+```bash
+aws s3api put-bucket-cors --bucket your-bucket --cors-configuration file://cors.json
+```
+
+### MinIO
+
+MinIO doesn't take a per-bucket CORS JSON — it's controlled by an environment variable on
+the MinIO server, `MINIO_API_CORS_ALLOW_ORIGIN` (a comma-separated list of origins).
+
+Its **default is `*`**, so PDF preview works out of the box. To lock it down to your
+omnipaper origin instead:
+
+```bash title="MinIO server env"
+MINIO_API_CORS_ALLOW_ORIGIN=https://omnipaper.example.com
+```
+
+Restart MinIO for the change to take effect. MinIO allows the standard methods and the
+`Range` header automatically, so there's nothing else to set.
+
+## Verifying
+
+Open a PDF document's detail page. If the preview renders, CORS is correct.
+
+If you instead see *"Could not load PDF"* while the **Download** button works, it's almost
+always CORS. Open the browser console and look for an `Access-Control-Allow-Origin` error —
+then confirm `AllowedOrigins` matches your omnipaper URL **exactly** (scheme, host, and
+port, with no trailing slash).

@@ -1,0 +1,114 @@
+---
+title: Installation
+description: Self-host omnipaper with Docker Compose.
+icon: Container
+---
+
+## Create the Compose file
+
+Generate two secrets — run this twice, once for each:
+
+```bash
+openssl rand -base64 32
+```
+
+Paste the values into `docker-compose.yml`:
+
+```yaml title="docker-compose.yml"
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: omnipaper
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: omnipaper
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  app:
+    image: ghcr.io/omnipaper/omnipaper:0.3.0
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+    environment:
+      # Keep the password in sync with POSTGRES_PASSWORD above
+      DATABASE_URL: postgres://omnipaper:change-me@postgres:5432/omnipaper
+      # Paste a separate `openssl rand -base64 32` value into each
+      AUTH_SECRET: replace-me
+      ENCRYPTION_KEY: replace-me
+
+volumes:
+  postgres-data:
+```
+
+### Image tags
+
+- `0` — the latest pre-1.0 release (tracks the `0.x` line).
+- `0.3` — the latest patch within the `0.3` minor line.
+- `0.3.0` — a specific, pinned version.
+
+Pin a specific `0.x.x` version (as in the file above). The rolling `0` and `0.3` tags move
+as new builds ship and may be unstable before 1.0.
+
+## Start it
+
+```bash
+docker compose up -d
+```
+
+On boot the app waits for Postgres, runs database migrations automatically, then starts.
+Open <code>http://localhost:3000</code> and create your first account.
+
+<Callout>
+  Storage is not configured at deploy time. After your first login, connect an
+  S3-compatible bucket (AWS S3, Cloudflare R2, MinIO, …) from the app's settings — see
+  [Storage](/storage).
+</Callout>
+
+## Environment variables
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | ✅ | — | PostgreSQL connection string. |
+| `AUTH_SECRET` | ✅ | — | Signs auth sessions and cookies. Use a random 32-byte value. |
+| `ENCRYPTION_KEY` | ✅ | — | Encrypts the credentials you store in the app (S3, OCR keys). If you change or lose it, those secrets can no longer be decrypted — keep it stable and backed up. Minimum 16 characters. |
+| `APP_URL` | — | derived from request | Public URL of your instance. See [Custom domain](#custom-domain). |
+| `PORT` | — | `3000` | Port the app listens on inside the container. |
+
+## Custom domain
+
+omnipaper runs behind a reverse proxy (Caddy, Traefik, nginx, …) with **no extra
+configuration**: when `APP_URL` is unset it derives its origin from the incoming request.
+Just make sure your proxy forwards `X-Forwarded-Host` and `X-Forwarded-Proto`.
+
+To pin the origin to a fixed value, add `APP_URL` to the **`app`** service's `environment`
+(the same block as the secrets — not `postgres`):
+
+```yaml title="docker-compose.yml"
+services:
+  app:
+    environment:
+      DATABASE_URL: postgres://omnipaper:change-me@postgres:5432/omnipaper
+      AUTH_SECRET: replace-me
+      ENCRYPTION_KEY: replace-me
+      APP_URL: https://omnipaper.example.com   # add this line
+```
+
+Include the scheme (`https://`) and no trailing slash.
+
+<Callout>
+  Terminate TLS at your reverse proxy and forward to the app's port `3000`. omnipaper serves
+  plain HTTP inside the container.
+</Callout>
+
+## Updating
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Migrations run automatically on start, so pull-and-up is all that's needed.

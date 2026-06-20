@@ -2,8 +2,8 @@
   "name": "omnipaper",
   "private": true,
   "version": "0.0.1",
-  "description": "Modern open-source document management with native S3-compatible storage support",
-  "license": "AGPL-3.0-or-later",
+  "description": "Modern source-available document management with native S3-compatible storage support",
+  "license": "SEE LICENSE IN LICENSE",
   "workspaces": [
     "apps/*",
     "packages/*"

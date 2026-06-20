@@ -1,5 +1,6 @@
 import type { FilterState, FilterValue, SortState } from "@omnipaper/shared/document-filters";
 import { FILTER_NONE, parseCustomPropertyKey } from "@omnipaper/shared/document-filters";
+import { UPLOAD_FORMATS } from "@omnipaper/shared/formats";
 import {
   type AnyColumn,
   and,
@@ -37,6 +38,8 @@ function resolveFilter(
       return value.kind === "in"
         ? nullableRelationFilter(documents.documentTypeId, value.values)
         : undefined;
+    case "fileType":
+      return value.kind === "in" ? fileTypeFilter(value.values) : undefined;
     case "path":
       return value.kind === "in"
         ? nullableRelationFilter(documents.storagePathId, value.values)
@@ -68,6 +71,14 @@ function nullableRelationFilter(column: AnyColumn, values: string[]): SQL | unde
     return undefined;
   }
   return parts.length === 1 ? parts[0] : or(...parts);
+}
+// File-type filter values are UPLOAD_FORMATS ids (e.g. "pdf"); map each to its MIME type(s) and
+// match documents.mimeType against the union, so a format with several MIME variants still matches.
+function fileTypeFilter(formatIds: string[]): SQL | undefined {
+  const mimeTypes = UPLOAD_FORMATS.filter((f) => formatIds.includes(f.id)).flatMap((f) => [
+    ...f.mimeTypes,
+  ]);
+  return mimeTypes.length > 0 ? inArray(documents.mimeType, mimeTypes) : undefined;
 }
 function tagsFilter(tagIds: string[]): SQL {
   return sql`exists (select 1 from ${documentsTags} where ${documentsTags.documentId} = ${documents.id} and ${inArray(documentsTags.tagId, tagIds)})`;

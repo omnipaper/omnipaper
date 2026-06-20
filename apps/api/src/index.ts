@@ -40,6 +40,9 @@ if (services.includes("web")) {
   }
 
   Bun.serve({ fetch: app.fetch, port: env.PORT });
+  console.log(
+    `omnipaper API on :${env.PORT} — APP_URL=${env.APP_URL ?? "(unset → derived from X-Forwarded-Host)"}`,
+  );
 } else if (runner) {
   await runner.promise;
 }

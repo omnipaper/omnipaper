@@ -6,12 +6,9 @@ export const env = createEnv({
     DATABASE_URL: z.string().min(1),
     ENCRYPTION_KEY: z.string().min(16, "ENCRYPTION_KEY must be at least 16 characters"),
     AUTH_SECRET: z.string().min(1),
-    // Public origin where omnipaper is reachable. In prod the SPA and API share this one
-    // origin; it drives better-auth's baseURL (whose origin is auto-trusted), so it doubles
-    // as the primary CORS / trusted origin.
-    APP_URL: z.string().min(1).default("http://localhost:3000"),
-    // Extra allowed origins beyond APP_URL (comma-separated -> string[]). Needed for
-    // cross-origin dev (Vite :5173 calling the API :3000); leave empty in single-origin prod.
+    // NOTE: when transactional email / OAuth lands, APP_URL becomes required in prod (those links
+    // must NOT be built from a spoofable request Host) — add a startup guard then.
+    APP_URL: z.url().optional(),
     EXTRA_TRUSTED_ORIGINS: z
       .string()
       .default("")

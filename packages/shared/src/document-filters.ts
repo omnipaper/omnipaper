@@ -26,6 +26,7 @@ export type SortState = z.infer<typeof sortStateSchema>;
 // Custom properties are keyed "cp:<definitionId>" instead. Keep this in sync with resolveFilter.
 export const BUILT_IN_FILTER_KEYS = [
   "documentType",
+  "fileType",
   "path",
   "tags",
   "documentDate",

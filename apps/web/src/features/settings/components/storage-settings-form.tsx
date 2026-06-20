@@ -20,18 +20,67 @@ import { type SubmitEvent, useEffect, useState } from "react";
 import {
   type StorageEngineId,
   storageSettingsQuery,
+  useCheckStorageCors,
   useSaveStorageSettings,
   useTestStorageConnection,
 } from "@/features/settings/queries/settings";
+
+// The ready-to-paste fix when the CORS check fails — provider-specific, with the admin's own origin
+// already filled in. Mirrors the config documented at /storage. We hand over the whole block rather
+// than itemising what's missing: self-hosters want "paste this, here", not a CORS lecture.
+function corsConfigSnippet(engine: string, origin: string): { where: string; code: string } {
+  if (engine === "minio") {
+    return {
+      where: "Set this on your MinIO server, then restart it:",
+      code: `MINIO_API_CORS_ALLOW_ORIGIN=${origin}`,
+    };
+  }
+
+  const where =
+    engine === "r2"
+      ? "Add this to your R2 bucket → Settings → CORS Policy:"
+      : "Add this to your S3 bucket → Permissions → CORS:";
+
+  const code = JSON.stringify(
+    [
+      {
+        AllowedOrigins: [origin],
+        AllowedMethods: ["GET", "HEAD", "PUT"],
+        AllowedHeaders: ["Range"],
+        ExposeHeaders: ["Content-Range", "Accept-Ranges", "Content-Length"],
+        MaxAgeSeconds: 3600,
+      },
+    ],
+    null,
+    2,
+  );
+
+  return { where, code };
+}
+
+// The pass/fail verdict is shown as a toast (see useCheckStorageCors). Only the cors_missing case
+// renders inline — a ready-to-paste, copyable config block doesn't fit in a transient toast.
+function CorsConfig({ engine }: { engine: string }) {
+  const { where, code } = corsConfigSnippet(engine, window.location.origin);
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-sm text-muted-foreground">{where}</p>
+      <pre className="overflow-x-auto rounded-md border bg-muted p-3 text-xs">{code}</pre>
+    </div>
+  );
+}
 
 export function StorageSettingsForm() {
   const settingsQuery = useQuery(storageSettingsQuery());
   const saveMutation = useSaveStorageSettings();
   const testMutation = useTestStorageConnection();
+  const corsCheck = useCheckStorageCors();
 
   const engines = settingsQuery.data?.engines ?? [];
 
-  const [engine, setEngine] = useState("");
+  // Init from the react-query cache so a revisit has the right value on the FIRST render — radix
+  // Select won't reliably repaint the label if the value arrives a tick later (via the effect).
+  const [engine, setEngine] = useState(() => settingsQuery.data?.engine ?? "");
   const [bucket, setBucket] = useState("");
   const [region, setRegion] = useState("");
   const [endpoint, setEndpoint] = useState("");
@@ -86,7 +135,9 @@ export function StorageSettingsForm() {
             <Label htmlFor="engine">Provider</Label>
             <Select value={engine} onValueChange={setEngine}>
               <SelectTrigger id="engine" className="w-full">
-                <SelectValue placeholder="Select a provider" />
+                {/* Label passed explicitly — radix only learns an item's text when it mounts (on
+                    open), so a value restored from settings wouldn't show until the dropdown opens. */}
+                <SelectValue placeholder="Select a provider">{selected?.label}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {engines.map((e) => (
@@ -166,7 +217,16 @@ export function StorageSettingsForm() {
             >
               {testMutation.isPending ? "Testing…" : "Test connection"}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => corsCheck.mutate(credentials)}
+              disabled={corsCheck.isPending || !selected}
+            >
+              {corsCheck.isPending ? "Testing…" : "Test CORS"}
+            </Button>
           </div>
+          {corsCheck.data?.status === "cors_missing" ? <CorsConfig engine={engine} /> : null}
         </CardContent>
       </form>
     </Card>

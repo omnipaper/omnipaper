@@ -1,18 +1,39 @@
 ---
 title: Introduction
-description: Modern, open-source document management with native S3-compatible storage.
+description: A modern, opinionated, self-hosted alternative to paperless-ngx — cloud-native storage, minimal setup.
 icon: BookOpen
 ---
 
-omnipaper is a modern, open-source document management platform — a cloud-first
-alternative to paperless-ngx with native S3-compatible storage support, designed
-with mobile in mind from day one.
+omnipaper is a self-hosted document manager — a modern alternative to **paperless-ngx**,
+built to be quick to stand up and pleasant to run.
+
+It's **opinionated on purpose.** Instead of endless knobs, it makes a few strong choices so
+the common path just works — and so you spend time on your documents, not on configuration.
+
+## The principles
+
+- **Minimal environment config.** Booting omnipaper takes only a handful of env vars — a
+  database and a couple of secrets. Everything else (storage, OCR, providers) is configured
+  in the UI after your first login, not in config files.
+- **Dead-simple to self-host.** One Docker image plus PostgreSQL. No Redis, no separate
+  worker process, nothing else to wire up. See [Installation](/installation).
+- **Cloud-native storage only.** omnipaper keeps your files in S3-compatible object storage
+  (AWS S3, Cloudflare R2, MinIO, …) — never on a local disk. That makes **backups trivial**
+  (your provider already handles versioning, replication and lifecycle rules) and gives you
+  **high availability** for free. See [Storage](/storage).
+- **Optional, cloud OCR.** Text extraction is opt-in. When you turn it on, omnipaper uses
+  **Mistral's OCR** — the accuracy of a modern model with the speed and scalability of a
+  managed service, instead of a slow local engine you have to babysit. See [OCR](/ocr).
+- **Modern, mobile-friendly UI.** Designed for the browser and the phone from day one.
 
 ## Status
 
 Pre-alpha — under active development. Expect breaking changes between releases.
 
 <Cards>
+  <Card title="Install" description="Self-host with Docker Compose." href="/installation" />
+  <Card title="Storage" description="Connect S3, Cloudflare R2 or MinIO." href="/storage" />
+  <Card title="OCR" description="Make scans and PDFs searchable with Mistral OCR." href="/ocr" />
   <Card
     title="GitHub"
     description="Source code, issues and discussions."

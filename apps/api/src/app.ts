@@ -34,7 +34,9 @@ export function createApp() {
     .use(
       "*",
       cors({
-        origin: [env.APP_URL, ...env.EXTRA_TRUSTED_ORIGINS],
+        origin: env.APP_URL
+          ? [env.APP_URL, ...env.EXTRA_TRUSTED_ORIGINS]
+          : env.EXTRA_TRUSTED_ORIGINS,
         allowHeaders: ["Content-Type", "Authorization"],
         allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         credentials: true,

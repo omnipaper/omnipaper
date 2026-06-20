@@ -30,6 +30,8 @@ import { listStorageDefinitions } from "@omnipaper/storage/resolve";
 import { createS3Driver } from "@omnipaper/storage/s3";
 import { Hono } from "hono";
 import type { Variables } from "../context";
+import { type BucketPrivacy, probeBucketPrivacy } from "../lib/bucket-privacy";
+import { probePreviewCors } from "../lib/preview-cors";
 import { requireAdmin } from "../middleware";
 
 // Platform-wide settings — global admin only. Auth is enforced in app.ts for /settings/*.
@@ -83,13 +85,49 @@ const adminSettings = new Hono<{ Variables: Variables }>()
 
     try {
       await driver.testConnection();
-      return c.json({ ok: true, error: null });
     } catch (error) {
       return c.json({
         ok: false,
         error: error instanceof Error ? error.message : "Connection failed",
+        privacy: "unknown" as BucketPrivacy,
       });
     }
+
+    // Connection works — also flag a world-readable bucket (a confidentiality risk for documents).
+    // Advisory only: never blocks saving, and stays silent when it can't tell.
+    let privacy: BucketPrivacy = "unknown";
+    try {
+      const { url } = await driver.createDownloadUrl({ key: "__omnipaper_connection_test__" });
+      privacy = await probeBucketPrivacy({ url });
+    } catch {
+      privacy = "unknown";
+    }
+
+    return c.json({ ok: true, error: null, privacy });
+  })
+  .post("/storage/cors-check", zValidator("json", storageSettingsSchema), async (c) => {
+    const incoming = c.req.valid("json");
+    const stored = await getStorageSettings();
+
+    const driver = createS3Driver(
+      resolveStorageConfig({
+        ...incoming,
+        accessKeyId: unmaskSecret(incoming.accessKeyId, stored?.accessKeyId),
+        secretAccessKey: unmaskSecret(incoming.secretAccessKey, stored?.secretAccessKey),
+      }),
+    );
+
+    // The origin the browser would preview from — sent by the SPA on this POST; fall back to the
+    // forwarded host (same logic as auth) for setups where the Origin header is absent.
+    const origin =
+      c.req.header("origin") ??
+      (() => {
+        const host = c.req.header("x-forwarded-host") ?? c.req.header("host");
+        return host ? `${c.req.header("x-forwarded-proto") ?? "https"}://${host}` : undefined;
+      })();
+
+    const { url } = await driver.createDownloadUrl({ key: "__omnipaper_cors_probe__" });
+    return c.json(await probePreviewCors({ url, origin }));
   })
   .get("/ocr", async (c) => {
     const ocr = await getOcrSettings();
