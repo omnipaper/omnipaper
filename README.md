@@ -23,7 +23,7 @@ Where paperless-ngx is capable but dense, omnipaper bets on a clean, responsive 
 ## Screenshot
 
 <a href="https://demo.omnipaper.app">
-  <img src="apps/docs/public/demo.png" alt="omnipaper" width="100%" />
+  <img src="apps/web/public/demo.png" alt="omnipaper" width="100%" />
 </a>
 
 Try it live at **[demo.omnipaper.app](https://demo.omnipaper.app)**.
