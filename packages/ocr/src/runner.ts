@@ -57,8 +57,9 @@ export async function extractText(input: ExtractTextInput): Promise<ExtractTextR
     const text = await extractWithDefinition(definition, effectiveModel, keys, document);
     return { text };
   } catch (error) {
+    const retryable = error instanceof OcrError && error.retryable;
     const message = error instanceof Error ? error.message : "OCR extraction failed";
-    throw new OcrError(redactSecrets(message, keys.mistral, keys.google));
+    throw new OcrError(redactSecrets(message, keys.mistral, keys.google), { retryable });
   }
 }
 

@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "./auth";
 import type { Variables } from "./context";
+import { demoReadOnly, demoRoutes } from "./demo";
 import { requireAuth, requireOrganization } from "./middleware";
 import { customPropertiesRoutes } from "./routes/custom-properties";
 import { documentTypesRoutes } from "./routes/document-types";
@@ -25,6 +26,8 @@ export function createApp() {
 
   const apiRoutes = new Hono<{ Variables: Variables }>()
     .get("/me", (c) => c.json({ user: c.get("user") }))
+    // Public instance config the SPA reads at boot, before any session exists.
+    .get("/config", (c) => c.json({ demoMode: env.DEMO_MODE }))
     .use("/settings/*", requireAuth)
     .route("/settings", settingsRoutes)
     .use("/orgs/:orgId/*", requireAuth)
@@ -50,6 +53,7 @@ export function createApp() {
 
       await next();
     })
+    .use("*", demoReadOnly)
     .onError((err, c) => {
       if (err instanceof HTTPException) {
         return err.getResponse();
@@ -61,6 +65,7 @@ export function createApp() {
     })
     .on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
     .get("/health", (c) => c.json({ status: "ok" }))
+    .route("/api/demo", demoRoutes)
     .route("/api", apiRoutes);
 
   return app;

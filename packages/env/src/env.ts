@@ -20,6 +20,12 @@ export const env = createEnv({
       ),
     PORT: z.coerce.number().default(3000),
     SERVICES: z.string().default("web,worker"),
+    DEMO_MODE: z
+      .string()
+      .default("false")
+      .transform((v) => v === "true"),
+    DEMO_USER_EMAIL: z.email().optional(),
+    DEMO_USER_PASSWORD: z.string().optional(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

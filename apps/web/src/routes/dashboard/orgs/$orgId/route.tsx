@@ -38,6 +38,8 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { signOut } from "@/features/auth/auth-client";
+import { DemoBanner } from "@/features/auth/components/demo-banner";
+import { useDemoMode } from "@/features/auth/queries/config";
 import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
 import { GlobalDropArea } from "@/features/documents/components/global-drop-area";
 import { useUploadDocuments } from "@/features/documents/queries/upload";
@@ -65,6 +67,7 @@ export const Route = createFileRoute("/dashboard/orgs/$orgId")({
 function OrgLayout() {
   const { orgId } = Route.useParams();
   const { upload } = useUploadDocuments(orgId);
+  const isDemo = useDemoMode();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { data: session } = useQuery(sessionQueryOptions);
@@ -85,7 +88,7 @@ function OrgLayout() {
 
   return (
     <SidebarProvider className="h-svh overflow-hidden">
-      <GlobalDropArea onFilesDrop={upload} />
+      {!isDemo && <GlobalDropArea onFilesDrop={upload} />}
       <Sidebar>
         {inSettings ? (
           <>
@@ -263,6 +266,7 @@ function OrgLayout() {
         )}
       </Sidebar>
       <SidebarInset>
+        <DemoBanner />
         <header className="flex shrink-0 items-center gap-2 border-b px-4 py-3">
           <SidebarTrigger />
           <span className="font-medium text-sm">{inSettings ? "Settings" : "Dashboard"}</span>

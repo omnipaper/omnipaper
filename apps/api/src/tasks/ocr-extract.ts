@@ -5,14 +5,14 @@ import {
   markDocumentOcrFailed,
   markDocumentOcrProcessing,
 } from "@omnipaper/database/queries/documents";
-import { getOcrDefinition } from "@omnipaper/ocr/resolve";
+import { getOcrDefinition, OcrError } from "@omnipaper/ocr/resolve";
 import { extractText } from "@omnipaper/ocr/runner";
 import { defineTask } from "@omnipaper/queue/worker";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
 import { getProviderKeys } from "@omnipaper/settings/provider-settings";
 import { getStorageDriver } from "../lib/storage";
 
-export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }) => {
+export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }, helpers) => {
   const doc = await getDocumentById(db, { id: documentId });
 
   if (!doc) {
@@ -59,11 +59,20 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }) =
       text,
     });
   } catch (err) {
-    // Mark the document "failed" so it leaves "processing" and the UI can offer a re-run. We
-    // swallow rather than rethrow: graphile-worker would otherwise retry up to its default 25 times
-    // (pointless for a config error like a missing key) and flip the status back and forth.
-    // Recovery is an explicit user action — the Re-run OCR button. The runner already redacts
-    // secrets from its errors.
+    // Transient provider errors (429 rate limit, 5xx, network) are retryable: rethrow so
+    // graphile-worker retries with exponential backoff. The job stays in the queue and the document
+    // stays "processing" between attempts. OCR jobs are capped low and serialized (see producer.ts).
+    if (
+      err instanceof OcrError &&
+      err.retryable &&
+      helpers.job.attempts < helpers.job.max_attempts
+    ) {
+      throw err;
+    }
+
+    // Terminal error (missing key, unsupported mime) or retries exhausted: mark "failed" so the
+    // document leaves "processing" and the UI can offer an explicit re-run. We swallow so
+    // graphile-worker doesn't keep retrying. The runner already redacts secrets from its errors.
     await markDocumentOcrFailed(db, { id: documentId });
     console.error(`[ocr-extract] failed for document ${documentId}:`, err);
   }

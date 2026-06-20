@@ -6,9 +6,14 @@ import {
 } from "./registry";
 
 export class OcrError extends Error {
-  constructor(message: string) {
+  // Transient (429 rate limit, 5xx, network) → the OCR task rethrows so the queue retries with
+  // backoff. Terminal (missing key, unsupported mime, 4xx) stays false → marked failed for re-run.
+  readonly retryable: boolean;
+
+  constructor(message: string, options?: { retryable?: boolean }) {
     super(message);
     this.name = "OcrError";
+    this.retryable = options?.retryable ?? false;
   }
 }
 

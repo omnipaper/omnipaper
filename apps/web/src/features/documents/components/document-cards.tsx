@@ -131,6 +131,20 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
             ) : (
               <Icon className="size-10 text-muted-foreground" />
             )}
+            {/* Tags overlay the thumbnail — right-aligned, stacked top-to-bottom — since the
+                metadata row below has no room for them. Cap at 4; more won't fit the card height. */}
+            {showTags ? (
+              <div className="absolute top-2 right-2 z-10 flex max-w-[80%] flex-col items-end gap-1">
+                {doc.tags.slice(0, 4).map((tag) => (
+                  <TagChip
+                    key={tag.id}
+                    name={tag.name}
+                    color={tag.color}
+                    className="max-w-full shadow-sm"
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="flex min-w-0 flex-col gap-1.5">
@@ -138,7 +152,7 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
               {doc.title}
             </span>
 
-            {fileType || typeName || showTags ? (
+            {fileType || typeName ? (
               <div className="flex flex-wrap items-center gap-1.5">
                 {fileType ? (
                   <span className="rounded-md border px-1.5 py-0.5 font-medium text-[11px] text-muted-foreground">
@@ -150,11 +164,6 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
                     {typeName}
                   </span>
                 ) : null}
-                {showTags
-                  ? doc.tags.map((tag) => (
-                      <TagChip key={tag.id} name={tag.name} color={tag.color} />
-                    ))
-                  : null}
               </div>
             ) : null}
 

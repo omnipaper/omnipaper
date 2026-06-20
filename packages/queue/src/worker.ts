@@ -1,14 +1,14 @@
 import { env } from "@omnipaper/env";
-import { type Runner, run, type Task, type TaskList } from "graphile-worker";
+import { type JobHelpers, type Runner, run, type Task, type TaskList } from "graphile-worker";
 import { type JobName, type JobPayload, jobSchemas } from "./jobs";
 
 export function defineTask<TName extends JobName>(
   name: TName,
-  handler: (payload: JobPayload<TName>) => Promise<void>,
+  handler: (payload: JobPayload<TName>, helpers: JobHelpers) => Promise<void>,
 ): Task {
-  return async (rawPayload) => {
+  return async (rawPayload, helpers) => {
     const payload = jobSchemas[name].parse(rawPayload) as JobPayload<TName>;
-    await handler(payload);
+    await handler(payload, helpers);
   };
 }
 
