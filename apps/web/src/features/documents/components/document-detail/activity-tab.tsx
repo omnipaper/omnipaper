@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { documentActivityQuery } from "@/features/documents/queries/documents";
+import {
+  type DocumentActivity,
+  documentActivityQuery,
+} from "@/features/documents/queries/documents";
 
-const EVENT_LABEL: Record<string, string> = {
+const EVENT_LABEL: Record<DocumentActivity["event"], string> = {
   "document.created": "created the document",
   "document.ocr_completed": "completed OCR",
   "document.metadata_updated": "updated document metadata",
@@ -40,7 +43,7 @@ export function ActivityTab({ orgId, documentId }: { orgId: string; documentId: 
             <span className="mt-1 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
             <div className="flex flex-col">
               <span>
-                <span className="font-medium">{actor}</span> {EVENT_LABEL[a.event] ?? a.event}
+                <span className="font-medium">{actor}</span> {EVENT_LABEL[a.event]}
                 {chars !== null ? (
                   <span className="text-muted-foreground"> ({chars} characters)</span>
                 ) : null}

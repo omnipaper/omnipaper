@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
@@ -22,11 +23,20 @@ export function orgDocumentTypesQuery({ orgId }: { orgId: string }) {
   });
 }
 
+export type OrgDocumentType = InferResponseType<
+  (typeof api.orgs)[":orgId"]["document-types"]["$get"],
+  200
+>["documentTypes"][number];
+
+type UpdateDocumentTypeBody = InferRequestType<
+  (typeof api.orgs)[":orgId"]["document-types"][":id"]["$patch"]
+>["json"];
+
 export type UpsertDocumentTypeInput = {
   // Present → update that type; absent → create a new one.
   id?: string;
-  name: string;
-  description: string | null;
+  name: NonNullable<UpdateDocumentTypeBody["name"]>;
+  description: UpdateDocumentTypeBody["description"];
 };
 
 // Create or update a document type from the manager dialog. Renaming changes how the type renders on

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM oven/bun:1.2.23-alpine AS base
+FROM oven/bun:1.3.14-alpine AS base
 WORKDIR /app
 
 # ---- build: all deps + build the SPA ----
@@ -19,6 +19,10 @@ COPY packages/storage/package.json packages/storage/
 COPY packages/ui/package.json packages/ui/
 RUN bun install --frozen-lockfile
 COPY . .
+
+# demo build argument. For build time
+ARG DEMO_MODE
+ENV VITE_DEMO_MODE=$DEMO_MODE
 RUN bun run --cwd apps/web build
 
 # ---- prod-deps: runtime dependencies only (no vite/biome/tsc/drizzle-kit) ----

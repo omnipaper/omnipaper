@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@t3-oss/env-core": "catalog:",
     "@omnipaper/api": "workspace:*",
     "@omnipaper/permissions": "workspace:*",
     "@omnipaper/shared": "workspace:*",
@@ -22,7 +23,8 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-pdf": "10.4.1",
-    "sonner": "catalog:"
+    "sonner": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.0",

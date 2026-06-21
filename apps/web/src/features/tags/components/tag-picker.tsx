@@ -4,17 +4,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@omnipaper/ui/component
 import { useQuery } from "@tanstack/react-query";
 import { Check, Plus } from "lucide-react";
 import { useState } from "react";
-import { useSetDocumentTags } from "@/features/documents/queries/documents";
+import { type DocumentTag, useSetDocumentTags } from "@/features/documents/queries/documents";
 import { TagChip } from "@/features/tags/components/tag-chip";
 import { orgTagsQuery, useCreateTag } from "@/features/tags/queries/tags";
-
-type Tag = { id: string; name: string; color: string };
 
 type TagPickerProps = {
   orgId: string;
   documentId: string;
   // The document's currently attached tags (server truth, from the detail query).
-  tags: Tag[];
+  tags: DocumentTag[];
 };
 
 export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
@@ -45,7 +43,7 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
     });
   }
 
-  function toggle(tag: Tag) {
+  function toggle(tag: DocumentTag) {
     const next = selectedIds.has(tag.id)
       ? tags.filter((t) => t.id !== tag.id)
       : [...tags, { id: tag.id, name: tag.name, color: tag.color }];

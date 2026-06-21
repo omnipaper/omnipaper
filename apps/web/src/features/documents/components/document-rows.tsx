@@ -24,16 +24,10 @@ function renderSnippet(snippet: string) {
   });
 }
 
-// Renders the document list. Which metadata each row shows is driven by the user's Display
-// properties (localStorage). Callers handle loading / error / empty states, since those differ per
-// view.
 export function DocumentRows({ orgId, documents, isSelected, onToggle }: DocumentRowsProps) {
   const { isOn } = useDisplayProperties();
 
   function row(doc: DocumentRow) {
-    // Each field has a fixed slot so columns line up down the list: file type pinned left, the dates
-    // pinned right, and the variable-length document type bounded to a chip in between — so nothing
-    // shifts the others around (the old "·"-joined line was unreadable because items slid sideways).
     const typeName = isOn("documentType") ? doc.documentTypeName : null;
     const showTags = isOn("tags") && doc.tags.length > 0;
     const docDate = isOn("date") && doc.documentDate ? formatCalendarDate(doc.documentDate) : null;

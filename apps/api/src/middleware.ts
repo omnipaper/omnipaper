@@ -57,8 +57,7 @@ export const requireOrganization = createMiddleware<{ Variables: Variables }>(as
   await next();
 });
 
-// Must run after requireOrganization. Delegates to the shared pure check so the API and web UI
-// authorize identically; passes if any of the member's comma-joined roles grants the action.
+// Requires requireOrganization to run first; checks org-level permissions using shared logic.
 export const requireOrgPermission = (permissions: OrgPermissions) =>
   createMiddleware<{ Variables: Variables }>(async (c, next) => {
     if (!hasOrgPermission(c.get("memberRole"), permissions)) {

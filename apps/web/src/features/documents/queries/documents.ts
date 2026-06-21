@@ -21,6 +21,10 @@ export type DocumentDetail = InferResponseType<
   (typeof api.orgs)[":orgId"]["documents"][":id"]["$get"],
   200
 >["document"];
+export type DocumentActivity = InferResponseType<
+  (typeof api.orgs)[":orgId"]["documents"][":id"]["activity"]["$get"],
+  200
+>["activities"][number];
 // The detail query caches the whole envelope ({ document }); the optimistic tag patch rewrites
 // document.tags inside it. A single tag chip as embedded in the detail/list responses.
 type DocumentDetailData = InferResponseType<

@@ -1,12 +1,5 @@
-// Advisory security check: is the bucket world-readable? omnipaper itself works fine either way
-// (it always uses server credentials or presigned URLs), but a publicly readable bucket means
-// anyone with a file URL can read someone's documents — worth warning about, never blocking.
-//
-// Read-only probe: an ANONYMOUS GET (presigned signature stripped) on the connection-test dummy
-// key. Across the engines we support (S3, R2, MinIO) a private bucket denies anonymous reads with
-// 401/403 and won't even reveal whether the key exists; a publicly readable one processes the read
-// and returns 404 (key absent) or 200. Anything else → inconclusive, and we stay silent rather than
-// risk a false "your bucket is public" alarm.
+// Check if the bucket allows anonymous GETs: 401/403 → private, 200/404 → public, else unknown.
+// Public buckets let anyone with the URL read files; warn, but never block.
 
 export type BucketPrivacy = "private" | "public" | "unknown";
 

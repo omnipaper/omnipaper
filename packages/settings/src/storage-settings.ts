@@ -21,7 +21,7 @@ export const storageSettingsSchema = z
 
     if (definition.region.shown && !value.region?.trim()) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["region"],
         message: "Region is required",
       });
@@ -29,7 +29,7 @@ export const storageSettingsSchema = z
 
     if (definition.endpoint.required && !value.endpoint?.trim()) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["endpoint"],
         message: "Endpoint is required",
       });

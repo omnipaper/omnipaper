@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
@@ -24,11 +25,20 @@ export function orgStoragePathsQuery({ orgId }: { orgId: string }) {
   });
 }
 
+export type OrgStoragePath = InferResponseType<
+  (typeof api.orgs)[":orgId"]["storage-paths"]["$get"],
+  200
+>["storagePaths"][number];
+
+type UpdateStoragePathBody = InferRequestType<
+  (typeof api.orgs)[":orgId"]["storage-paths"][":id"]["$patch"]
+>["json"];
+
 export type UpsertStoragePathInput = {
   // Present → update that path; absent → create a new one.
   id?: string;
-  path: string;
-  description: string | null;
+  path: NonNullable<UpdateStoragePathBody["path"]>;
+  description: UpdateStoragePathBody["description"];
 };
 
 // Create or update a storage path from the manager dialog. Renaming changes how the path renders on

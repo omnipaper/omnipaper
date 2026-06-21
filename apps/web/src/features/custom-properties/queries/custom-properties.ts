@@ -1,12 +1,10 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { InferResponseType } from "hono/client";
+import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
 
-// Query-key factory + query/mutation factories for the custom-properties domain (org-scoped).
-// Hierarchical keys so reads and invalidations share one source. Mutations live beside the reads so
-// each write owns its own invalidation.
+
 export const customPropertyKeys = {
   root: ["custom-properties"] as const,
   all: (orgId: string) => [...customPropertyKeys.root, orgId] as const,
@@ -33,12 +31,19 @@ export type PropertyDefinition = InferResponseType<
   200
 >["definitions"][number];
 
+type CreatePropertyDefinitionBody = InferRequestType<
+  (typeof api.orgs)[":orgId"]["custom-properties"]["$post"]
+>["json"];
+type UpdatePropertyDefinitionBody = InferRequestType<
+  (typeof api.orgs)[":orgId"]["custom-properties"][":id"]["$patch"]
+>["json"];
+
 export type UpsertPropertyDefinitionInput = {
   id?: string;
-  name: string;
-  type: "text" | "url" | "number" | "date" | "boolean" | "select";
-  description: string | null;
-  options?: { label: string; color: string }[];
+  name: NonNullable<UpdatePropertyDefinitionBody["name"]>;
+  type: CreatePropertyDefinitionBody["type"];
+  description: UpdatePropertyDefinitionBody["description"];
+  options?: CreatePropertyDefinitionBody["options"];
 };
 
 // Create or update a property definition from the manager dialog. A rename only touches the catalog

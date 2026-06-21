@@ -45,6 +45,7 @@ import {
   TableEmptyRow,
 } from "@/components/settings/settings-table";
 import {
+  type PropertyDefinition,
   orgPropertyDefinitionsQuery,
   useAddPropertyOption,
   useDeletePropertyDefinition,
@@ -54,7 +55,7 @@ import {
 
 const DEFAULT_COLOR = "#94a3b8";
 
-type PropertyType = "text" | "url" | "number" | "date" | "boolean" | "select";
+type PropertyType = PropertyDefinition["type"];
 
 const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
   { value: "text", label: "Text" },

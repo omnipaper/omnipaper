@@ -39,7 +39,6 @@ import {
 } from "lucide-react";
 import { signOut } from "@/features/auth/auth-client";
 import { DemoBanner } from "@/features/auth/components/demo-banner";
-import { useDemoMode } from "@/features/auth/queries/config";
 import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
 import { GlobalDropArea } from "@/features/documents/components/global-drop-area";
 import { useUploadDocuments } from "@/features/documents/queries/upload";
@@ -48,13 +47,12 @@ import { OnboardingChecklist } from "@/features/onboarding/components/onboarding
 import { NavUser } from "@/features/organization/components/nav-user";
 import { OrgSwitcher } from "@/features/organization/components/org-switcher";
 import { fullOrganizationQuery, useOrgMember } from "@/features/organization/queries/organization";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId")({
   beforeLoad: async ({ params }) => {
-    // The URL's orgId is the source of truth. Prime the org query (shared with the layout + settings
-    // guards) and bounce non-members to the dashboard picker — getFullOrganization rejects for an org
-    // the user doesn't belong to.
+    // Ensure the orgId in the URL is used to load the organization data and redirect users who are not members.
     try {
       await queryClient.ensureQueryData(fullOrganizationQuery(params.orgId));
     } catch {
@@ -67,7 +65,6 @@ export const Route = createFileRoute("/dashboard/orgs/$orgId")({
 function OrgLayout() {
   const { orgId } = Route.useParams();
   const { upload } = useUploadDocuments(orgId);
-  const isDemo = useDemoMode();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { data: session } = useQuery(sessionQueryOptions);
@@ -88,7 +85,7 @@ function OrgLayout() {
 
   return (
     <SidebarProvider className="h-svh overflow-hidden">
-      {!isDemo && <GlobalDropArea onFilesDrop={upload} />}
+      {!DEMO_MODE && <GlobalDropArea onFilesDrop={upload} />}
       <Sidebar>
         {inSettings ? (
           <>
@@ -230,7 +227,7 @@ function OrgLayout() {
               ) : null}
             </SidebarContent>
             <SidebarFooter>
-              {isDemo ? null : (
+              {DEMO_MODE ? null : (
                 <Button variant="outline" size="sm" onClick={handleSignOut}>
                   Sign out
                 </Button>
@@ -264,7 +261,7 @@ function OrgLayout() {
                 <NavUser
                   user={session.user}
                   orgId={orgId}
-                  onSignOut={isDemo ? undefined : handleSignOut}
+                  onSignOut={DEMO_MODE ? undefined : handleSignOut}
                 />
               ) : null}
             </SidebarFooter>

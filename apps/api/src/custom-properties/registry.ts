@@ -68,23 +68,21 @@ const textDef = define<string>({
 
 const urlDef = define<string>({
   type: "url",
-  inputSchema: z.string().url().max(2048),
+  inputSchema: z.url().max(2048),
   toDb: (value) => ({ ...EMPTY_VALUE_COLUMNS, valueText: value }),
   fromDb: (row) => row.valueText,
 });
 
 const numberDef = define<number>({
   type: "number",
-  inputSchema: z.number().finite(),
+  inputSchema: z.number(),
   toDb: (value) => ({ ...EMPTY_VALUE_COLUMNS, valueNumber: value }),
   fromDb: (row) => row.valueNumber,
 });
 
 const dateDef = define<string>({
   type: "date",
-  // Date-only (the column is a SQL date); native <input type="date"> emits this format. .date()
-  // also rejects calendar-impossible values (e.g. 2026-02-30) that a regex would let reach Postgres.
-  inputSchema: z.string().date(),
+  inputSchema: z.iso.date(),
   toDb: (value) => ({ ...EMPTY_VALUE_COLUMNS, valueDate: value }),
   fromDb: (row) => row.valueDate,
 });

@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
@@ -25,11 +26,18 @@ export function orgTagsQuery({ orgId }: { orgId: string }) {
   });
 }
 
+export type OrgTag = InferResponseType<
+  (typeof api.orgs)[":orgId"]["tags"]["$get"],
+  200
+>["tags"][number];
+
+type UpdateTagBody = InferRequestType<(typeof api.orgs)[":orgId"]["tags"][":id"]["$patch"]>["json"];
+
 export type UpsertTagInput = {
   id?: string;
-  name: string;
-  color: string;
-  description: string | null;
+  name: NonNullable<UpdateTagBody["name"]>;
+  color: NonNullable<UpdateTagBody["color"]>;
+  description: UpdateTagBody["description"];
 };
 
 // Create or update a tag from the manager dialog. A rename/recolor changes how the tag renders on

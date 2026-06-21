@@ -1,29 +1,9 @@
-// ── Upload allow-list — which file types the app accepts AT ALL ─────────────
-//
-// This is the GATE, and it is a DIFFERENT concern from OCR support — two lists, kept separate:
-//
-//   • UPLOAD ALLOW-LIST (here)              — which files may enter the app at all. Enforced
-//                                             server-side at the upload route; mirrored as the
-//                                             `accept=` hint and a client-side pre-check in the web
-//                                             upload UI.
-//   • OCR SUPPORT (@omnipaper/ocr/registry) — which of the accepted types OCR can read. A separate,
-//                                             narrower list that lives with the OCR registry.
-//
-// Invariant: every OCR-supported MIME is also on this allow-list (you can't OCR a file the app never
-// accepted) — this list is the superset. The two stay separate so the gate and OCR can evolve
-// independently.
-//
-// Adding a format here updates all three consumers at once: the server gate, the `accept=`
-// attribute, and the "supported formats" error message. One source of truth.
+// List of file types the app accepts for upload (not OCR-specific). Update here to change all upload gates.
 
 export type UploadFormat = {
-  /** Stable id, also the lookup key. */
   id: string;
-  /** User-facing label for messages and UI. */
   label: string;
-  /** Lower-case extensions including the dot; the first is the canonical one. */
   extensions: readonly string[];
-  /** MIME types a browser may report for this format; the first is the canonical one. */
   mimeTypes: readonly string[];
 };
 
@@ -49,29 +29,30 @@ export const ACCEPTED_EXTENSIONS: ReadonlySet<string> = new Set(
   UPLOAD_FORMATS.flatMap((format) => format.extensions),
 );
 
-/** Value for a web `<input type="file">` `accept` attribute — extensions plus MIME types. */
 export const ACCEPT_ATTRIBUTE: string = [
   ...UPLOAD_FORMATS.flatMap((format) => format.extensions),
   ...UPLOAD_FORMATS.flatMap((format) => format.mimeTypes),
 ].join(",");
 
-// Strip the parameters off a MIME type and canonicalise it: "text/plain;charset=utf-8" → "text/plain".
-// Browsers attach params like ";charset=utf-8" to File.type; our matching (allow-list, ingest lane
-// triage, OCR support, the type badge) is exact, so the bare type must be the one source of truth.
+// Removes parameters from a MIME type (e.g., "text/plain;charset=utf-8" → "text/plain") and lowercases it for consistent, parameter-free matching.
 export function normalizeMimeType(value: string): string {
   return value.split(";")[0]?.trim().toLowerCase() ?? "";
 }
 
-/** Lower-cased extension including the dot, or "" when the name carries none. */
+export function extensionForMimeType(mimeType: string): string | undefined {
+  const normalized = normalizeMimeType(mimeType);
+
+  return UPLOAD_FORMATS.find((format) =>
+    format.mimeTypes.some((candidate) => candidate === normalized),
+  )?.extensions[0];
+}
+
 function extensionOf(filename: string): string {
   const dot = filename.lastIndexOf(".");
   return dot > 0 && dot < filename.length - 1 ? filename.slice(dot).toLowerCase() : "";
 }
 
-// The filename extension is authoritative when present: the browser-supplied MIME string is
-// spoofable and often empty, whereas the extension reflects the file the user actually picked. The
-// claimed MIME is only the fallback for the rare extension-less file. This is a format gate, not a
-// content check — magic-byte sniffing is a separate hardening step layered on top later.
+// Use the file extension to check format when available; fall back to MIME type if not. This only filters by declared type, not actual file contents.
 export function isUploadAllowed(input: { filename?: string; mimeType?: string }): boolean {
   const ext = input.filename ? extensionOf(input.filename) : "";
 
@@ -82,7 +63,6 @@ export function isUploadAllowed(input: { filename?: string; mimeType?: string })
   return input.mimeType ? ACCEPTED_MIME_TYPES.has(normalizeMimeType(input.mimeType)) : false;
 }
 
-/** Human-readable list of accepted formats for error messages and UI, e.g. "PDF, JPEG image, …". */
 export function describeAcceptedFormats(): string {
   return UPLOAD_FORMATS.map((format) => format.label).join(", ");
 }

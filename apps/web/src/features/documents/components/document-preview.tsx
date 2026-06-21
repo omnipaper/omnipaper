@@ -12,13 +12,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-// Note: we intentionally don't wire cMapUrl / standardFontDataUrl. Latin PDFs render
-// fine; if we ever hit CJK or non-embedded standard fonts we can point those at the
-// bundled pdfjs-dist assets.
-
-// Render width that fits a normal (A4 portrait) page within the viewport height, so roughly one page
-// shows per screen and the reader scrolls for the next. Capped by the container width so it never
-// overflows horizontally; taller pages just take more scroll.
+// Default config works for Latin PDFs; for CJK or special fonts, set cMapUrl or standardFontDataUrl as needed.
+// Render width fits an A4 page per screen, never overflowing the container.
 function useFitWidth() {
   const ref = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>();
@@ -59,13 +54,10 @@ function useFitWidth() {
   return { ref, width };
 }
 
-// One page in the continuous scroll. The pdf.js canvas is expensive, so we only mount it once the
-// page scrolls near the viewport (a long PDF would otherwise render every page up front); once
-// mounted it stays mounted. Before render, a placeholder of the estimated A4 height keeps the scroll
-// position roughly stable.
+
 function LazyPage({ pageNumber, width }: { pageNumber: number; width: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  // Render the first page eagerly so something shows immediately on open.
+
   const [visible, setVisible] = useState(pageNumber === 1);
 
   useEffect(() => {
@@ -151,8 +143,6 @@ export function DocumentPreview({
   }
 
   if (mimeType === "application/pdf") {
-    // key={url} remounts on document/url change so numPages can't carry over from a previously
-    // viewed document (which would briefly render page wrappers out of bounds).
     return <PdfPreview key={url} url={url} onRetry={onRetry} />;
   }
 

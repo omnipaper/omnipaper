@@ -4,6 +4,7 @@ import {
   ACCEPTED_EXTENSIONS,
   ACCEPTED_MIME_TYPES,
   describeAcceptedFormats,
+  extensionForMimeType,
   isUploadAllowed,
   UPLOAD_FORMATS,
 } from "./formats";
@@ -74,5 +75,13 @@ describe("derived format data", () => {
     for (const format of UPLOAD_FORMATS) {
       expect(description).toContain(format.label);
     }
+  });
+
+  it("derives canonical extensions from accepted MIME types", () => {
+    expect(extensionForMimeType("application/pdf")).toBe(".pdf");
+    expect(extensionForMimeType("IMAGE/JPEG")).toBe(".jpg");
+    expect(extensionForMimeType("text/plain;charset=utf-8")).toBe(".txt");
+    expect(extensionForMimeType(DOCX_MIME)).toBe(".docx");
+    expect(extensionForMimeType("text/csv")).toBeUndefined();
   });
 });

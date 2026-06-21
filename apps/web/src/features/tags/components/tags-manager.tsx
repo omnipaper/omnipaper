@@ -26,7 +26,12 @@ import {
   SettingsTableToolbar,
   TableEmptyRow,
 } from "@/components/settings/settings-table";
-import { orgTagsQuery, useDeleteTag, useUpsertTag } from "@/features/tags/queries/tags";
+import {
+  type OrgTag,
+  orgTagsQuery,
+  useDeleteTag,
+  useUpsertTag,
+} from "@/features/tags/queries/tags";
 
 // New-tag colour starts on a random hue (matching the server default) instead of a flat grey.
 const TAG_COLORS = [
@@ -45,8 +50,6 @@ function randomTagColor(): string {
   return TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)] ?? TAG_COLORS[0];
 }
 
-type TagRow = { id: string; name: string; color: string; description: string | null };
-
 const COLUMN_COUNT = 4;
 
 export function TagsManager({ orgId }: { orgId: string }) {
@@ -55,14 +58,14 @@ export function TagsManager({ orgId }: { orgId: string }) {
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<TagRow | null>(null);
+  const [editing, setEditing] = useState<OrgTag | null>(null);
 
   function openCreate() {
     setEditing(null);
     setDialogOpen(true);
   }
 
-  function openEdit(tag: TagRow) {
+  function openEdit(tag: OrgTag) {
     setEditing(tag);
     setDialogOpen(true);
   }
@@ -164,7 +167,7 @@ function TagDialogBody({
   onDone,
 }: {
   orgId: string;
-  editing: TagRow | null;
+  editing: OrgTag | null;
   onDone: () => void;
 }) {
   const [name, setName] = useState(editing?.name ?? "");

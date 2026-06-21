@@ -45,6 +45,7 @@
         "@omnipaper/permissions": "workspace:*",
         "@omnipaper/shared": "workspace:*",
         "@omnipaper/ui": "workspace:*",
+        "@t3-oss/env-core": "catalog:",
         "@tanstack/react-query": "5.100.14",
         "@tanstack/react-router": "1.170.10",
         "better-auth": "catalog:",
@@ -54,6 +55,7 @@
         "react-dom": "catalog:",
         "react-pdf": "10.4.1",
         "sonner": "catalog:",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@tailwindcss/vite": "4.3.0",
@@ -86,7 +88,7 @@
       "name": "@omnipaper/env",
       "version": "0.0.0",
       "dependencies": {
-        "@t3-oss/env-core": "0.13.11",
+        "@t3-oss/env-core": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -201,6 +203,7 @@
     },
   },
   "catalog": {
+    "@t3-oss/env-core": "0.13.11",
     "@types/bun": "1.3.14",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",

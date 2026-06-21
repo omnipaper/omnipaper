@@ -44,7 +44,7 @@ coverage/
 **/.source/
 **/.nitro/
 
-# local project notes (root-level only — apps/docs is the docs site and stays tracked)
+# local project notes (root-level only; apps/docs is the docs site and stays tracked)
 /docs/
 
 **/.tanstack/

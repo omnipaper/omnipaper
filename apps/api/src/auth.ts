@@ -53,10 +53,7 @@ export const auth = betterAuth({
     organization({ ac, roles, requireEmailVerificationOnInvitation: false }),
   ],
   hooks: {
-    // Gate self-service sign-up. The very first account always passes — it bootstraps the instance
-    // admin (see databaseHooks.user.create.before). After that, sign-up only succeeds while an
-    // instance admin has turned registration on (the auth.registrationEnabled setting), so a
-    // self-hosted instance with no email verification stays closed by default.
+    // Restricts self-service sign-up to either the very first user (bootstrap admin), or to when an admin has enabled registration, or if a valid pending invitation exists.
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path !== "/sign-up/email") {
         return;
@@ -119,8 +116,7 @@ export const auth = betterAuth({
     },
   },
   secret: env.AUTH_SECRET,
-  // Set → pins the trusted origin to APP_URL (strict; every other origin rejected). Unset →
-  // derived per-request from X-Forwarded-Host via advanced.trustedProxyHeaders (zero-config).
+  // If set, only APP_URL is accepted as a trusted origin; if unset, trusted origin is determined per request using X-Forwarded-Host and trustedProxyHeaders.
   baseURL: env.APP_URL,
   // Extra origins to trust beyond the derived/pinned one (e.g. the Vite dev frontend on :5173).
   trustedOrigins: env.EXTRA_TRUSTED_ORIGINS,

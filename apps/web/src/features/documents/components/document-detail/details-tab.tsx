@@ -3,17 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { CustomPropertyFields } from "@/features/custom-properties/components/custom-property-fields";
 import { orgPropertyDefinitionsQuery } from "@/features/custom-properties/queries/custom-properties";
 import { DocumentMetadataPanel } from "@/features/documents/components/document-metadata-panel";
+import type { DocumentDetail } from "@/features/documents/queries/documents";
 import { TagPicker } from "@/features/tags/components/tag-picker";
 
-type Props = {
+type Props = Pick<
+  DocumentDetail,
+  "title" | "documentDate" | "documentType" | "storagePath" | "tags" | "customProperties"
+> & {
   orgId: string;
   documentId: string;
-  title: string;
-  documentDate: string | null;
-  documentType: { id: string; name: string } | null;
-  storagePath: { id: string; path: string } | null;
-  tags: { id: string; name: string; color: string }[];
-  customProperties: { definitionId: string; value: unknown }[];
 };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {

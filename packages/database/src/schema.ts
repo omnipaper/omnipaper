@@ -39,9 +39,32 @@ export const thumbnailStatusEnum = pgEnum("thumbnail_status", [
   "unsupported",
 ]);
 
-// Built-in, single-pick document metadata kept as first-class tables (not custom properties)
-// because each entry carries a `description` — for the user, and for planned AI auto-assignment
-// that reads the description to decide which type/path fits a document.
+export const customPropertyTypeEnum = pgEnum("custom_property_type", [
+  "text",
+  "url",
+  "number",
+  "date",
+  "boolean",
+  "select",
+]);
+
+export const ACTIVITY_EVENT_NAMES = [
+  "document.created",
+  "document.ocr_completed",
+  "document.metadata_updated",
+  "document.tags_updated",
+  "document.property_updated",
+] as const;
+
+export type ActivityEventName = (typeof ACTIVITY_EVENT_NAMES)[number];
+
+export const activityEventEnum = pgEnum("activity_event", ACTIVITY_EVENT_NAMES);
+
+export const activityActorTypeEnum = pgEnum("activity_actor_type", ["user", "system"]);
+
+export const activityResourceTypeEnum = pgEnum("activity_resource_type", ["document"]);
+
+// First-class taxonomy because descriptions are used by users and future AI auto-assignment.
 export const documentTypes = pgTable(
   "document_types",
   {
@@ -65,11 +88,7 @@ export const documentTypes = pgTable(
   ],
 );
 
-export type DocumentType = typeof documentTypes.$inferSelect;
-export type NewDocumentType = typeof documentTypes.$inferInsert;
-
-// `path` is a slash-delimited string (validated app-side); the folder tree is derived by
-// splitting these strings — a flat list, not a parentId hierarchy.
+// Flat slash-delimited paths; the folder tree is derived app-side.
 export const storagePaths = pgTable(
   "storage_paths",
   {
@@ -93,8 +112,29 @@ export const storagePaths = pgTable(
   ],
 );
 
-export type StoragePath = typeof storagePaths.$inferSelect;
-export type NewStoragePath = typeof storagePaths.$inferInsert;
+export const tags = pgTable(
+  "tags",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("tag")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color").notNull().default("#94a3b8"),
+    description: text("description"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("tags_org_name_idx").on(t.organizationId, t.name),
+    index("tags_organization_id_idx").on(t.organizationId),
+  ],
+);
 
 export const documents = pgTable(
   "documents",
@@ -139,42 +179,11 @@ export const documents = pgTable(
     index("documents_org_document_type_id_idx").on(t.organizationId, t.documentTypeId),
     index("documents_org_storage_path_id_idx").on(t.organizationId, t.storagePathId),
     index("documents_org_document_date_idx").on(t.organizationId, t.documentDate),
-    // Sort/pagination support: the default feed (createdAt) plus the other sortable columns.
     index("documents_org_created_at_idx").on(t.organizationId, t.createdAt),
     index("documents_org_title_idx").on(t.organizationId, t.title),
     index("documents_org_size_bytes_idx").on(t.organizationId, t.sizeBytes),
   ],
 );
-
-export type Document = typeof documents.$inferSelect;
-export type NewDocument = typeof documents.$inferInsert;
-
-export const tags = pgTable(
-  "tags",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => createId("tag")),
-    organizationId: text("organization_id")
-      .notNull()
-      .references(() => organization.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    color: text("color").notNull().default("#94a3b8"),
-    description: text("description"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdateFn(() => new Date()),
-  },
-  (t) => [
-    uniqueIndex("tags_org_name_idx").on(t.organizationId, t.name),
-    index("tags_organization_id_idx").on(t.organizationId),
-  ],
-);
-
-export type Tag = typeof tags.$inferSelect;
-export type NewTag = typeof tags.$inferInsert;
 
 export const documentsTags = pgTable(
   "documents_tags",
@@ -192,18 +201,6 @@ export const documentsTags = pgTable(
     index("documents_tags_tag_id_idx").on(t.tagId),
   ],
 );
-
-export type DocumentTag = typeof documentsTags.$inferSelect;
-export type NewDocumentTag = typeof documentsTags.$inferInsert;
-
-export const customPropertyTypeEnum = pgEnum("custom_property_type", [
-  "text",
-  "url",
-  "number",
-  "date",
-  "boolean",
-  "select",
-]);
 
 export const customPropertyDefinitions = pgTable(
   "custom_property_definitions",
@@ -231,9 +228,6 @@ export const customPropertyDefinitions = pgTable(
   ],
 );
 
-export type CustomPropertyDefinition = typeof customPropertyDefinitions.$inferSelect;
-export type NewCustomPropertyDefinition = typeof customPropertyDefinitions.$inferInsert;
-
 export const customPropertySelectOptions = pgTable(
   "custom_property_select_options",
   {
@@ -256,9 +250,6 @@ export const customPropertySelectOptions = pgTable(
     index("custom_property_select_options_definition_id_idx").on(t.definitionId),
   ],
 );
-
-export type CustomPropertySelectOption = typeof customPropertySelectOptions.$inferSelect;
-export type NewCustomPropertySelectOption = typeof customPropertySelectOptions.$inferInsert;
 
 export const documentCustomPropertyValues = pgTable(
   "document_custom_property_values",
@@ -291,9 +282,6 @@ export const documentCustomPropertyValues = pgTable(
   ],
 );
 
-export type DocumentCustomPropertyValue = typeof documentCustomPropertyValues.$inferSelect;
-export type NewDocumentCustomPropertyValue = typeof documentCustomPropertyValues.$inferInsert;
-
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
@@ -303,20 +291,6 @@ export const settings = pgTable("settings", {
     .defaultNow()
     .$onUpdateFn(() => new Date()),
 });
-
-export type Setting = typeof settings.$inferSelect;
-
-export const activityEventEnum = pgEnum("activity_event", [
-  "document.created",
-  "document.ocr_completed",
-  "document.metadata_updated",
-  "document.tags_updated",
-  "document.property_updated",
-]);
-
-export const activityActorTypeEnum = pgEnum("activity_actor_type", ["user", "system"]);
-
-export const activityResourceTypeEnum = pgEnum("activity_resource_type", ["document"]);
 
 export const activityEvents = pgTable(
   "activity_events",
@@ -341,6 +315,32 @@ export const activityEvents = pgTable(
     index("activity_events_org_idx").on(t.organizationId, t.createdAt),
   ],
 );
+
+export type DocumentType = typeof documentTypes.$inferSelect;
+export type NewDocumentType = typeof documentTypes.$inferInsert;
+
+export type StoragePath = typeof storagePaths.$inferSelect;
+export type NewStoragePath = typeof storagePaths.$inferInsert;
+
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+
+export type Document = typeof documents.$inferSelect;
+export type NewDocument = typeof documents.$inferInsert;
+
+export type DocumentTag = typeof documentsTags.$inferSelect;
+export type NewDocumentTag = typeof documentsTags.$inferInsert;
+
+export type CustomPropertyDefinition = typeof customPropertyDefinitions.$inferSelect;
+export type NewCustomPropertyDefinition = typeof customPropertyDefinitions.$inferInsert;
+
+export type CustomPropertySelectOption = typeof customPropertySelectOptions.$inferSelect;
+export type NewCustomPropertySelectOption = typeof customPropertySelectOptions.$inferInsert;
+
+export type DocumentCustomPropertyValue = typeof documentCustomPropertyValues.$inferSelect;
+export type NewDocumentCustomPropertyValue = typeof documentCustomPropertyValues.$inferInsert;
+
+export type Setting = typeof settings.$inferSelect;
 
 export type ActivityEventRow = typeof activityEvents.$inferSelect;
 export type NewActivityEvent = typeof activityEvents.$inferInsert;

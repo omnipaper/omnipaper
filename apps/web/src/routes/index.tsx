@@ -1,15 +1,13 @@
 import { Button } from "@omnipaper/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@omnipaper/ui/components/card";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { configQueryOptions } from "@/features/auth/queries/config";
 import { config } from "@/lib/config";
-import { queryClient } from "@/lib/query-client";
+import { DEMO_MODE } from "@/lib/demo-mode";
 
 export const Route = createFileRoute("/")({
-  beforeLoad: async () => {
+  beforeLoad: () => {
     // A demo instance has no "marketing" landing — drop straight into the (auto-logged-in) app.
-    const { demoMode } = await queryClient.ensureQueryData(configQueryOptions);
-    if (demoMode) {
+    if (DEMO_MODE) {
       throw redirect({ to: "/dashboard" });
     }
   },

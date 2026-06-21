@@ -15,17 +15,14 @@ import { CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 import { OcrStatusBadge } from "@/features/documents/components/ocr-status-badge";
 import {
-  type OcrStatus,
+  type DocumentDetail,
   useReprocessDocument,
   useUpdateOcrText,
 } from "@/features/documents/queries/documents";
 
-type Props = {
+type Props = Pick<DocumentDetail, "ocrStatus" | "ocrText" | "ocrSupported"> & {
   orgId: string;
   documentId: string;
-  ocrStatus: OcrStatus;
-  ocrText: string | null;
-  ocrSupported: boolean;
 };
 
 export function OcrTab({ orgId, documentId, ocrStatus, ocrText, ocrSupported }: Props) {

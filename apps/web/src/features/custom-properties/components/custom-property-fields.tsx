@@ -8,8 +8,12 @@ import {
 } from "@omnipaper/ui/components/select";
 import { Switch } from "@omnipaper/ui/components/switch";
 import { useQuery } from "@tanstack/react-query";
-import { orgPropertyDefinitionsQuery } from "@/features/custom-properties/queries/custom-properties";
 import {
+  type PropertyDefinition,
+  orgPropertyDefinitionsQuery,
+} from "@/features/custom-properties/queries/custom-properties";
+import {
+  type DocumentDetail,
   useClearDocumentPropertyValue,
   useSetDocumentPropertyValue,
 } from "@/features/documents/queries/documents";
@@ -17,14 +21,7 @@ import {
 // "None" can't be an empty string in a radix Select item, so use a sentinel that maps to clearing.
 const NONE_VALUE = "__none__";
 
-type PropertyDefinition = {
-  id: string;
-  name: string;
-  type: string;
-  options: { id: string; label: string; color: string | null }[];
-};
-
-type DocumentPropertyValue = { definitionId: string; value: unknown };
+type DocumentPropertyValue = DocumentDetail["customProperties"][number];
 
 type EditorProps = {
   definition: PropertyDefinition;

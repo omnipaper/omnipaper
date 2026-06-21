@@ -11,10 +11,8 @@ import { thumbnailGenerateTask } from "./tasks/thumbnail-generate";
 const services = env.SERVICES.split(",").map((service) => service.trim());
 const isProduction = process.env.NODE_ENV === "production";
 
-// Compose has no depends_on and Swarm ignores it — wait until Postgres accepts connections.
 await waitForDatabase();
 
-// Migrations run automatically in the published image; in dev you run them yourself (db:migrate).
 if (isProduction) {
   await migrate();
 }
@@ -32,17 +30,13 @@ const runner = services.includes("worker")
 if (services.includes("web")) {
   const app = createApp();
 
-  // In the image the built SPA is baked in and served by the same process (single origin).
-  // In dev this is skipped — Vite serves the web on its own port.
+
   if (isProduction) {
     app.use("/*", serveStatic({ root: "./apps/web/dist" }));
     app.get("*", serveStatic({ path: "./apps/web/dist/index.html" }));
   }
 
   Bun.serve({ fetch: app.fetch, port: env.PORT });
-  console.log(
-    `omnipaper API on :${env.PORT} — APP_URL=${env.APP_URL ?? "(unset → derived from X-Forwarded-Host)"}`,
-  );
 } else if (runner) {
   await runner.promise;
 }

@@ -32,20 +32,13 @@ function iconForMime(mimeType: string): ComponentType<{ className?: string }> {
   if (mimeType.startsWith("message/")) {
     return MailIcon;
   }
-  if (
-    mimeType === "text/csv" ||
-    mimeType === "application/vnd.ms-excel" ||
-    mimeType.includes("spreadsheet")
-  ) {
+  if (mimeType === "application/vnd.ms-excel" || mimeType.includes("spreadsheet")) {
     return FileSpreadsheetIcon;
   }
   return FileIcon;
 }
 
-// Thumbnails are fetched lazily, so there's a gap between mounting the <img> and the bytes
-// arriving — during which the browser paints the alt text (the title) on the bare box. Show a
-// pulsing skeleton until the image actually loads, then fade it in; fall back to the file-type
-// icon if the fetch fails.
+// Display a pulsing skeleton while the thumbnail image loads, fade it in once loaded, and show a file-type icon if the image fails to load.
 function Thumbnail({
   src,
   alt,
@@ -123,7 +116,7 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
           params={{ orgId, id: doc.id }}
           className="group flex flex-col gap-2"
         >
-          <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-md border bg-muted">
+          <div className="relative flex aspect-3/4 items-center justify-center overflow-hidden rounded-md border bg-muted">
             {doc.thumbnailStatus === "completed" ? (
               <Thumbnail src={thumbnailUrl(orgId, doc.id)} alt={doc.title} Icon={Icon} />
             ) : doc.thumbnailStatus === "pending" || doc.thumbnailStatus === "processing" ? (

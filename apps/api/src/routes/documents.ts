@@ -36,7 +36,11 @@ import {
   isKnownFilterKey,
   sortStateSchema,
 } from "@omnipaper/shared/document-filters";
-import { describeAcceptedFormats, isUploadAllowed } from "@omnipaper/shared/formats";
+import {
+  describeAcceptedFormats,
+  extensionForMimeType,
+  isUploadAllowed,
+} from "@omnipaper/shared/formats";
 import { Zip, ZipPassThrough } from "fflate";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -67,14 +71,14 @@ const listDocumentsQuerySchema = z.object({
         const unknown = Object.keys(parsed).filter((key) => !isKnownFilterKey(key));
         if (unknown.length > 0) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             message: `Unknown filter key(s): ${unknown.join(", ")}`,
           });
           return z.NEVER;
         }
         return parsed;
       } catch {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid filters" });
+        ctx.addIssue({ code: "custom", message: "Invalid filters" });
         return z.NEVER;
       }
     }),
@@ -87,7 +91,7 @@ const listDocumentsQuerySchema = z.object({
       }
       const parsed = decodeSort(raw);
       if (!parsed) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid sort" });
+        ctx.addIssue({ code: "custom", message: "Invalid sort" });
         return z.NEVER;
       }
       return parsed;
@@ -101,7 +105,7 @@ const setPropertyValueSchema = z.object({
 });
 const updateDocumentSchema = z.object({
   title: z.string().trim().min(1).max(255).optional(),
-  documentDate: z.string().date().nullable().optional(),
+  documentDate: z.iso.date().nullable().optional(),
   documentTypeId: z.string().min(1).nullable().optional(),
   storagePathId: z.string().min(1).nullable().optional(),
 });
@@ -119,15 +123,6 @@ const exportDocumentsSchema = z.union([
     sort: sortStateSchema.optional(),
   }),
 ]);
-const MIME_EXTENSIONS: Record<string, string> = {
-  "application/pdf": ".pdf",
-  "image/png": ".png",
-  "image/jpeg": ".jpg",
-  "image/webp": ".webp",
-  "text/plain": ".txt",
-  "text/csv": ".csv",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
-};
 // A filesystem-safe, unique name for a document inside the export zip. Prefers the original filename
 // (it carries the real extension); falls back to the title plus an extension inferred from the MIME.
 function exportFileName(
@@ -137,7 +132,7 @@ function exportFileName(
   const raw = (doc.originalFilename ?? doc.title ?? doc.id).replace(/[\\/:*?"<>|]/g, "_").trim();
   const safe = raw || doc.id;
   const hasExt = safe.lastIndexOf(".") > 0;
-  let name = hasExt ? safe : safe + (MIME_EXTENSIONS[doc.mimeType] ?? "");
+  let name = hasExt ? safe : safe + (extensionForMimeType(doc.mimeType) ?? "");
   if (used.has(name)) {
     const dot = name.lastIndexOf(".");
     const stem = dot > 0 ? name.slice(0, dot) : name;

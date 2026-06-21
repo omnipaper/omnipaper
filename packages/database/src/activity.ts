@@ -1,13 +1,12 @@
 import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import type { Database } from "./client";
-import { activityEvents } from "./schema";
+import { activityEvents, type ActivityEventName } from "./schema";
 
 // Accepts either the root db or a transaction handle (`db.transaction(async (tx) => …)`).
 // Always pass the surrounding transaction so the event and the mutation commit atomically.
 type DbOrTx = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 export type ActivityResourceType = (typeof activityEvents.resourceType.enumValues)[number];
-export type ActivityEventName = (typeof activityEvents.event.enumValues)[number];
 export type ActivityActorType = (typeof activityEvents.actorType.enumValues)[number];
 
 export type RecordEventInput = {

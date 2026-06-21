@@ -8,9 +8,6 @@ import type { DocumentSearch } from "@/features/documents/filters/types";
 import { documentsListQuery } from "@/features/documents/queries/documents";
 import { useDocumentSelection } from "@/features/documents/selection/use-document-selection";
 
-// Pure renderer over the shared query: paged fetch flattened into one list, then list or gallery by
-// `view`. Folder scope, filters, search and sort all arrive through the URL (filters.path carries the
-// folder), so every layout sees the same result set — no per-view query, no duplicated handling.
 export function DocumentResults({ orgId }: { orgId: string }) {
   const search = useSearch({ strict: false }) as DocumentSearch;
   const view = search.view ?? "gallery";
@@ -23,7 +20,7 @@ export function DocumentResults({ orgId }: { orgId: string }) {
 
   const selection = useDocumentSelection();
 
-  // Infinite scroll: fetch the next page when a bottom sentinel scrolls near the viewport.
+  // Infinite scroll
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const el = sentinelRef.current;

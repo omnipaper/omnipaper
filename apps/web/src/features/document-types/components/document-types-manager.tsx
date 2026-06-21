@@ -27,12 +27,11 @@ import {
   TableEmptyRow,
 } from "@/components/settings/settings-table";
 import {
+  type OrgDocumentType,
   orgDocumentTypesQuery,
   useDeleteDocumentType,
   useUpsertDocumentType,
 } from "@/features/document-types/queries/document-types";
-
-type DocumentTypeRow = { id: string; name: string; description: string | null };
 
 const COLUMN_COUNT = 3;
 
@@ -42,14 +41,14 @@ export function DocumentTypesManager({ orgId }: { orgId: string }) {
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<DocumentTypeRow | null>(null);
+  const [editing, setEditing] = useState<OrgDocumentType | null>(null);
 
   function openCreate() {
     setEditing(null);
     setDialogOpen(true);
   }
 
-  function openEdit(type: DocumentTypeRow) {
+  function openEdit(type: OrgDocumentType) {
     setEditing(type);
     setDialogOpen(true);
   }
@@ -148,7 +147,7 @@ function DocumentTypeDialogBody({
   onDone,
 }: {
   orgId: string;
-  editing: DocumentTypeRow | null;
+  editing: OrgDocumentType | null;
   onDone: () => void;
 }) {
   const [name, setName] = useState(editing?.name ?? "");

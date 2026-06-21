@@ -28,12 +28,11 @@ import {
 } from "@/components/settings/settings-table";
 import { STORAGE_PATH_PATTERN as PATH_PATTERN } from "@/features/storage-paths/path-format";
 import {
+  type OrgStoragePath,
   orgStoragePathsQuery,
   useDeleteStoragePath,
   useUpsertStoragePath,
 } from "@/features/storage-paths/queries/storage-paths";
-
-type StoragePathRow = { id: string; path: string; description: string | null };
 
 const COLUMN_COUNT = 3;
 
@@ -43,14 +42,14 @@ export function StoragePathsManager({ orgId }: { orgId: string }) {
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<StoragePathRow | null>(null);
+  const [editing, setEditing] = useState<OrgStoragePath | null>(null);
 
   function openCreate() {
     setEditing(null);
     setDialogOpen(true);
   }
 
-  function openEdit(storagePath: StoragePathRow) {
+  function openEdit(storagePath: OrgStoragePath) {
     setEditing(storagePath);
     setDialogOpen(true);
   }
@@ -149,7 +148,7 @@ function StoragePathDialogBody({
   onDone,
 }: {
   orgId: string;
-  editing: StoragePathRow | null;
+  editing: OrgStoragePath | null;
   onDone: () => void;
 }) {
   const [path, setPath] = useState(editing?.path ?? "");

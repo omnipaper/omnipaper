@@ -26,8 +26,6 @@ export function createApp() {
 
   const apiRoutes = new Hono<{ Variables: Variables }>()
     .get("/me", (c) => c.json({ user: c.get("user") }))
-    // Public instance config the SPA reads at boot, before any session exists.
-    .get("/config", (c) => c.json({ demoMode: env.DEMO_MODE }))
     .use("/settings/*", requireAuth)
     .route("/settings", settingsRoutes)
     .use("/orgs/:orgId/*", requireAuth)

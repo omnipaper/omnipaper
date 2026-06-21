@@ -96,8 +96,6 @@ const adminSettings = new Hono<{ Variables: Variables }>()
         });
       }
 
-      // Connection works — also flag a world-readable bucket (a confidentiality risk for documents).
-      // Advisory only: never blocks saving, and stays silent when it can't tell.
       let privacy: BucketPrivacy = "unknown";
       try {
         const { url } = await driver.createDownloadUrl({ key: "__omnipaper_connection_test__" });

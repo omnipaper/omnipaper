@@ -7,7 +7,10 @@ import {
   orgDocumentTypesQuery,
   useCreateDocumentType,
 } from "@/features/document-types/queries/document-types";
-import { useUpdateDocumentMetadata } from "@/features/documents/queries/documents";
+import {
+  type DocumentDetail,
+  useUpdateDocumentMetadata,
+} from "@/features/documents/queries/documents";
 import { useOrgMember } from "@/features/organization/queries/organization";
 import { isValidStoragePath } from "@/features/storage-paths/path-format";
 import {
@@ -15,13 +18,9 @@ import {
   useCreateStoragePath,
 } from "@/features/storage-paths/queries/storage-paths";
 
-type Props = {
+type Props = Pick<DocumentDetail, "title" | "documentDate" | "documentType" | "storagePath"> & {
   orgId: string;
   documentId: string;
-  title: string;
-  documentDate: string | null;
-  documentType: { id: string; name: string } | null;
-  storagePath: { id: string; path: string } | null;
 };
 
 export function DocumentMetadataPanel({
@@ -33,8 +32,6 @@ export function DocumentMetadataPanel({
   storagePath,
 }: Props) {
   const member = useOrgMember(orgId);
-  // Members are read-only on the org taxonomy — only owners/admins may create types/paths, so the
-  // combobox's "Create …" row is gated to them. Selecting an existing value stays open to everyone.
   const canManageTaxonomy = canManageOrg(member?.role);
 
   const { data: typesData } = useQuery(orgDocumentTypesQuery({ orgId }));
@@ -43,9 +40,7 @@ export function DocumentMetadataPanel({
   const paths = pathsData?.storagePaths ?? [];
 
   const patch = useUpdateDocumentMetadata(orgId, documentId);
-  // Create-and-assign: create the taxonomy entry, then (on success) patch the document to select it.
-  // Each create hook refreshes its own list; the patch updates the detail optimistically and
-  // reconciles with server truth on settle.
+
   const createType = useCreateDocumentType(orgId);
   const createPath = useCreateStoragePath(orgId);
 
