@@ -2,8 +2,9 @@ import { Separator } from "@omnipaper/ui/components/separator";
 import { useQuery } from "@tanstack/react-query";
 import { CustomPropertyFields } from "@/features/custom-properties/components/custom-property-fields";
 import { orgPropertyDefinitionsQuery } from "@/features/custom-properties/queries/custom-properties";
+import { AiSuggestionsPanel } from "@/features/documents/components/document-detail/ai-suggestions-panel";
 import { DocumentMetadataPanel } from "@/features/documents/components/document-metadata-panel";
-import type { DocumentDetail } from "@/features/documents/queries/documents";
+import type { AiSuggestion, DocumentDetail } from "@/features/documents/queries/documents";
 import { TagPicker } from "@/features/tags/components/tag-picker";
 
 type Props = Pick<
@@ -12,6 +13,7 @@ type Props = Pick<
 > & {
   orgId: string;
   documentId: string;
+  aiSuggestions: AiSuggestion[];
 };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -31,6 +33,7 @@ export function DetailsTab({
   storagePath,
   tags,
   customProperties,
+  aiSuggestions,
 }: Props) {
   // Same query CustomPropertyFields uses (react-query dedupes it) — here only to decide whether the
   // Properties section header/separator should appear at all.
@@ -39,6 +42,8 @@ export function DetailsTab({
 
   return (
     <div className="flex flex-col gap-6">
+      <AiSuggestionsPanel orgId={orgId} documentId={documentId} suggestions={aiSuggestions} />
+
       <section className="flex flex-col gap-3">
         <SectionLabel>Tags</SectionLabel>
         <TagPicker orgId={orgId} documentId={documentId} tags={tags} />

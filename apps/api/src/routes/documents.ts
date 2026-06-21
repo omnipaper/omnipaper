@@ -2,6 +2,13 @@ import { zValidator } from "@hono/zod-validator";
 import { recordEvent } from "@omnipaper/database/activity";
 import { db } from "@omnipaper/database/client";
 import {
+  getDocumentSuggestions,
+  getOrgSuggestion,
+  setSuggestionStatus,
+  supersedePendingCustomPropertySuggestion,
+  supersedePendingSuggestions,
+} from "@omnipaper/database/queries/ai-suggestions";
+import {
   clearDocumentPropertyValue,
   getDocumentPropertyValues,
   getOrgCustomPropertyTypes,
@@ -9,7 +16,10 @@ import {
   getOrgPropertyDefinitions,
   setDocumentPropertyValue,
 } from "@omnipaper/database/queries/custom-properties";
-import { getOrgDocumentType } from "@omnipaper/database/queries/document-types";
+import {
+  getOrgDocumentType,
+  getOrgDocumentTypes,
+} from "@omnipaper/database/queries/document-types";
 import {
   DEFAULT_PAGE_SIZE,
   deleteDocument,
@@ -21,8 +31,9 @@ import {
   updateDocument,
   updateDocumentOcrText,
 } from "@omnipaper/database/queries/documents";
-import { getOrgStoragePath } from "@omnipaper/database/queries/storage-paths";
+import { getOrgStoragePath, getOrgStoragePaths } from "@omnipaper/database/queries/storage-paths";
 import {
+  getOrgTags,
   getOrgTagsByIds,
   getTagsByDocumentIds,
   setDocumentTags,
@@ -50,9 +61,11 @@ import { errors } from "../errors";
 import { ingestDocument } from "../lib/ingest";
 import { getStorageDriver } from "../lib/storage";
 import { requireOrgPermission } from "../middleware";
+import { serializeSuggestions } from "../serializers/ai-suggestion";
 import { shapeDocumentProperties } from "../serializers/custom-property";
 import { toDocumentDetailDto, toDocumentListItemDto } from "../serializers/document";
 import { toTagRefDto } from "../serializers/tag";
+import { acceptSuggestion } from "../workflows/accept";
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const listDocumentsQuerySchema = z.object({
@@ -112,6 +125,13 @@ const updateDocumentSchema = z.object({
 const updateOcrTextSchema = z.object({
   ocrText: z.string().max(1000000),
 });
+// Maps a PATCH body key to the AI suggestion field it supersedes, so a manual edit clears the
+// matching pending chip. (title has no AI suggestion.)
+const SUGGESTION_FIELD_BY_PATCH_KEY = [
+  { key: "documentTypeId", field: "documentType" },
+  { key: "storagePathId", field: "storagePath" },
+  { key: "documentDate", field: "documentDate" },
+] as const;
 // Export takes either an explicit id list or "all matching" the current filter/search, so "select
 // all" never has to enumerate thousands of ids.
 const exportDocumentsSchema = z.union([
@@ -313,6 +333,25 @@ export const documentsRoutes = new Hono<{
       : null;
     const { definitionId } = await getOcrSettings();
     const ocrSupported = supportsMime(definitionId, doc.mimeType);
+
+    // Pending AI suggestions become chips in the metadata panel. Ids are resolved to labels here
+    // against the org's current taxonomy (stale refs are dropped by the serializer).
+    const pending = await getDocumentSuggestions(db, { documentId: doc.id });
+    const aiSuggestions =
+      pending.length > 0
+        ? serializeSuggestions(pending, {
+            documentTypes: await getOrgDocumentTypes(db, { organizationId }),
+            storagePaths: await getOrgStoragePaths(db, { organizationId }),
+            tags: await getOrgTags(db, { organizationId }),
+            definitions: definitions.map((entry) => ({
+              id: entry.definition.id,
+              name: entry.definition.name,
+              type: entry.definition.type,
+              options: entry.options.map((o) => ({ id: o.id, label: o.label, color: o.color })),
+            })),
+          })
+        : [];
+
     return c.json({
       document: toDocumentDetailDto({
         document: doc,
@@ -322,6 +361,7 @@ export const documentsRoutes = new Hono<{
         storagePath,
         ocrSupported,
       }),
+      aiSuggestions,
     });
   })
   .patch(
@@ -362,6 +402,11 @@ export const documentsRoutes = new Hono<{
         actor: { type: "user", id: c.get("user")?.id },
         data: { updatedFields: Object.keys(values) },
       });
+      // A manual edit wins over a pending AI suggestion for the same field — drop the stale chip.
+      const supersededFields = SUGGESTION_FIELD_BY_PATCH_KEY.filter((entry) =>
+        Object.hasOwn(values, entry.key),
+      ).map((entry) => entry.field);
+      await supersedePendingSuggestions(db, { documentId: id, fields: supersededFields });
       return c.json({ ok: true });
     },
   )
@@ -476,6 +521,7 @@ export const documentsRoutes = new Hono<{
             removed: removedTags.map((t) => ({ tagId: t.id, tagName: t.name })),
           },
         });
+        await supersedePendingSuggestions(db, { documentId, fields: ["tags"] });
       }
       return c.json({ tags });
     },
@@ -519,6 +565,7 @@ export const documentsRoutes = new Hono<{
         actor: { type: "user", id: c.get("user")?.id },
         data: { updatedDefinitions: [definitionId] },
       });
+      await supersedePendingCustomPropertySuggestion(db, { documentId, definitionId });
       return c.json({ ok: true });
     },
   )
@@ -541,6 +588,45 @@ export const documentsRoutes = new Hono<{
         actor: { type: "user", id: c.get("user")?.id },
         data: { updatedDefinitions: [definitionId] },
       });
+      return c.json({ ok: true });
+    },
+  )
+  .post(
+    "/:id/suggestions/:sugId/accept",
+    requireOrgPermission({ documents: ["update"] }),
+    async (c) => {
+      const organizationId = c.get("organizationId");
+      const documentId = c.req.param("id");
+      const user = c.get("user");
+      if (!user) {
+        throw errors.unauthorized();
+      }
+      const doc = await getOrgDocument(db, { organizationId, id: documentId });
+      if (!doc) {
+        throw errors.notFound("Document not found");
+      }
+      const suggestion = await getOrgSuggestion(db, { organizationId, id: c.req.param("sugId") });
+      if (!suggestion || suggestion.documentId !== documentId) {
+        throw errors.notFound("Suggestion not found");
+      }
+      if (suggestion.status !== "pending") {
+        throw errors.badRequest("suggestion_not_pending", "This suggestion is no longer pending");
+      }
+      await acceptSuggestion(db, { suggestion, document: doc, userId: user.id });
+      return c.json({ ok: true });
+    },
+  )
+  .post(
+    "/:id/suggestions/:sugId/dismiss",
+    requireOrgPermission({ documents: ["update"] }),
+    async (c) => {
+      const organizationId = c.get("organizationId");
+      const documentId = c.req.param("id");
+      const suggestion = await getOrgSuggestion(db, { organizationId, id: c.req.param("sugId") });
+      if (!suggestion || suggestion.documentId !== documentId) {
+        throw errors.notFound("Suggestion not found");
+      }
+      await setSuggestionStatus(db, { id: suggestion.id, status: "dismissed" });
       return c.json({ ok: true });
     },
   )

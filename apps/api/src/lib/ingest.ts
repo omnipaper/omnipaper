@@ -14,6 +14,7 @@ import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
 import { normalizeMimeType } from "@omnipaper/shared/formats";
 import type { StorageDriver } from "@omnipaper/storage/driver";
 import { isTextExtractable } from "./text-extract";
+import { dispatchWorkflowTrigger } from "./workflow-events";
 
 export type IngestResult = {
   status: "created" | "duplicate";
@@ -106,6 +107,10 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
   } else {
     await markDocumentThumbnailUnsupported(db, { id });
   }
+
+  // Fire the creation trigger. Text-requiring (AI) workflows run on document.ocr_completed instead;
+  // this powers the no-text actions (e.g. auto-tag on upload).
+  await dispatchWorkflowTrigger(id, "document.created");
 
   return { status: "created", document: { id, title } };
 }

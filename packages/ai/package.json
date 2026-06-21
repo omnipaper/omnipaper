@@ -1,0 +1,28 @@
+{
+  "name": "@omnipaper/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./registry": "./src/registry.ts",
+    "./resolve": "./src/resolve.ts",
+    "./classify": "./src/classify.ts",
+    "./test": "./src/test.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "3.0.85",
+    "@ai-sdk/google": "3.0.80",
+    "@ai-sdk/mistral": "3.0.37",
+    "@ai-sdk/openai": "3.0.73",
+    "@omnipaper/shared": "workspace:*",
+    "ai": "6.0.197",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

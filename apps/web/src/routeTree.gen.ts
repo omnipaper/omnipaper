@@ -30,6 +30,8 @@ import { Route as DashboardOrgsOrgIdSettingsMembersRouteImport } from './routes/
 import { Route as DashboardOrgsOrgIdSettingsGeneralRouteImport } from './routes/dashboard/orgs/$orgId/settings/general'
 import { Route as DashboardOrgsOrgIdSettingsDocumentTypesRouteImport } from './routes/dashboard/orgs/$orgId/settings/document-types'
 import { Route as DashboardOrgsOrgIdSettingsCustomPropertiesRouteImport } from './routes/dashboard/orgs/$orgId/settings/custom-properties'
+import { Route as DashboardOrgsOrgIdSettingsAutomationRouteImport } from './routes/dashboard/orgs/$orgId/settings/automation'
+import { Route as DashboardOrgsOrgIdSettingsAiRouteImport } from './routes/dashboard/orgs/$orgId/settings/ai'
 import { Route as DashboardOrgsOrgIdDocumentsIdRouteImport } from './routes/dashboard/orgs/$orgId/documents.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -147,6 +149,18 @@ const DashboardOrgsOrgIdSettingsCustomPropertiesRoute =
     path: '/settings/custom-properties',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
+const DashboardOrgsOrgIdSettingsAutomationRoute =
+  DashboardOrgsOrgIdSettingsAutomationRouteImport.update({
+    id: '/settings/automation',
+    path: '/settings/automation',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
+const DashboardOrgsOrgIdSettingsAiRoute =
+  DashboardOrgsOrgIdSettingsAiRouteImport.update({
+    id: '/settings/ai',
+    path: '/settings/ai',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdDocumentsIdRoute =
   DashboardOrgsOrgIdDocumentsIdRouteImport.update({
     id: '/documents/$id',
@@ -165,6 +179,8 @@ export interface FileRoutesByFullPath {
   '/accept-invitation/$id': typeof AuthAcceptInvitationIdRoute
   '/dashboard/orgs/$orgId/': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
+  '/dashboard/orgs/$orgId/settings/automation': typeof DashboardOrgsOrgIdSettingsAutomationRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
@@ -186,6 +202,8 @@ export interface FileRoutesByTo {
   '/accept-invitation/$id': typeof AuthAcceptInvitationIdRoute
   '/dashboard/orgs/$orgId': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
+  '/dashboard/orgs/$orgId/settings/automation': typeof DashboardOrgsOrgIdSettingsAutomationRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
@@ -211,6 +229,8 @@ export interface FileRoutesById {
   '/_auth/accept-invitation/$id': typeof AuthAcceptInvitationIdRoute
   '/dashboard/orgs/$orgId/': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
+  '/dashboard/orgs/$orgId/settings/automation': typeof DashboardOrgsOrgIdSettingsAutomationRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
@@ -236,6 +256,8 @@ export interface FileRouteTypes {
     | '/accept-invitation/$id'
     | '/dashboard/orgs/$orgId/'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/settings/ai'
+    | '/dashboard/orgs/$orgId/settings/automation'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
@@ -257,6 +279,8 @@ export interface FileRouteTypes {
     | '/accept-invitation/$id'
     | '/dashboard/orgs/$orgId'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/settings/ai'
+    | '/dashboard/orgs/$orgId/settings/automation'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
@@ -281,6 +305,8 @@ export interface FileRouteTypes {
     | '/_auth/accept-invitation/$id'
     | '/dashboard/orgs/$orgId/'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/settings/ai'
+    | '/dashboard/orgs/$orgId/settings/automation'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
@@ -449,6 +475,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsCustomPropertiesRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
+    '/dashboard/orgs/$orgId/settings/automation': {
+      id: '/dashboard/orgs/$orgId/settings/automation'
+      path: '/settings/automation'
+      fullPath: '/dashboard/orgs/$orgId/settings/automation'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsAutomationRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
+    '/dashboard/orgs/$orgId/settings/ai': {
+      id: '/dashboard/orgs/$orgId/settings/ai'
+      path: '/settings/ai'
+      fullPath: '/dashboard/orgs/$orgId/settings/ai'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsAiRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
     '/dashboard/orgs/$orgId/documents/$id': {
       id: '/dashboard/orgs/$orgId/documents/$id'
       path: '/documents/$id'
@@ -462,6 +502,8 @@ declare module '@tanstack/react-router' {
 interface DashboardOrgsOrgIdRouteRouteChildren {
   DashboardOrgsOrgIdIndexRoute: typeof DashboardOrgsOrgIdIndexRoute
   DashboardOrgsOrgIdDocumentsIdRoute: typeof DashboardOrgsOrgIdDocumentsIdRoute
+  DashboardOrgsOrgIdSettingsAiRoute: typeof DashboardOrgsOrgIdSettingsAiRoute
+  DashboardOrgsOrgIdSettingsAutomationRoute: typeof DashboardOrgsOrgIdSettingsAutomationRoute
   DashboardOrgsOrgIdSettingsCustomPropertiesRoute: typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   DashboardOrgsOrgIdSettingsDocumentTypesRoute: typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   DashboardOrgsOrgIdSettingsGeneralRoute: typeof DashboardOrgsOrgIdSettingsGeneralRoute
@@ -479,6 +521,9 @@ const DashboardOrgsOrgIdRouteRouteChildren: DashboardOrgsOrgIdRouteRouteChildren
   {
     DashboardOrgsOrgIdIndexRoute: DashboardOrgsOrgIdIndexRoute,
     DashboardOrgsOrgIdDocumentsIdRoute: DashboardOrgsOrgIdDocumentsIdRoute,
+    DashboardOrgsOrgIdSettingsAiRoute: DashboardOrgsOrgIdSettingsAiRoute,
+    DashboardOrgsOrgIdSettingsAutomationRoute:
+      DashboardOrgsOrgIdSettingsAutomationRoute,
     DashboardOrgsOrgIdSettingsCustomPropertiesRoute:
       DashboardOrgsOrgIdSettingsCustomPropertiesRoute,
     DashboardOrgsOrgIdSettingsDocumentTypesRoute:

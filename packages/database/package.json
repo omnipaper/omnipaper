@@ -13,6 +13,9 @@
     "./queries/documents": "./src/queries/documents.ts",
     "./queries/storage-paths": "./src/queries/storage-paths.ts",
     "./queries/tags": "./src/queries/tags.ts",
+    "./queries/workflows": "./src/queries/workflows.ts",
+    "./queries/workflow-runs": "./src/queries/workflow-runs.ts",
+    "./queries/ai-suggestions": "./src/queries/ai-suggestions.ts",
     "./id": "./src/id.ts",
     "./migrate": "./src/migrate.ts",
     "./wait": "./src/wait.ts"

@@ -8,6 +8,7 @@
     "./auth-settings": "./src/auth-settings.ts",
     "./storage-settings": "./src/storage-settings.ts",
     "./ocr-settings": "./src/ocr-settings.ts",
+    "./ai-settings": "./src/ai-settings.ts",
     "./provider-settings": "./src/provider-settings.ts",
     "./secret": "./src/secret.ts"
   },
@@ -15,6 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@omnipaper/ai": "workspace:*",
     "@omnipaper/database": "workspace:*",
     "@omnipaper/env": "workspace:*",
     "@omnipaper/ocr": "workspace:*",

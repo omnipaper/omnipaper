@@ -11,6 +11,7 @@ import { defineTask } from "@omnipaper/queue/worker";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
 import { getProviderKeys } from "@omnipaper/settings/provider-settings";
 import { getStorageDriver } from "../lib/storage";
+import { dispatchWorkflowTrigger } from "../lib/workflow-events";
 
 export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }, helpers) => {
   const doc = await getDocumentById(db, { id: documentId });
@@ -58,6 +59,10 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }, h
       title: doc.title,
       text,
     });
+
+    // Text is now available — fire the trigger that AI metadata workflows listen on. Swallows its
+    // own errors, so a dispatch hiccup never flips a successful OCR to "failed".
+    await dispatchWorkflowTrigger(documentId, "document.ocr_completed");
   } catch (err) {
     // Transient provider errors (429 rate limit, 5xx, network) are retryable: rethrow so
     // graphile-worker retries with exponential backoff. The job stays in the queue and the document

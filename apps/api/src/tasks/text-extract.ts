@@ -8,6 +8,7 @@ import {
 import { defineTask } from "@omnipaper/queue/worker";
 import { getStorageDriver } from "../lib/storage";
 import { extractDocumentText } from "../lib/text-extract";
+import { dispatchWorkflowTrigger } from "../lib/workflow-events";
 
 // Pull text out of types we can read natively (txt, docx) — no external OCR provider, no signed URL.
 // Enqueued from ingestDocument() when the type isn't OCR-supported but is text-extractable. Reuses
@@ -47,6 +48,10 @@ export const textExtractTask = defineTask("text-extract", async ({ documentId })
       title: doc.title,
       text,
     });
+
+    // Native extraction also yields text — fire the same trigger as OCR so AI workflows cover
+    // txt/docx too. Swallows its own errors so a dispatch hiccup never flips success to "failed".
+    await dispatchWorkflowTrigger(documentId, "document.ocr_completed");
   } catch (err) {
     // Mirror ocr-extract: mark "failed" so the document leaves "processing" and the UI can offer a
     // re-run, and swallow rather than rethrow — a parse failure is deterministic (e.g. a corrupt

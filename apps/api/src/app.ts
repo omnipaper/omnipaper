@@ -12,6 +12,7 @@ import { documentsRoutes } from "./routes/documents";
 import { settingsRoutes } from "./routes/settings";
 import { storagePathsRoutes } from "./routes/storage-paths";
 import { tagsRoutes } from "./routes/tags";
+import { workflowsRoutes } from "./routes/workflows";
 
 export function createApp() {
   // Org-scoped routes live under /orgs/:orgId. requireOrganization reads :orgId from the path
@@ -22,7 +23,8 @@ export function createApp() {
     .route("/document-types", documentTypesRoutes)
     .route("/storage-paths", storagePathsRoutes)
     .route("/tags", tagsRoutes)
-    .route("/custom-properties", customPropertiesRoutes);
+    .route("/custom-properties", customPropertiesRoutes)
+    .route("/workflows", workflowsRoutes);
 
   const apiRoutes = new Hono<{ Variables: Variables }>()
     .get("/me", (c) => c.json({ user: c.get("user") }))

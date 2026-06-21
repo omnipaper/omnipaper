@@ -1,6 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
+import {
+  getAiProvider,
+  listAiProviders,
+  resolveModel as resolveAiModel,
+} from "@omnipaper/ai/resolve";
+import { testAiConnection } from "@omnipaper/ai/test";
 import { getOcrDefinition, listOcrDefinitions, resolveModel } from "@omnipaper/ocr/resolve";
-import { testProviderConnection } from "@omnipaper/ocr/runner";
+import { aiSettingsSchema, getAiSettings, setAiSettings } from "@omnipaper/settings/ai-settings";
 import {
   getRegistrationSettings,
   registrationSettingsSchema,
@@ -160,12 +166,34 @@ const adminSettings = new Hono<{ Variables: Variables }>()
     await setOcrSettings(c.req.valid("json"));
     return c.json({ ok: true });
   })
+  .get("/ai", async (c) => {
+    const ai = await getAiSettings();
+    const keys = await getProviderKeys();
+    const provider = getAiProvider(ai.provider);
+
+    return c.json({
+      configured: Boolean(keys[ai.provider]),
+      provider: ai.provider,
+      model: resolveAiModel(provider, ai.model),
+      providers: listAiProviders().map((p) => ({
+        id: p.id,
+        label: p.label,
+        defaultModel: p.defaultModel,
+      })),
+    });
+  })
+  .put("/ai", zValidator("json", aiSettingsSchema), async (c) => {
+    await setAiSettings(c.req.valid("json"));
+    return c.json({ ok: true });
+  })
   .get("/providers", async (c) => {
     const keys = await getProviderKeys();
 
     return c.json({
       mistral: keys.mistral ? SECRET_MASK : null,
       google: keys.google ? SECRET_MASK : null,
+      openai: keys.openai ? SECRET_MASK : null,
+      anthropic: keys.anthropic ? SECRET_MASK : null,
     });
   })
   .put("/providers", zValidator("json", providerKeysSchema), async (c) => {
@@ -178,6 +206,12 @@ const adminSettings = new Hono<{ Variables: Variables }>()
         incoming.mistral === undefined ? undefined : unmaskSecret(incoming.mistral, stored.mistral),
       google:
         incoming.google === undefined ? undefined : unmaskSecret(incoming.google, stored.google),
+      openai:
+        incoming.openai === undefined ? undefined : unmaskSecret(incoming.openai, stored.openai),
+      anthropic:
+        incoming.anthropic === undefined
+          ? undefined
+          : unmaskSecret(incoming.anthropic, stored.anthropic),
     });
 
     return c.json({ ok: true });
@@ -187,11 +221,10 @@ const adminSettings = new Hono<{ Variables: Variables }>()
     const stored = await getProviderKeys();
     const key = unmaskSecret(apiKey, stored[provider]);
 
+    // A lightweight per-provider key probe (models list) covering all four providers — OCR
+    // (mistral/google) and AI (openai/anthropic + mistral/google) share the same key per provider.
     try {
-      await testProviderConnection(
-        provider,
-        provider === "mistral" ? { mistral: key } : { google: key },
-      );
+      await testAiConnection(provider, key);
       return c.json({ ok: true, error: null });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Connection failed";

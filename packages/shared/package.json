@@ -7,7 +7,8 @@
     "./redact": "./src/redact.ts",
     "./provider": "./src/provider.ts",
     "./formats": "./src/formats.ts",
-    "./document-filters": "./src/document-filters.ts"
+    "./document-filters": "./src/document-filters.ts",
+    "./workflows": "./src/workflows/index.ts"
   },
   "dependencies": {
     "zod": "catalog:"

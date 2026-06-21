@@ -33,9 +33,11 @@ import {
   HardDriveIcon,
   KeyIcon,
   SlidersHorizontalIcon,
+  SparklesIcon,
   TagIcon,
   UserPlusIcon,
   UsersIcon,
+  WandSparklesIcon,
 } from "lucide-react";
 import { signOut } from "@/features/auth/auth-client";
 import { DemoBanner } from "@/features/auth/components/demo-banner";
@@ -179,6 +181,17 @@ function OrgLayout() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === `${settingsBase}/automation`}
+                        >
+                          <Link to="/dashboard/orgs/$orgId/settings/automation" params={{ orgId }}>
+                            <WandSparklesIcon />
+                            <span>Automation</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
@@ -204,6 +217,14 @@ function OrgLayout() {
                           <Link to="/dashboard/orgs/$orgId/settings/ocr" params={{ orgId }}>
                             <KeyIcon />
                             <span>OCR</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === `${settingsBase}/ai`}>
+                          <Link to="/dashboard/orgs/$orgId/settings/ai" params={{ orgId }}>
+                            <SparklesIcon />
+                            <span>AI</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

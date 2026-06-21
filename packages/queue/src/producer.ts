@@ -6,6 +6,11 @@ const JOB_SPECS: Record<JobName, TaskSpec> = {
   "ocr-extract": { maxAttempts: 5, queueName: "ocr" },
   "text-extract": { maxAttempts: 10 },
   "thumbnail-generate": { maxAttempts: 10 },
+  // Dispatch is cheap DB work; retry generously. The run does the paid LLM call, so it serialises on
+  // its own "ai" queue (like "ocr") and retries conservatively — the runner additionally guards each
+  // attempt against re-billing via the workflow_runs dedup.
+  "workflow-dispatch": { maxAttempts: 5 },
+  "workflow-run": { maxAttempts: 3, queueName: "ai" },
 };
 
 let utilsPromise: Promise<WorkerUtils> | null = null;

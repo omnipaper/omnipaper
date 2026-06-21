@@ -1,6 +1,6 @@
-import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
 import type { Database } from "../client";
-import { documentsTags, tags } from "../schema";
+import { documentsTags, type Tag, tags } from "../schema";
 
 // All data access for the `tags` domain. Like the documents queries, every function takes `db`
 // first so it works from an HTTP route, a worker, or a test, and can be handed a transaction.
@@ -194,4 +194,77 @@ export async function setDocumentTags(db: Database, params: SetDocumentTagsParam
         .values(tagIds.map((tagId) => ({ documentId: params.documentId, tagId })));
     }
   });
+}
+
+// Additively attach tags without disturbing the existing set — used by workflow tag actions and AI
+// suggestion accept (those add to, never replace, what's there). Idempotent via the composite PK.
+export async function addDocumentTags(db: Database, params: SetDocumentTagsParams) {
+  const tagIds = [...new Set(params.tagIds)];
+
+  if (tagIds.length === 0) {
+    return;
+  }
+
+  await db
+    .insert(documentsTags)
+    .values(tagIds.map((tagId) => ({ documentId: params.documentId, tagId })))
+    .onConflictDoNothing();
+}
+
+// Detach specific tags from a document (workflow tag.remove). No-op for tags it doesn't have.
+export async function removeDocumentTags(db: Database, params: SetDocumentTagsParams) {
+  const tagIds = [...new Set(params.tagIds)];
+
+  if (tagIds.length === 0) {
+    return;
+  }
+
+  await db
+    .delete(documentsTags)
+    .where(
+      and(eq(documentsTags.documentId, params.documentId), inArray(documentsTags.tagId, tagIds)),
+    );
+}
+
+// Resolve tag names to rows, creating any that don't already exist (case-insensitive match against
+// the org's tags, so the AI proposing "Invoice" never duplicates an existing "invoice"). Used when
+// an AI tag suggestion includes brand-new names the user approved.
+export async function findOrCreateOrgTagsByName(
+  db: Database,
+  params: { organizationId: string; names: string[] },
+): Promise<Tag[]> {
+  const cleaned = [...new Set(params.names.map((name) => name.trim()).filter(Boolean))];
+
+  if (cleaned.length === 0) {
+    return [];
+  }
+
+  const existing = await db
+    .select()
+    .from(tags)
+    .where(
+      and(
+        eq(tags.organizationId, params.organizationId),
+        inArray(
+          sql`lower(${tags.name})`,
+          cleaned.map((name) => name.toLowerCase()),
+        ),
+      ),
+    );
+
+  const byLowerName = new Map(existing.map((tag) => [tag.name.toLowerCase(), tag]));
+  const resolved: Tag[] = [];
+
+  for (const name of cleaned) {
+    const found = byLowerName.get(name.toLowerCase());
+    if (found) {
+      resolved.push(found);
+      continue;
+    }
+    const created = await createTag(db, { organizationId: params.organizationId, name });
+    byLowerName.set(name.toLowerCase(), created);
+    resolved.push(created);
+  }
+
+  return resolved;
 }

@@ -33,6 +33,11 @@ type DocumentDetailData = InferResponseType<
 >;
 export type DocumentTag = DocumentDetail["tags"][number];
 export type OcrStatus = DocumentRow["ocrStatus"];
+// Pending AI suggestion chip, returned alongside the document on the detail endpoint.
+export type AiSuggestion = InferResponseType<
+  (typeof api.orgs)[":orgId"]["documents"][":id"]["$get"],
+  200
+>["aiSuggestions"][number];
 type DocumentRef = {
   orgId: string;
   id: string;
@@ -363,6 +368,66 @@ export function useSetDocumentPropertyValue(orgId: string, documentId: string) {
     },
   });
 }
+// Accept a pending AI suggestion: the server applies the value (user-attributed) and marks it
+// accepted. PATCH-style endpoints return only { ok }, so reconcile the detail (which carries both the
+// updated document and the now-shorter suggestion list) and refresh list rows.
+export function useAcceptSuggestion(orgId: string, documentId: string) {
+  const queryClient = useQueryClient();
+  const detailKey = documentKeys.detail({ orgId, id: documentId });
+  return useMutation({
+    mutationFn: async (suggestionId: string) => {
+      const res = await api.orgs[":orgId"].documents[":id"].suggestions[":sugId"].accept.$post({
+        param: { orgId, id: documentId, sugId: suggestionId },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to apply suggestion");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: detailKey, exact: true });
+      queryClient.invalidateQueries({ queryKey: documentKeys.lists(orgId) });
+      toast.success("Suggestion applied");
+    },
+    onError: () => toast.error("Failed to apply suggestion"),
+  });
+}
+
+// Dismiss a pending suggestion. Optimistically drop the chip; reconcile on settle.
+export function useDismissSuggestion(orgId: string, documentId: string) {
+  const queryClient = useQueryClient();
+  const detailKey = documentKeys.detail({ orgId, id: documentId });
+  return useMutation({
+    mutationFn: async (suggestionId: string) => {
+      const res = await api.orgs[":orgId"].documents[":id"].suggestions[":sugId"].dismiss.$post({
+        param: { orgId, id: documentId, sugId: suggestionId },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to dismiss suggestion");
+      }
+    },
+    onMutate: async (suggestionId) => {
+      await queryClient.cancelQueries({ queryKey: detailKey, exact: true });
+      const previous = queryClient.getQueryData<DocumentDetailData>(detailKey);
+      if (previous) {
+        queryClient.setQueryData<DocumentDetailData>(detailKey, {
+          ...previous,
+          aiSuggestions: previous.aiSuggestions.filter((s) => s.id !== suggestionId),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(detailKey, context.previous);
+      }
+      toast.error("Failed to dismiss suggestion");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: detailKey, exact: true });
+    },
+  });
+}
+
 export function useClearDocumentPropertyValue(orgId: string, documentId: string) {
   const queryClient = useQueryClient();
   const detailKey = documentKeys.detail({ orgId, id: documentId });

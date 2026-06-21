@@ -163,6 +163,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                 storagePath={doc.storagePath}
                 tags={doc.tags}
                 customProperties={doc.customProperties}
+                aiSuggestions={data.aiSuggestions}
               />
             </TabsContent>
             <TabsContent value="ocr">

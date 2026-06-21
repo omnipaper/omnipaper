@@ -1,3 +1,5 @@
+import type { ActionResult, WorkflowDefinition } from "@omnipaper/shared/workflows";
+import { AI_SUGGESTION_FIELDS } from "@omnipaper/shared/workflows";
 import { type SQL, sql } from "drizzle-orm";
 import {
   boolean,
@@ -12,6 +14,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { organization, user } from "./auth-schema";
@@ -63,6 +66,29 @@ export const activityEventEnum = pgEnum("activity_event", ACTIVITY_EVENT_NAMES);
 export const activityActorTypeEnum = pgEnum("activity_actor_type", ["user", "system"]);
 
 export const activityResourceTypeEnum = pgEnum("activity_resource_type", ["document"]);
+
+// --- workflows -----------------------------------------------------------------------------------
+
+// A workflow is either user-authored (Zapier-style builder) or the single per-org system workflow
+// that the AI settings "front door" toggles edit. Both are the same row, the same engine.
+export const workflowOriginEnum = pgEnum("workflow_origin", ["user", "system"]);
+
+export const workflowRunStatusEnum = pgEnum("workflow_run_status", [
+  "running",
+  "succeeded",
+  "failed",
+  "skipped",
+]);
+
+// Mirrors AI_SUGGESTION_FIELDS so the column and the shared type can never drift.
+export const aiSuggestionFieldEnum = pgEnum("ai_suggestion_field", AI_SUGGESTION_FIELDS);
+
+export const aiSuggestionStatusEnum = pgEnum("ai_suggestion_status", [
+  "pending",
+  "accepted",
+  "dismissed",
+  "superseded",
+]);
 
 // First-class taxonomy because descriptions are used by users and future AI auto-assignment.
 export const documentTypes = pgTable(
@@ -316,6 +342,109 @@ export const activityEvents = pgTable(
   ],
 );
 
+// One row = one workflow. `definition` (JSON) is the trigger + optional filter + ordered actions;
+// `triggerType` is denormalised from definition.trigger.type so the dispatcher can do a cheap
+// indexed "who listens to this event?" lookup without parsing every JSON blob.
+export const workflows = pgTable(
+  "workflows",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("wf")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    // The publish gate (Zapier's on/off). A disabled workflow never dispatches.
+    enabled: boolean("enabled").notNull().default(false),
+    origin: workflowOriginEnum("origin").notNull().default("user"),
+    triggerType: text("trigger_type").notNull(),
+    schemaVersion: integer("schema_version").notNull().default(1),
+    definition: jsonb("definition").$type<WorkflowDefinition>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    index("workflows_org_trigger_enabled_idx").on(t.organizationId, t.triggerType, t.enabled),
+    // At most one system workflow per org (the front-door toggles target it). Partial unique index.
+    uniqueIndex("workflows_org_system_unique")
+      .on(t.organizationId)
+      .where(sql`${t.origin} = 'system'`),
+  ],
+);
+
+// Audit trail + exactly-once guard. The unique (workflowId, triggerEventId) means a duplicate job
+// delivery for the same trigger fire is a no-op (insert raises a unique violation → skip).
+export const workflowRuns = pgTable(
+  "workflow_runs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("wfr")),
+    workflowId: text("workflow_id")
+      .notNull()
+      .references(() => workflows.id, { onDelete: "cascade" }),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    // Generated at the emission point — one id per trigger fire (a manual re-OCR gets a fresh id, so
+    // the workflow runs again, which is intended).
+    triggerEventId: text("trigger_event_id").notNull(),
+    status: workflowRunStatusEnum("status").notNull(),
+    actionResults: jsonb("action_results").$type<ActionResult[]>(),
+    error: jsonb("error").$type<{ message: string }>(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("workflow_runs_dedup_idx").on(t.workflowId, t.triggerEventId),
+    index("workflow_runs_document_idx").on(t.documentId),
+  ],
+);
+
+// `suggest`-mode AI output lands here as pending rows; the document view renders a chip per row with
+// an "Use" action. A re-run overwrites the pending suggestion for the same field instead of piling up.
+export const aiSuggestions = pgTable(
+  "ai_suggestions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("sug")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    field: aiSuggestionFieldEnum("field").notNull(),
+    // Discriminator for field='customProperty'; NULL for the single-valued built-in fields.
+    definitionId: text("definition_id").references(() => customPropertyDefinitions.id, {
+      onDelete: "cascade",
+    }),
+    suggestedValue: jsonb("suggested_value").notNull(),
+    confidence: doublePrecision("confidence"),
+    model: text("model"),
+    workflowId: text("workflow_id").references(() => workflows.id, { onDelete: "set null" }),
+    sourceRunId: text("source_run_id"),
+    status: aiSuggestionStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Re-run overwrites the suggestion for a field instead of accumulating (one row per doc×field×
+    // definition, ever). NULLS NOT DISTINCT is required because definitionId is NULL for non-custom
+    // fields — without it Postgres treats each NULL as unique and duplicates would slip through. A
+    // unique CONSTRAINT (not a unique index) because nullsNotDistinct lives on the constraint builder
+    // in this drizzle version; the upsert in queries/ai-suggestions.ts targets these columns.
+    unique("ai_suggestions_doc_field_def_idx")
+      .on(t.documentId, t.field, t.definitionId)
+      .nullsNotDistinct(),
+    index("ai_suggestions_doc_status_idx").on(t.documentId, t.status),
+  ],
+);
+
 export type DocumentType = typeof documentTypes.$inferSelect;
 export type NewDocumentType = typeof documentTypes.$inferInsert;
 
@@ -344,3 +473,12 @@ export type Setting = typeof settings.$inferSelect;
 
 export type ActivityEventRow = typeof activityEvents.$inferSelect;
 export type NewActivityEvent = typeof activityEvents.$inferInsert;
+
+export type Workflow = typeof workflows.$inferSelect;
+export type NewWorkflow = typeof workflows.$inferInsert;
+
+export type WorkflowRun = typeof workflowRuns.$inferSelect;
+export type NewWorkflowRun = typeof workflowRuns.$inferInsert;
+
+export type AiSuggestion = typeof aiSuggestions.$inferSelect;
+export type NewAiSuggestion = typeof aiSuggestions.$inferInsert;
