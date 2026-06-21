@@ -18,7 +18,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <OpenPanelComponent
           clientId="3855a53b-37eb-4f33-937e-bbbf6334ab01"
           apiUrl="https://openpanel-api.mateusztylec.com"
-          scriptUrl="/op1.js"
           trackScreenViews
           trackOutgoingLinks
           trackAttributes
