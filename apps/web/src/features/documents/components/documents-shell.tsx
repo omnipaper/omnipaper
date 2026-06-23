@@ -26,7 +26,7 @@ export function DocumentsShell({ orgId, children }: { orgId: string; children: R
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-bold text-2xl">Documents</h1>
+        <h1 className="font-bold text-2xl text-balance">Documents</h1>
         {!DEMO_MODE && <UploadButton orgId={orgId} />}
       </div>
       <div className="flex flex-col gap-3">

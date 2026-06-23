@@ -74,7 +74,7 @@ function Thumbnail({
         onLoad={() => setStatus("loaded")}
         onError={() => setStatus("error")}
         className={cn(
-          "h-full w-full object-cover object-top transition-opacity duration-300 group-hover:opacity-90",
+          "h-full w-full object-cover object-top outline-1 -outline-offset-1 outline-black/10 transition-opacity duration-300 group-hover:opacity-90 dark:outline-white/10",
           status === "loaded" ? "opacity-100" : "opacity-0",
         )}
       />
@@ -161,7 +161,7 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
             ) : null}
 
             {docDate || added ? (
-              <div className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground text-xs">
+              <div className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground text-xs tabular-nums">
                 {docDate ? <span>{docDate}</span> : null}
                 {docDate && added ? <span aria-hidden>·</span> : null}
                 {added ? <span>{added}</span> : null}

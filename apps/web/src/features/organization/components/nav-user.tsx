@@ -40,7 +40,7 @@ export function NavUser({ user, orgId, onSignOut }: NavUserProps) {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="size-8 rounded-lg">
+              <Avatar className="size-8 rounded-lg outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10">
                 {user.image ? <AvatarImage src={user.image} alt={user.name} /> : null}
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
@@ -59,7 +59,7 @@ export function NavUser({ user, orgId, onSignOut }: NavUserProps) {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="size-8 rounded-lg">
+                <Avatar className="size-8 rounded-lg outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10">
                   {user.image ? <AvatarImage src={user.image} alt={user.name} /> : null}
                   <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>

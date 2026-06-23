@@ -87,7 +87,7 @@ export function DocumentRows({ orgId, documents, isSelected, onToggle }: Documen
           </div>
 
           {docDate || added ? (
-            <div className="flex shrink-0 flex-col items-end gap-0.5 whitespace-nowrap text-muted-foreground text-xs">
+            <div className="flex shrink-0 flex-col items-end gap-0.5 whitespace-nowrap text-muted-foreground text-xs tabular-nums">
               {docDate ? <span>{docDate}</span> : null}
               {added ? <span>{added}</span> : null}
             </div>
