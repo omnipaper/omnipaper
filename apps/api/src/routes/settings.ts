@@ -1,6 +1,13 @@
 import { zValidator } from "@hono/zod-validator";
+import { testAiProvider } from "@omnipaper/ai/test";
 import { getOcrDefinition, listOcrDefinitions, resolveModel } from "@omnipaper/ocr/resolve";
 import { testProviderConnection } from "@omnipaper/ocr/runner";
+import {
+  aiProviderTestSchema,
+  aiSettingsSchema,
+  getAiSettings,
+  setAiSettings,
+} from "@omnipaper/settings/ai-settings";
 import {
   getRegistrationSettings,
   registrationSettingsSchema,
@@ -160,12 +167,35 @@ const adminSettings = new Hono<{ Variables: Variables }>()
     await setOcrSettings(c.req.valid("json"));
     return c.json({ ok: true });
   })
+  .get("/ai", async (c) => {
+    const ai = await getAiSettings();
+    return c.json({ provider: ai.provider, model: ai.model ?? "" });
+  })
+  .put("/ai", zValidator("json", aiSettingsSchema), async (c) => {
+    await setAiSettings(c.req.valid("json"));
+    return c.json({ ok: true });
+  })
+  .post("/ai/test", zValidator("json", aiProviderTestSchema), async (c) => {
+    const { provider, apiKey } = c.req.valid("json");
+    const stored = await getProviderKeys();
+    const key = unmaskSecret(apiKey, stored[provider]);
+
+    try {
+      await testAiProvider(provider, key);
+      return c.json({ ok: true, error: null });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Connection failed";
+      return c.json({ ok: false, error: redactSecrets(message, key) });
+    }
+  })
   .get("/providers", async (c) => {
     const keys = await getProviderKeys();
 
     return c.json({
       mistral: keys.mistral ? SECRET_MASK : null,
       google: keys.google ? SECRET_MASK : null,
+      openai: keys.openai ? SECRET_MASK : null,
+      anthropic: keys.anthropic ? SECRET_MASK : null,
     });
   })
   .put("/providers", zValidator("json", providerKeysSchema), async (c) => {
@@ -178,6 +208,12 @@ const adminSettings = new Hono<{ Variables: Variables }>()
         incoming.mistral === undefined ? undefined : unmaskSecret(incoming.mistral, stored.mistral),
       google:
         incoming.google === undefined ? undefined : unmaskSecret(incoming.google, stored.google),
+      openai:
+        incoming.openai === undefined ? undefined : unmaskSecret(incoming.openai, stored.openai),
+      anthropic:
+        incoming.anthropic === undefined
+          ? undefined
+          : unmaskSecret(incoming.anthropic, stored.anthropic),
     });
 
     return c.json({ ok: true });

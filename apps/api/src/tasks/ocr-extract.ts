@@ -1,4 +1,5 @@
 import { db } from "@omnipaper/database/client";
+import { createId } from "@omnipaper/database/id";
 import {
   completeDocumentOcr,
   getDocumentById,
@@ -7,6 +8,7 @@ import {
 } from "@omnipaper/database/queries/documents";
 import { getOcrDefinition, OcrError } from "@omnipaper/ocr/resolve";
 import { extractText } from "@omnipaper/ocr/runner";
+import { enqueue } from "@omnipaper/queue/producer";
 import { defineTask } from "@omnipaper/queue/worker";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
 import { getProviderKeys } from "@omnipaper/settings/provider-settings";
@@ -58,6 +60,19 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }, h
       title: doc.title,
       text,
     });
+
+    try {
+      await enqueue("workflow-dispatch", {
+        documentId,
+        trigger: "document.ocr_completed",
+        triggerEventId: createId("wfe"),
+      });
+    } catch (dispatchErr) {
+      console.error(
+        `[ocr-extract] workflow dispatch failed for document ${documentId}:`,
+        dispatchErr,
+      );
+    }
   } catch (err) {
     // Transient provider errors (429 rate limit, 5xx, network) are retryable: rethrow so
     // graphile-worker retries with exponential backoff. The job stays in the queue and the document

@@ -9,6 +9,7 @@ export const settingsKeys = {
   all: ["settings"] as const,
   storage: () => [...settingsKeys.all, "storage"] as const,
   ocr: () => [...settingsKeys.all, "ocr"] as const,
+  ai: () => [...settingsKeys.all, "ai"] as const,
   providers: () => [...settingsKeys.all, "providers"] as const,
   registration: () => [...settingsKeys.all, "registration"] as const,
 };
@@ -240,6 +241,79 @@ export function useSaveRegistrationSettings() {
     },
     onError: () => {
       toast.error("Save failed");
+    },
+  });
+}
+
+export function aiSettingsQuery() {
+  return queryOptions({
+    queryKey: settingsKeys.ai(),
+    queryFn: async () => {
+      const res = await api.settings.ai.$get();
+      if (!res.ok) {
+        throw new Error("Failed to load AI settings");
+      }
+      return res.json();
+    },
+  });
+}
+
+export type AiProviderId = InferRequestType<typeof api.settings.ai.$put>["json"]["provider"];
+
+export type SaveAiInput = {
+  providers: InferRequestType<typeof api.settings.providers.$put>["json"];
+  ai: { provider: AiProviderId; model: string };
+};
+
+// Save the provider keys plus the AI provider/model (two calls — keys first, then settings), then
+// refresh both cards. Mirrors useSaveOcrSettings.
+export function useSaveAiSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: SaveAiInput) => {
+      const providersRes = await api.settings.providers.$put({ json: input.providers });
+      if (!providersRes.ok) {
+        throw new Error("Failed to save provider keys");
+      }
+
+      const aiRes = await api.settings.ai.$put({ json: input.ai });
+      if (!aiRes.ok) {
+        throw new Error("Failed to save AI settings");
+      }
+      return aiRes.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.ai() });
+      queryClient.invalidateQueries({ queryKey: settingsKeys.providers() });
+      toast.success("AI settings saved");
+    },
+    onError: () => {
+      toast.error("Save failed");
+    },
+  });
+}
+
+export type TestAiInput = InferRequestType<typeof api.settings.ai.test.$post>["json"];
+
+// Dry-run an AI provider key. Like the storage/provider tests, a checked result drives the toast.
+export function useTestAiConnection() {
+  return useMutation({
+    mutationFn: async (input: TestAiInput) => {
+      const res = await api.settings.ai.test.$post({ json: input });
+      if (!res.ok) {
+        throw new Error("Test failed");
+      }
+      return res.json();
+    },
+    onSuccess: (result) => {
+      if (result.ok) {
+        toast.success("Connection successful");
+      } else {
+        toast.error(result.error ?? "Connection failed");
+      }
+    },
+    onError: () => {
+      toast.error("Test failed");
     },
   });
 }
