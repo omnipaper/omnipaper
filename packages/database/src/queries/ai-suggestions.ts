@@ -64,6 +64,16 @@ export async function getPendingSuggestions(db: Database, params: { documentId: 
     );
 }
 
+export async function getSuggestionById(db: Database, params: { id: string; documentId: string }) {
+  const [suggestion] = await db
+    .select()
+    .from(aiSuggestions)
+    .where(and(eq(aiSuggestions.id, params.id), eq(aiSuggestions.documentId, params.documentId)))
+    .limit(1);
+
+  return suggestion;
+}
+
 export type SetSuggestionStatusInput = {
   documentId: string;
   id: string;

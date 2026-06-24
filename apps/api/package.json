@@ -32,6 +32,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@langfuse/otel": "5.7.0",
+    "@opentelemetry/sdk-node": "0.219.0",
     "@types/bun": "catalog:",
     "@types/pngjs": "6.0.5",
     "typescript": "catalog:"

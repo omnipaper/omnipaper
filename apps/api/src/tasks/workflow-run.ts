@@ -51,6 +51,7 @@ async function runAction(
     ocrText: string | null;
     documentTypeId: string | null;
     storagePathId: string | null;
+    documentDate: string | null;
   },
 ): Promise<ActionResult> {
   switch (action.type) {

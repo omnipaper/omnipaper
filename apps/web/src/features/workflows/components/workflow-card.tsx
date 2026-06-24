@@ -1,7 +1,14 @@
 import { TRIGGER_DEFINITIONS, type TriggerId } from "@omnipaper/shared/workflows/triggers";
 import { Button } from "@omnipaper/ui/components/button";
 import { Switch } from "@omnipaper/ui/components/switch";
-import { ChevronRightIcon, SparklesIcon, TagIcon, Trash2Icon, ZapIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  PencilIcon,
+  SparklesIcon,
+  TagIcon,
+  Trash2Icon,
+  ZapIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import type { OrgTag } from "@/features/tags/queries/tags";
 import {
@@ -23,10 +30,12 @@ export function WorkflowCard({
   orgId,
   workflow,
   tags,
+  onEdit,
 }: {
   orgId: string;
   workflow: Workflow;
   tags: OrgTag[];
+  onEdit: (workflow: Workflow) => void;
 }) {
   const update = useUpdateWorkflow(orgId);
   const remove = useDeleteWorkflow(orgId);
@@ -76,6 +85,14 @@ export function WorkflowCard({
               update.mutate({ id: workflow.id, body: { enabled: checked } })
             }
           />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(workflow)}
+            aria-label="Edit workflow"
+          >
+            <PencilIcon className="size-4" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"

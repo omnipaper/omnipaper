@@ -21,9 +21,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@langfuse/otel": "5.6.0",
     "@langfuse/tracing": "5.6.0",
-    "@opentelemetry/sdk-node": "0.219.0",
     "@types/bun": "catalog:",
     "typescript": "catalog:"
   }

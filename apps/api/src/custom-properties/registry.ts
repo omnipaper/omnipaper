@@ -116,6 +116,37 @@ export function getPropertyTypeDefinition(type: CustomPropertyType): CustomPrope
   return customPropertyRegistry[type];
 }
 
+// Coerce an AI's plain-string value into the typed value columns. Used by the workflow AI executor
+// (auto-apply) and the suggestion-accept route. Returns null when the string can't be coerced (bad
+// number, unknown select option, or it fails the type's input schema).
+export function coerceCustomValue(
+  type: CustomPropertyType,
+  options: { id: string; label: string }[],
+  raw: string,
+): ValueColumns | null {
+  const def = customPropertyRegistry[type];
+  if (type === "select") {
+    const option = options.find((o) => o.label.toLowerCase() === raw.trim().toLowerCase());
+    return option ? def.toDb(option.id) : null;
+  }
+  let value: unknown = raw.trim();
+  if (type === "number") {
+    const parsed = Number(raw);
+    if (Number.isNaN(parsed)) {
+      return null;
+    }
+    value = parsed;
+  } else if (type === "boolean") {
+    const lowered = raw.trim().toLowerCase();
+    if (lowered !== "true" && lowered !== "false") {
+      return null;
+    }
+    value = lowered === "true";
+  }
+  const result = def.inputSchema.safeParse(value);
+  return result.success ? def.toDb(result.data) : null;
+}
+
 // Derive a stable, agent/MCP-facing key from a display name: "Invoice Amount" -> "invoice_amount".
 // Returns "" when the name has no alphanumerics — the route rejects that.
 export function propertyKeyFromName(name: string): string {

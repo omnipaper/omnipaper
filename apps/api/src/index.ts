@@ -1,3 +1,4 @@
+import "./instrumentation";
 import { migrate } from "@omnipaper/database/migrate";
 import { waitForDatabase } from "@omnipaper/database/wait";
 import { env } from "@omnipaper/env";

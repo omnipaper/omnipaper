@@ -50,3 +50,4 @@ coverage/
 **/.tanstack/
 .claude/*
 /docker/docker-compose.dev.yml
+.cursor/*

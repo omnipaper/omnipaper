@@ -2,6 +2,10 @@ import { classifyDocument } from "@omnipaper/ai/classify";
 import { recordEvent } from "@omnipaper/database/activity";
 import { db } from "@omnipaper/database/client";
 import { upsertAiSuggestion } from "@omnipaper/database/queries/ai-suggestions";
+import {
+  getOrgPropertyDefinitions,
+  setDocumentPropertyValue,
+} from "@omnipaper/database/queries/custom-properties";
 import { getOrgDocumentTypes } from "@omnipaper/database/queries/document-types";
 import { updateDocument } from "@omnipaper/database/queries/documents";
 import { getOrgStoragePaths } from "@omnipaper/database/queries/storage-paths";
@@ -10,6 +14,7 @@ import { getAiSettings } from "@omnipaper/settings/ai-settings";
 import { getProviderKeys } from "@omnipaper/settings/provider-settings";
 import { resolveAiModel } from "@omnipaper/shared/ai-models";
 import type { AiAssignParams } from "@omnipaper/shared/workflows/ai-assign";
+import { coerceCustomValue } from "../custom-properties/registry";
 
 type Doc = {
   id: string;
@@ -18,6 +23,7 @@ type Doc = {
   ocrText: string | null;
   documentTypeId: string | null;
   storagePathId: string | null;
+  documentDate: string | null;
 };
 
 // Resolves the AI's flat name-based output back to org ids and applies it (approach B): auto writes
@@ -38,11 +44,17 @@ export async function runAiAssignMetadata(
     return { ok: false, detail: `missing ${ai.provider} API key` };
   }
 
+  const customConfig = config.customFields;
   const [types, paths, tags] = await Promise.all([
     getOrgDocumentTypes(db, { organizationId: doc.organizationId }),
     getOrgStoragePaths(db, { organizationId: doc.organizationId }),
     getOrgTags(db, { organizationId: doc.organizationId }),
   ]);
+  const customDefs = customConfig
+    ? (await getOrgPropertyDefinitions(db, { organizationId: doc.organizationId })).filter((d) =>
+        customConfig.definitionIds.includes(d.definition.id),
+      )
+    : [];
 
   const result = await classifyDocument({
     provider: ai.provider,
@@ -54,10 +66,17 @@ export async function runAiAssignMetadata(
       documentTypes: types.map((t) => ({ name: t.name, description: t.description })),
       storagePaths: paths.map((p) => ({ path: p.path, description: p.description })),
       tags: tags.map((t) => ({ name: t.name })),
+      customFields: customDefs.map((d) => ({
+        name: d.definition.name,
+        type: d.definition.type,
+        description: d.definition.description,
+        options: d.definition.type === "select" ? d.options.map((o) => o.label) : [],
+      })),
     },
   });
 
   const updatedFields: string[] = [];
+  const updatedDefinitions: string[] = [];
   let tagsChanged = false;
 
   if (config.documentType && result.documentType) {
@@ -155,6 +174,65 @@ export async function runAiAssignMetadata(
     }
   }
 
+  if (config.documentDate && result.documentDate) {
+    if (config.documentDate.mode === "auto") {
+      if (!doc.documentDate) {
+        await updateDocument(db, {
+          organizationId: doc.organizationId,
+          id: doc.id,
+          documentDate: result.documentDate,
+        });
+        updatedFields.push("documentDate");
+      }
+    } else {
+      await upsertAiSuggestion(db, {
+        documentId: doc.id,
+        field: "documentDate",
+        suggestedValue: { value: result.documentDate },
+      });
+    }
+  }
+
+  if (customConfig && result.customFields) {
+    const byName = new Map(customDefs.map((d) => [d.definition.name, d] as const));
+    for (const entry of result.customFields) {
+      const def = byName.get(entry.field);
+      if (!def || entry.value == null) {
+        continue;
+      }
+      if (customConfig.mode === "auto") {
+        const columns = coerceCustomValue(def.definition.type, def.options, entry.value);
+        if (columns) {
+          await setDocumentPropertyValue(db, {
+            documentId: doc.id,
+            definitionId: def.definition.id,
+            values: columns,
+          });
+          updatedDefinitions.push(def.definition.id);
+        }
+      } else if (def.definition.type === "select") {
+        const option = def.options.find(
+          (o) => o.label.toLowerCase() === entry.value?.toLowerCase(),
+        );
+        if (option) {
+          await upsertAiSuggestion(db, {
+            documentId: doc.id,
+            field: "customProperty",
+            customPropertyDefinitionId: def.definition.id,
+            suggestedValue: { selectOptionId: option.id },
+          });
+        }
+      } else {
+        await upsertAiSuggestion(db, {
+          documentId: doc.id,
+          field: "customProperty",
+          customPropertyDefinitionId: def.definition.id,
+          suggestedValue: { value: entry.value },
+        });
+      }
+    }
+  }
+
   if (updatedFields.length > 0) {
     await recordEvent(db, {
       organizationId: doc.organizationId,
@@ -171,6 +249,15 @@ export async function runAiAssignMetadata(
       event: "document.tags_updated",
       actor: { type: "system" },
       data: { source: "ai" },
+    });
+  }
+  if (updatedDefinitions.length > 0) {
+    await recordEvent(db, {
+      organizationId: doc.organizationId,
+      resource: { type: "document", id: doc.id, label: doc.title },
+      event: "document.property_updated",
+      actor: { type: "system" },
+      data: { updatedDefinitions },
     });
   }
 

@@ -1,3 +1,4 @@
+import { env } from "@omnipaper/env";
 import type { AiAssignParams } from "@omnipaper/shared/workflows/ai-assign";
 import { generateText, Output, stepCountIs, tool } from "ai";
 import { z } from "zod";
@@ -8,20 +9,20 @@ const MAX_STEPS = 4;
 const TITLE_MAX = 200;
 const TIMEOUT_MS = 60_000;
 
-// Names only: this package builds the prompt + enum from them and never touches org ids. The
-// executor passes names in and resolves the returned names back to ids (approach B).
 export type ClassifyCandidates = {
   documentTypes: { name: string; description: string | null }[];
   storagePaths: { path: string; description: string | null }[];
   tags: { name: string }[];
+  customFields: { name: string; type: string; description: string | null; options: string[] }[];
 };
 
-// Flat, name-based output mirroring the model. The executor resolves names -> ids against the org.
 export type ClassifyResult = {
   documentType?: string | null;
   storagePath?: string | null;
   tags?: string[];
+  documentDate?: string | null;
   title?: string | null;
+  customFields?: { field: string; value: string | null }[];
 };
 
 export type ClassifyInput = {
@@ -33,8 +34,6 @@ export type ClassifyInput = {
   ocrText: string;
 };
 
-// Only enabled fields with something to choose from enter the schema; type/path are enum-constrained
-// to the provided names so the model cannot invent options.
 function buildSchema(input: ClassifyInput) {
   const { fields, candidates } = input;
   const shape: Record<string, z.ZodTypeAny> = {};
@@ -50,8 +49,20 @@ function buildSchema(input: ClassifyInput) {
   if (fields.tags) {
     shape.tags = z.array(z.string());
   }
+  if (fields.documentDate) {
+    shape.documentDate = z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .nullable();
+  }
   if (fields.title) {
     shape.title = z.string().nullable();
+  }
+  if (fields.customFields && candidates.customFields.length > 0) {
+    const fieldNames = candidates.customFields.map((c) => c.name) as [string, ...string[]];
+    shape.customFields = z.array(
+      z.object({ field: z.enum(fieldNames), value: z.string().nullable() }),
+    );
   }
 
   return z.object(shape);
@@ -79,8 +90,26 @@ function buildPrompt(input: ClassifyInput) {
       `## Tags (reuse these names where they fit; you may also propose new ones)\n${existing || "(none yet)"}`,
     );
   }
+  if (fields.documentDate) {
+    sections.push(
+      "## Document date\nThe date the document is about, as YYYY-MM-DD, only if it appears in the text; use null if absent.",
+    );
+  }
   if (fields.title) {
     sections.push("## Title\nProvide a short, human-readable title for the document.");
+  }
+  if (fields.customFields && candidates.customFields.length > 0) {
+    const lines = candidates.customFields
+      .map((c) => {
+        const desc = c.description ? ` — ${c.description}` : "";
+        const opts =
+          c.type === "select" && c.options.length > 0 ? ` (options: ${c.options.join(", ")})` : "";
+        return `${c.name} [${c.type}]${desc}${opts}`;
+      })
+      .join("\n");
+    sections.push(
+      `## Custom fields (fill by field name; value as text, for select use one of its options; omit if absent)\n${lines}`,
+    );
   }
 
   const head = ocrText.slice(0, OCR_HEAD_CHARS);
@@ -107,10 +136,8 @@ function buildPrompt(input: ClassifyInput) {
   return { system, prompt };
 }
 
-// Cleanup only (trim, dedupe, cap). Name -> id resolution is the executor's job (approach B); for
-// document type / storage path the executor's lookup also acts as validation (unknown name -> dropped).
 function normalizeOutput(input: ClassifyInput, raw: ClassifyResult): ClassifyResult {
-  const { fields } = input;
+  const { fields, candidates } = input;
   const out: ClassifyResult = {};
 
   if (fields.documentType) {
@@ -132,17 +159,23 @@ function normalizeOutput(input: ClassifyInput, raw: ClassifyResult): ClassifyRes
         return true;
       });
   }
+  if (fields.documentDate) {
+    out.documentDate = raw.documentDate ?? null;
+  }
   if (fields.title) {
     const value = raw.title?.trim();
     out.title = value ? value.slice(0, TITLE_MAX) : null;
+  }
+  if (fields.customFields) {
+    const known = new Set(candidates.customFields.map((c) => c.name));
+    out.customFields = (raw.customFields ?? []).filter(
+      (c) => known.has(c.field) && c.value != null,
+    );
   }
 
   return out;
 }
 
-// One structured call covering all enabled fields. A read_document_ocr tool lets the model pull more
-// of the text on demand (capped by stopWhen); short documents never call it, so cost stays near a
-// single classification. Returns flat names; the executor resolves them to org ids.
 export async function classifyDocument(input: ClassifyInput): Promise<ClassifyResult> {
   const { system, prompt } = buildPrompt(input);
 
@@ -167,8 +200,10 @@ export async function classifyDocument(input: ClassifyInput): Promise<ClassifyRe
     system,
     prompt,
     abortSignal: AbortSignal.timeout(TIMEOUT_MS),
+    experimental_telemetry: {
+      isEnabled: process.env.NODE_ENV !== "production" && Boolean(env.LANGFUSE_PUBLIC_KEY),
+    },
   });
-  console.log(result.output);
 
   return normalizeOutput(input, result.output as ClassifyResult);
 }

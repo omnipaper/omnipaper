@@ -17,9 +17,15 @@ import {
 } from "@omnipaper/ui/components/select";
 import { Switch } from "@omnipaper/ui/components/switch";
 import { PlusIcon, SparklesIcon, TagIcon, XIcon, ZapIcon } from "lucide-react";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type ReactNode, type SubmitEvent, useEffect, useState } from "react";
+import type { PropertyDefinition } from "@/features/custom-properties/queries/custom-properties";
 import type { OrgTag } from "@/features/tags/queries/tags";
-import { type CreateWorkflowBody, useCreateWorkflow } from "@/features/workflows/queries/workflows";
+import {
+  type CreateWorkflowBody,
+  useCreateWorkflow,
+  useUpdateWorkflow,
+  type Workflow,
+} from "@/features/workflows/queries/workflows";
 
 type Mode = "auto" | "suggest";
 type ActionType = "tag.add" | "tag.remove" | "ai.assignMetadata";
@@ -28,6 +34,7 @@ const AI_FIELDS = [
   { key: "documentType", label: "Document type" },
   { key: "storagePath", label: "Storage path" },
   { key: "tags", label: "Tags" },
+  { key: "documentDate", label: "Document date" },
   { key: "title", label: "Title" },
 ] as const;
 type AiFieldKey = (typeof AI_FIELDS)[number]["key"];
@@ -38,6 +45,9 @@ type DraftAction = {
   tagId: string;
   fields: Partial<Record<AiFieldKey, Mode>>;
   allowNew: boolean;
+  // Custom fields share one mode across the selected property definitions.
+  customFieldIds: string[];
+  customFieldsMode: Mode;
 };
 
 const ACTION_OPTIONS: { id: ActionType; label: string }[] = [
@@ -47,7 +57,58 @@ const ACTION_OPTIONS: { id: ActionType; label: string }[] = [
 ];
 
 function newAction(): DraftAction {
-  return { key: crypto.randomUUID(), type: "tag.add", tagId: "", fields: {}, allowNew: false };
+  return {
+    key: crypto.randomUUID(),
+    type: "tag.add",
+    tagId: "",
+    fields: {},
+    allowNew: false,
+    customFieldIds: [],
+    customFieldsMode: "suggest",
+  };
+}
+
+// Inverse of handleSubmit's build: turn a stored definition's actions into editable draft state.
+function hydrateActions(actions: Workflow["definition"]["actions"]): DraftAction[] {
+  return actions.map((action) => {
+    if (action.type === "ai.assignMetadata") {
+      const config = action.config;
+      const fields: Partial<Record<AiFieldKey, Mode>> = {};
+      if (config.documentType) {
+        fields.documentType = config.documentType.mode;
+      }
+      if (config.storagePath) {
+        fields.storagePath = config.storagePath.mode;
+      }
+      if (config.tags) {
+        fields.tags = config.tags.mode;
+      }
+      if (config.documentDate) {
+        fields.documentDate = config.documentDate.mode;
+      }
+      if (config.title) {
+        fields.title = config.title.mode;
+      }
+      return {
+        key: crypto.randomUUID(),
+        type: "ai.assignMetadata",
+        tagId: "",
+        fields,
+        allowNew: config.tags?.allowNew ?? false,
+        customFieldIds: config.customFields?.definitionIds ?? [],
+        customFieldsMode: config.customFields?.mode ?? "suggest",
+      };
+    }
+    return {
+      key: crypto.randomUUID(),
+      type: action.type,
+      tagId: action.config.tagId,
+      fields: {},
+      allowNew: false,
+      customFieldIds: [],
+      customFieldsMode: "suggest",
+    };
+  });
 }
 
 function FlowConnector() {
@@ -65,23 +126,59 @@ function FlowNode({ icon, children }: { icon: ReactNode; children: ReactNode }) 
   );
 }
 
-export function WorkflowBuilder({ orgId, tags }: { orgId: string; tags: OrgTag[] }) {
+export function WorkflowBuilder({
+  orgId,
+  tags,
+  properties,
+  workflow,
+  onDone,
+}: {
+  orgId: string;
+  tags: OrgTag[];
+  properties: PropertyDefinition[];
+  workflow?: Workflow;
+  onDone?: () => void;
+}) {
   const create = useCreateWorkflow(orgId);
+  const update = useUpdateWorkflow(orgId);
+  const isEditing = workflow !== undefined;
+  const pending = create.isPending || update.isPending;
 
-  const [name, setName] = useState("");
-  const [triggerType, setTriggerType] = useState<TriggerId>("document.created");
-  const [actions, setActions] = useState<DraftAction[]>(() => [newAction()]);
-  const [enabled, setEnabled] = useState(false);
+  const [name, setName] = useState(() => workflow?.name ?? "");
+  const [triggerType, setTriggerType] = useState<TriggerId>(
+    () => workflow?.definition.trigger.type ?? "document.created",
+  );
+  const [actions, setActions] = useState<DraftAction[]>(() =>
+    workflow ? hydrateActions(workflow.definition.actions) : [newAction()],
+  );
+  const [enabled, setEnabled] = useState(() => workflow?.enabled ?? false);
 
   const hasTags = tags.length > 0;
   const usesTags = actions.some((a) => a.type !== "ai.assignMetadata");
+  const needsText = actions.some((a) => ACTION_DEFINITIONS[a.type].requiresText);
+  // A text-requiring action forces a text-providing trigger (mirrors the schema's superRefine).
+  const triggerOptions = TRIGGER_IDS.filter(
+    (id) => !needsText || TRIGGER_DEFINITIONS[id].providesText,
+  );
+
+  useEffect(() => {
+    if (needsText && !TRIGGER_DEFINITIONS[triggerType].providesText) {
+      const textTrigger = TRIGGER_IDS.find((id) => TRIGGER_DEFINITIONS[id].providesText);
+      if (textTrigger) {
+        setTriggerType(textTrigger);
+      }
+    }
+  }, [needsText, triggerType]);
+
   const canSubmit =
     name.trim().length > 0 &&
     actions.length > 0 &&
     actions.every((a) =>
-      a.type === "ai.assignMetadata" ? Object.keys(a.fields).length > 0 : a.tagId.length > 0,
+      a.type === "ai.assignMetadata"
+        ? Object.keys(a.fields).length > 0 || a.customFieldIds.length > 0
+        : a.tagId.length > 0,
     ) &&
-    !create.isPending;
+    !pending;
 
   function updateAction(key: string, patch: Partial<Omit<DraftAction, "key">>) {
     setActions((prev) => prev.map((a) => (a.key === key ? { ...a, ...patch } : a)));
@@ -110,7 +207,19 @@ export function WorkflowBuilder({ orgId, tags }: { orgId: string; tags: OrgTag[]
     );
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function toggleCustomField(key: string, id: string, on: boolean) {
+    setActions((prev) =>
+      prev.map((a) => {
+        if (a.key !== key) {
+          return a;
+        }
+        const ids = on ? [...a.customFieldIds, id] : a.customFieldIds.filter((x) => x !== id);
+        return { ...a, customFieldIds: ids };
+      }),
+    );
+  }
+
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canSubmit) {
       return;
@@ -122,7 +231,9 @@ export function WorkflowBuilder({ orgId, tags }: { orgId: string; tags: OrgTag[]
           documentType?: { mode: Mode };
           storagePath?: { mode: Mode };
           tags?: { mode: Mode; allowNew: boolean };
+          documentDate?: { mode: Mode };
           title?: { mode: Mode };
+          customFields?: { mode: Mode; definitionIds: string[] };
         } = {};
         if (a.fields.documentType) {
           config.documentType = { mode: a.fields.documentType };
@@ -133,8 +244,14 @@ export function WorkflowBuilder({ orgId, tags }: { orgId: string; tags: OrgTag[]
         if (a.fields.tags) {
           config.tags = { mode: a.fields.tags, allowNew: a.allowNew };
         }
+        if (a.fields.documentDate) {
+          config.documentDate = { mode: a.fields.documentDate };
+        }
         if (a.fields.title) {
           config.title = { mode: a.fields.title };
+        }
+        if (a.customFieldIds.length > 0) {
+          config.customFields = { mode: a.customFieldsMode, definitionIds: a.customFieldIds };
         }
         return { id, type: "ai.assignMetadata" as const, config };
       }
@@ -147,8 +264,19 @@ export function WorkflowBuilder({ orgId, tags }: { orgId: string; tags: OrgTag[]
     const definition: CreateWorkflowBody["definition"] = {
       schemaVersion: 1,
       trigger: { type: triggerType, config: {} },
+      // The builder doesn't edit filters yet, so carry the original through untouched on edit.
+      ...(workflow?.definition.filter ? { filter: workflow.definition.filter } : {}),
       actions: builtActions,
     };
+
+    if (isEditing && workflow) {
+      update.mutate(
+        { id: workflow.id, body: { name: name.trim(), enabled, definition } },
+        { onSuccess: () => onDone?.() },
+      );
+      return;
+    }
+
     create.mutate(
       { name: name.trim(), enabled, definition },
       {
@@ -156,6 +284,7 @@ export function WorkflowBuilder({ orgId, tags }: { orgId: string; tags: OrgTag[]
           setName("");
           setActions([newAction()]);
           setEnabled(false);
+          onDone?.();
         },
       },
     );
@@ -164,7 +293,7 @@ export function WorkflowBuilder({ orgId, tags }: { orgId: string; tags: OrgTag[]
   return (
     <Card>
       <CardHeader>
-        <CardTitle>New workflow</CardTitle>
+        <CardTitle>{isEditing ? "Edit workflow" : "New workflow"}</CardTitle>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="flex flex-col gap-4">
@@ -190,13 +319,18 @@ export function WorkflowBuilder({ orgId, tags }: { orgId: string; tags: OrgTag[]
                   <SelectValue>{TRIGGER_DEFINITIONS[triggerType].label}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {TRIGGER_IDS.map((id) => (
+                  {triggerOptions.map((id) => (
                     <SelectItem key={id} value={id}>
                       {TRIGGER_DEFINITIONS[id].label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {needsText ? (
+                <span className="text-muted-foreground text-xs">
+                  Runs after the document is processed, because an AI step needs its text.
+                </span>
+              ) : null}
             </FlowNode>
 
             {actions.map((action) => (
@@ -277,6 +411,38 @@ export function WorkflowBuilder({ orgId, tags }: { orgId: string; tags: OrgTag[]
                           Allow creating new tags
                         </div>
                       ) : null}
+                      {properties.length > 0 ? (
+                        <div className="flex flex-col gap-2 border-t pt-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm">Custom fields</span>
+                            {action.customFieldIds.length > 0 ? (
+                              <Select
+                                value={action.customFieldsMode}
+                                onValueChange={(m) =>
+                                  updateAction(action.key, { customFieldsMode: m as Mode })
+                                }
+                              >
+                                <SelectTrigger className="w-36">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="auto">Auto-apply</SelectItem>
+                                  <SelectItem value="suggest">Suggest</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            ) : null}
+                          </div>
+                          {properties.map((p) => (
+                            <div key={p.id} className="flex items-center gap-2 pl-1">
+                              <Switch
+                                checked={action.customFieldIds.includes(p.id)}
+                                onCheckedChange={(on) => toggleCustomField(action.key, p.id, on)}
+                              />
+                              <span className="flex-1 text-muted-foreground text-sm">{p.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <Select
@@ -320,9 +486,22 @@ export function WorkflowBuilder({ orgId, tags }: { orgId: string; tags: OrgTag[]
             <Label htmlFor="wf-enabled">Enabled</Label>
           </div>
 
-          <Button type="submit" className="w-fit" disabled={!canSubmit}>
-            {create.isPending ? "Creating…" : "Create workflow"}
-          </Button>
+          <div className="flex gap-3">
+            <Button type="submit" disabled={!canSubmit}>
+              {pending
+                ? isEditing
+                  ? "Saving…"
+                  : "Creating…"
+                : isEditing
+                  ? "Save changes"
+                  : "Create workflow"}
+            </Button>
+            {isEditing ? (
+              <Button type="button" variant="ghost" onClick={() => onDone?.()}>
+                Cancel
+              </Button>
+            ) : null}
+          </div>
         </CardContent>
       </form>
     </Card>
