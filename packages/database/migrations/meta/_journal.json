@@ -8,6 +8,13 @@
       "when": 1781748034071,
       "tag": "0000_cold_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782083626552,
+      "tag": "0001_heavy_jack_flag",
+      "breakpoints": true
     }
   ]
 }

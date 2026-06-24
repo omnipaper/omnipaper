@@ -32,6 +32,7 @@ export const statement = {
   properties: ["read", "create", "update", "delete"],
   documentTypes: ["read", "create", "update", "delete"],
   storagePaths: ["read", "create", "update", "delete"],
+  workflows: ["read", "create", "update", "delete"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -45,6 +46,7 @@ export const roles = {
     properties: ["read", "create", "update", "delete"],
     documentTypes: ["read", "create", "update", "delete"],
     storagePaths: ["read", "create", "update", "delete"],
+    workflows: ["read", "create", "update", "delete"],
   }),
   admin: ac.newRole({
     ...adminAc.statements,
@@ -53,6 +55,7 @@ export const roles = {
     properties: ["read", "create", "update", "delete"],
     documentTypes: ["read", "create", "update", "delete"],
     storagePaths: ["read", "create", "update", "delete"],
+    workflows: ["read", "create", "update", "delete"],
   }),
   member: ac.newRole({
     ...memberAc.statements,
@@ -61,6 +64,7 @@ export const roles = {
     properties: ["read"],
     documentTypes: ["read"],
     storagePaths: ["read"],
+    workflows: ["read"],
   }),
 };
 

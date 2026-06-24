@@ -33,9 +33,11 @@ import {
   HardDriveIcon,
   KeyIcon,
   SlidersHorizontalIcon,
+  SparklesIcon,
   TagIcon,
   UserPlusIcon,
   UsersIcon,
+  WorkflowIcon,
 } from "lucide-react";
 import { signOut } from "@/features/auth/auth-client";
 import { DemoBanner } from "@/features/auth/components/demo-banner";
@@ -208,6 +210,14 @@ function OrgLayout() {
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === `${settingsBase}/ai`}>
+                          <Link to="/dashboard/orgs/$orgId/settings/ai" params={{ orgId }}>
+                            <SparklesIcon />
+                            <span>AI</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
                         <SidebarMenuButton
                           asChild
                           isActive={pathname === `${settingsBase}/registration`}
@@ -255,6 +265,22 @@ function OrgLayout() {
                 </SidebarGroupContent>
               </SidebarGroup>
               <RecentDocuments orgId={orgId} />
+              {canManage ? (
+                <SidebarGroup className="mt-auto">
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname.endsWith("/workflows")}>
+                          <Link to="/dashboard/orgs/$orgId/workflows" params={{ orgId }}>
+                            <WorkflowIcon />
+                            <span>Workflows</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              ) : null}
             </SidebarContent>
             <SidebarFooter>
               {session?.user ? (
