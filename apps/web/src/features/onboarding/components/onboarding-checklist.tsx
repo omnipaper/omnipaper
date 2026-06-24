@@ -36,7 +36,7 @@ export function OnboardingChecklist({ orgId }: { orgId: string }) {
         <RocketIcon className="size-4 shrink-0 text-primary" />
         <div className="min-w-0 flex-1">
           <p className="font-medium text-sm leading-none">Get started</p>
-          <p className="mt-1 text-muted-foreground text-xs">{doneCount} of 3 done</p>
+          <p className="mt-1 text-muted-foreground text-xs tabular-nums">{doneCount} of 3 done</p>
         </div>
         <button
           type="button"
