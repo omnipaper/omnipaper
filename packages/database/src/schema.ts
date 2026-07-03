@@ -102,6 +102,7 @@ export const documentTypes = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
+    aiEligible: boolean("ai_eligible").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -126,6 +127,7 @@ export const storagePaths = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     path: text("path").notNull(),
     description: text("description"),
+    aiEligible: boolean("ai_eligible").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -150,6 +152,7 @@ export const tags = pgTable(
     name: text("name").notNull(),
     color: text("color").notNull().default("#94a3b8"),
     description: text("description"),
+    aiEligible: boolean("ai_eligible").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

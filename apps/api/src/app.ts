@@ -6,9 +6,11 @@ import { auth } from "./auth";
 import type { Variables } from "./context";
 import { demoReadOnly, demoRoutes } from "./demo";
 import { requireAuth, requireOrganization } from "./middleware";
+import { aiAssignRoutes } from "./routes/ai-assign";
 import { customPropertiesRoutes } from "./routes/custom-properties";
 import { documentTypesRoutes } from "./routes/document-types";
 import { documentsRoutes } from "./routes/documents";
+import { savedViewsRoutes } from "./routes/saved-views";
 import { settingsRoutes } from "./routes/settings";
 import { storagePathsRoutes } from "./routes/storage-paths";
 import { tagsRoutes } from "./routes/tags";
@@ -22,9 +24,11 @@ export function createApp() {
     .route("/documents", documentsRoutes)
     .route("/document-types", documentTypesRoutes)
     .route("/storage-paths", storagePathsRoutes)
+    .route("/saved-views", savedViewsRoutes)
     .route("/tags", tagsRoutes)
     .route("/custom-properties", customPropertiesRoutes)
-    .route("/workflows", workflowsRoutes);
+    .route("/workflows", workflowsRoutes)
+    .route("/ai-assign", aiAssignRoutes);
 
   const apiRoutes = new Hono<{ Variables: Variables }>()
     .get("/me", (c) => c.json({ user: c.get("user") }))

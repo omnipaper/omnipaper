@@ -15,6 +15,7 @@ export async function getOrgStoragePaths(db: Database, params: GetOrgStoragePath
       id: storagePaths.id,
       path: storagePaths.path,
       description: storagePaths.description,
+      aiEligible: storagePaths.aiEligible,
       createdAt: storagePaths.createdAt,
       updatedAt: storagePaths.updatedAt,
       documentCount: count(documents.id),
@@ -47,6 +48,7 @@ export type CreateStoragePathInput = {
   organizationId: string;
   path: string;
   description?: string;
+  aiEligible?: boolean;
 };
 
 export async function createStoragePath(db: Database, input: CreateStoragePathInput) {
@@ -56,6 +58,7 @@ export async function createStoragePath(db: Database, input: CreateStoragePathIn
       organizationId: input.organizationId,
       path: input.path.trim(),
       description: input.description,
+      aiEligible: input.aiEligible,
     })
     .returning();
 
@@ -71,16 +74,20 @@ export type UpdateStoragePathInput = {
   id: string;
   path?: string;
   description?: string | null;
+  aiEligible?: boolean;
 };
 
 export async function updateStoragePath(db: Database, input: UpdateStoragePathInput) {
-  const patch: { path?: string; description?: string | null } = {};
+  const patch: { path?: string; description?: string | null; aiEligible?: boolean } = {};
 
   if (input.path !== undefined) {
     patch.path = input.path.trim();
   }
   if (input.description !== undefined) {
     patch.description = input.description;
+  }
+  if (input.aiEligible !== undefined) {
+    patch.aiEligible = input.aiEligible;
   }
 
   if (Object.keys(patch).length === 0) {

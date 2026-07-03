@@ -15,6 +15,7 @@ export async function getOrgDocumentTypes(db: Database, params: GetOrgDocumentTy
       id: documentTypes.id,
       name: documentTypes.name,
       description: documentTypes.description,
+      aiEligible: documentTypes.aiEligible,
       createdAt: documentTypes.createdAt,
       updatedAt: documentTypes.updatedAt,
       documentCount: count(documents.id),
@@ -48,6 +49,7 @@ export type CreateDocumentTypeInput = {
   organizationId: string;
   name: string;
   description?: string;
+  aiEligible?: boolean;
 };
 
 export async function createDocumentType(db: Database, input: CreateDocumentTypeInput) {
@@ -57,6 +59,7 @@ export async function createDocumentType(db: Database, input: CreateDocumentType
       organizationId: input.organizationId,
       name: input.name.trim(),
       description: input.description,
+      aiEligible: input.aiEligible,
     })
     .returning();
 
@@ -72,18 +75,22 @@ export type UpdateDocumentTypeInput = {
   id: string;
   name?: string;
   description?: string | null;
+  aiEligible?: boolean;
 };
 
 // Patch scoped to the org. Only provided fields are written; an empty patch returns the current
 // row so the route never issues an invalid empty UPDATE.
 export async function updateDocumentType(db: Database, input: UpdateDocumentTypeInput) {
-  const patch: { name?: string; description?: string | null } = {};
+  const patch: { name?: string; description?: string | null; aiEligible?: boolean } = {};
 
   if (input.name !== undefined) {
     patch.name = input.name.trim();
   }
   if (input.description !== undefined) {
     patch.description = input.description;
+  }
+  if (input.aiEligible !== undefined) {
+    patch.aiEligible = input.aiEligible;
   }
 
   if (Object.keys(patch).length === 0) {

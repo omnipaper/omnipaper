@@ -10,6 +10,7 @@ import {
 } from "@omnipaper/ui/components/dialog";
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
+import { Switch } from "@omnipaper/ui/components/switch";
 import {
   Table,
   TableBody,
@@ -19,24 +20,25 @@ import {
   TableRow,
 } from "@omnipaper/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
-import { PlusIcon } from "lucide-react";
+import { CircleHelpIcon, PlusIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import {
   RowActions,
   SettingsTableToolbar,
   TableEmptyRow,
 } from "@/components/settings/settings-table";
+import { aiAssignQuery } from "@/features/ai-assign/queries/ai-assign";
 import {
   type OrgDocumentType,
   orgDocumentTypesQuery,
   useDeleteDocumentType,
+  useSetDocumentTypeAiEligible,
   useUpsertDocumentType,
 } from "@/features/document-types/queries/document-types";
 
-const COLUMN_COUNT = 3;
-
 export function DocumentTypesManager({ orgId }: { orgId: string }) {
   const { data, isPending, isError } = useQuery(orgDocumentTypesQuery({ orgId }));
+  const aiQuery = useQuery(aiAssignQuery({ orgId }));
   const deleteDocumentType = useDeleteDocumentType(orgId);
 
   const [search, setSearch] = useState("");
@@ -57,25 +59,27 @@ export function DocumentTypesManager({ orgId }: { orgId: string }) {
   const query = search.trim().toLowerCase();
   const filtered = query ? types.filter((type) => type.name.toLowerCase().includes(query)) : types;
 
+  const setAiEligible = useSetDocumentTypeAiEligible(orgId);
+  const aiEnabled = aiQuery.data?.fields.documentType.enabled ?? false;
+  const columnCount = aiEnabled ? 4 : 3;
+
   let body: ReactNode;
   if (isPending) {
-    body = <TableEmptyRow colSpan={COLUMN_COUNT}>Loading…</TableEmptyRow>;
+    body = <TableEmptyRow colSpan={columnCount}>Loading…</TableEmptyRow>;
   } else if (isError) {
     body = (
-      <TableEmptyRow colSpan={COLUMN_COUNT} className="text-destructive">
+      <TableEmptyRow colSpan={columnCount} className="text-destructive">
         Failed to load document types.
       </TableEmptyRow>
     );
   } else if (types.length === 0) {
     body = (
-      <TableEmptyRow colSpan={COLUMN_COUNT}>
+      <TableEmptyRow colSpan={columnCount}>
         No document types yet. Create your first one.
       </TableEmptyRow>
     );
   } else if (filtered.length === 0) {
-    body = (
-      <TableEmptyRow colSpan={COLUMN_COUNT}>No document types match “{search}”.</TableEmptyRow>
-    );
+    body = <TableEmptyRow colSpan={columnCount}>No document types match “{search}”.</TableEmptyRow>;
   } else {
     body = filtered.map((type) => (
       <TableRow key={type.id}>
@@ -83,6 +87,15 @@ export function DocumentTypesManager({ orgId }: { orgId: string }) {
         <TableCell className="text-muted-foreground">
           <span className="line-clamp-1">{type.description || "—"}</span>
         </TableCell>
+        {aiEnabled ? (
+          <TableCell className="text-center">
+            <Switch
+              checked={type.aiEligible}
+              onCheckedChange={(next) => setAiEligible.mutate({ id: type.id, aiEligible: next })}
+              aria-label={`Allow AI to use ${type.name}`}
+            />
+          </TableCell>
+        ) : null}
         <TableCell className="text-right">
           <RowActions
             onEdit={() => openEdit(type)}
@@ -119,6 +132,19 @@ export function DocumentTypesManager({ orgId }: { orgId: string }) {
             <TableRow className="hover:bg-transparent">
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
+              {aiEnabled ? (
+                <TableHead className="w-28 text-center">
+                  <span className="inline-flex items-center justify-center gap-1">
+                    Used by AI
+                    <span
+                      className="cursor-help text-muted-foreground"
+                      title="When off, AI won't assign this document type."
+                    >
+                      <CircleHelpIcon className="size-3.5" aria-hidden="true" />
+                    </span>
+                  </span>
+                </TableHead>
+              ) : null}
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>

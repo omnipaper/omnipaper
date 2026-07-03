@@ -56,16 +56,22 @@ export async function runAiAssignMetadata(
       )
     : [];
 
+  const eligibleTypes = types.filter((t) => t.aiEligible);
+  const eligiblePaths = paths.filter((p) => p.aiEligible);
+  const eligibleTags = tags.filter((t) => t.aiEligible);
+  const reservedTagNames = tags.filter((t) => !t.aiEligible).map((t) => t.name);
+
   const result = await classifyDocument({
     provider: ai.provider,
     model: resolveAiModel(ai.provider, ai.model),
     apiKey,
     fields: config,
     ocrText: doc.ocrText,
+    reservedTagNames,
     candidates: {
-      documentTypes: types.map((t) => ({ name: t.name, description: t.description })),
-      storagePaths: paths.map((p) => ({ path: p.path, description: p.description })),
-      tags: tags.map((t) => ({ name: t.name })),
+      documentTypes: eligibleTypes.map((t) => ({ name: t.name, description: t.description })),
+      storagePaths: eligiblePaths.map((p) => ({ path: p.path, description: p.description })),
+      tags: eligibleTags.map((t) => ({ name: t.name })),
       customFields: customDefs.map((d) => ({
         name: d.definition.name,
         type: d.definition.type,

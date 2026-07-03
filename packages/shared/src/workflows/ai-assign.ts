@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const fieldMode = z.enum(["auto", "suggest"]);
+const fieldMode = z.enum(["apply", "suggest"]);
 const field = z.object({ mode: fieldMode });
 
 export const aiAssignParamsSchema = z

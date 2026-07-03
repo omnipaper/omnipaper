@@ -2,7 +2,6 @@ import { and, asc, count, eq, inArray } from "drizzle-orm";
 import type { Database } from "../client";
 import { documentsTags, tags } from "../schema";
 
-
 export type GetOrgTagsParams = {
   organizationId: string;
 };
@@ -22,6 +21,7 @@ export type CreateTagInput = {
   name: string;
   color?: string;
   description?: string;
+  aiEligible?: boolean;
 };
 
 export type UpdateTagInput = {
@@ -30,6 +30,7 @@ export type UpdateTagInput = {
   name?: string;
   color?: string;
   description?: string | null;
+  aiEligible?: boolean;
 };
 
 export type GetTagsByDocumentIdsParams = {
@@ -45,7 +46,6 @@ export type DocumentTagParams = {
   documentId: string;
   tagId: string;
 };
-
 
 const TAG_COLORS = [
   "#ef4444",
@@ -70,6 +70,7 @@ export async function getOrgTags(db: Database, params: GetOrgTagsParams) {
       name: tags.name,
       color: tags.color,
       description: tags.description,
+      aiEligible: tags.aiEligible,
       createdAt: tags.createdAt,
       updatedAt: tags.updatedAt,
       documentCount: count(documentsTags.documentId),
@@ -108,6 +109,7 @@ export async function createTag(db: Database, input: CreateTagInput) {
       name: input.name.trim(),
       color: input.color ?? randomTagColor(),
       description: input.description,
+      aiEligible: input.aiEligible,
     })
     .returning();
 
@@ -119,7 +121,12 @@ export async function createTag(db: Database, input: CreateTagInput) {
 }
 
 export async function updateTag(db: Database, input: UpdateTagInput) {
-  const patch: { name?: string; color?: string; description?: string | null } = {};
+  const patch: {
+    name?: string;
+    color?: string;
+    description?: string | null;
+    aiEligible?: boolean;
+  } = {};
 
   if (input.name !== undefined) {
     patch.name = input.name.trim();
@@ -129,6 +136,9 @@ export async function updateTag(db: Database, input: UpdateTagInput) {
   }
   if (input.description !== undefined) {
     patch.description = input.description;
+  }
+  if (input.aiEligible !== undefined) {
+    patch.aiEligible = input.aiEligible;
   }
 
   if (Object.keys(patch).length === 0) {
@@ -144,10 +154,7 @@ export async function updateTag(db: Database, input: UpdateTagInput) {
   return tag;
 }
 
-export async function deleteTag(
-  db: Database,
-  params: { organizationId: string; id: string }
-) {
+export async function deleteTag(db: Database, params: { organizationId: string; id: string }) {
   await db
     .delete(tags)
     .where(and(eq(tags.id, params.id), eq(tags.organizationId, params.organizationId)));
