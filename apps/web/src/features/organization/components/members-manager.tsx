@@ -104,8 +104,7 @@ export function MembersManager({ orgId }: { orgId: string }) {
   const cancelInviteMutation = useCancelInvitation(orgId);
 
   async function copyInviteLink(invitation: { id: string; email: string }) {
-    // Carry the email (and org name) in the link so the accept page can prefill them
-    // without a session — getInvitation requires one, the logged-out invitee has none.
+    // Carry email/org in the link: getInvitation needs a session the logged-out invitee lacks.
     const params = new URLSearchParams({ email: invitation.email });
     if (orgQuery.data?.name) {
       params.set("org", orgQuery.data.name);
@@ -188,7 +187,7 @@ export function MembersManager({ orgId }: { orgId: string }) {
             )}
           </TableCell>
           <TableCell>
-            <StatusBadge>{isOwnerRow ? "Owner" : "Active"}</StatusBadge>
+            <StatusBadge>Active</StatusBadge>
           </TableCell>
           <TableCell className="text-right">
             {locked ? null : (

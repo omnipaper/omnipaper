@@ -14,7 +14,7 @@ import { getAiSettings } from "@omnipaper/settings/ai-settings";
 import { getProviderKeys } from "@omnipaper/settings/provider-settings";
 import { resolveAiModel } from "@omnipaper/shared/ai-models";
 import type { AiAssignParams } from "@omnipaper/shared/workflows/ai-assign";
-import { coerceCustomValue } from "../custom-properties/registry";
+import { coerceCustomValue } from "./custom-property-registry";
 
 type Doc = {
   id: string;
@@ -26,10 +26,6 @@ type Doc = {
   documentDate: string | null;
 };
 
-// Resolves the AI's flat name-based output back to org ids and applies it (approach B): auto writes
-// straight to the document, suggest stages an ai_suggestions row. Auto never clobbers a value the
-// user already set (type/path). Phase 1 fields only (documentType / storagePath / tags / title);
-// documentDate + customFields land in phase 2.
 export async function runAiAssignMetadata(
   doc: Doc,
   config: AiAssignParams,
@@ -88,7 +84,7 @@ export async function runAiAssignMetadata(
   if (config.documentType && result.documentType) {
     const match = types.find((t) => t.name === result.documentType);
     if (match) {
-      if (config.documentType.mode === "auto") {
+      if (config.documentType.mode === "apply") {
         if (!doc.documentTypeId) {
           await updateDocument(db, {
             organizationId: doc.organizationId,
@@ -110,7 +106,7 @@ export async function runAiAssignMetadata(
   if (config.storagePath && result.storagePath) {
     const match = paths.find((p) => p.path === result.storagePath);
     if (match) {
-      if (config.storagePath.mode === "auto") {
+      if (config.storagePath.mode === "apply") {
         if (!doc.storagePathId) {
           await updateDocument(db, {
             organizationId: doc.organizationId,
@@ -142,7 +138,7 @@ export async function runAiAssignMetadata(
       }
     }
 
-    if (config.tags.mode === "auto") {
+    if (config.tags.mode === "apply") {
       for (const id of existingIds) {
         await addDocumentTag(db, { documentId: doc.id, tagId: id });
         tagsChanged = true;
@@ -164,7 +160,7 @@ export async function runAiAssignMetadata(
   }
 
   if (config.title && result.title) {
-    if (config.title.mode === "auto") {
+    if (config.title.mode === "apply") {
       await updateDocument(db, {
         organizationId: doc.organizationId,
         id: doc.id,
@@ -181,7 +177,7 @@ export async function runAiAssignMetadata(
   }
 
   if (config.documentDate && result.documentDate) {
-    if (config.documentDate.mode === "auto") {
+    if (config.documentDate.mode === "apply") {
       if (!doc.documentDate) {
         await updateDocument(db, {
           organizationId: doc.organizationId,
@@ -206,7 +202,7 @@ export async function runAiAssignMetadata(
       if (!def || entry.value == null) {
         continue;
       }
-      if (customConfig.mode === "auto") {
+      if (customConfig.mode === "apply") {
         const columns = coerceCustomValue(def.definition.type, def.options, entry.value);
         if (columns) {
           await setDocumentPropertyValue(db, {

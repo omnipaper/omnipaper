@@ -14,7 +14,6 @@ import { errors } from "../errors";
 import { requireOrgPermission } from "../middleware";
 import { toStoragePathDto } from "../serializers/storage-path";
 
-// Leading slash, segments of [A-Za-z0-9._-] separated by "/", no trailing slash, no spaces.
 const pathValue = z
   .string()
   .trim()
@@ -23,16 +22,16 @@ const pathValue = z
 const createStoragePathSchema = z.object({
   path: pathValue,
   description: z.string().trim().max(500).optional(),
+  aiEligible: z.boolean().optional(),
 });
 
 const updateStoragePathSchema = z.object({
   path: pathValue.optional(),
   description: z.string().trim().max(500).nullable().optional(),
+  aiEligible: z.boolean().optional(),
 });
 
-// Postgres raises 23505 on unique(organizationId, path) for a duplicate path; turn it into a
-// friendly 400 instead of pre-checking (which would race). drizzle wraps the pg error, so the real
-// code can sit on `.cause`.
+// drizzle wraps the pg error, so the 23505 code can sit on `.cause` rather than `.code`.
 function isUniqueViolation(err: unknown): boolean {
   if (typeof err !== "object" || err === null) {
     return false;

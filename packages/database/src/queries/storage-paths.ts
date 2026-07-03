@@ -2,9 +2,6 @@ import { and, asc, count, eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { documents, storagePaths } from "../schema";
 
-// Data access for the `storage_paths` taxonomy. `path` is the unique, displayed value; the folder
-// tree is derived from these strings by the UI. Mirrors the tags/document-types queries.
-
 export type GetOrgStoragePathsParams = {
   organizationId: string;
 };
@@ -105,8 +102,6 @@ export async function updateStoragePath(db: Database, input: UpdateStoragePathIn
   return storagePath;
 }
 
-// Delete scoped to its org. documents.storage_path_id is ON DELETE SET NULL, so assigned
-// documents are simply un-filed, never removed.
 export async function deleteStoragePath(
   db: Database,
   params: { organizationId: string; id: string },

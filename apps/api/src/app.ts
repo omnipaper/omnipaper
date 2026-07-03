@@ -17,8 +17,6 @@ import { tagsRoutes } from "./routes/tags";
 import { workflowsRoutes } from "./routes/workflows";
 
 export function createApp() {
-  // Org-scoped routes live under /orgs/:orgId. requireOrganization reads :orgId from the path
-  // and verifies membership, so the active org comes from the URL, not from session state.
   const orgRoutes = new Hono<{ Variables: Variables }>()
     .use("*", requireOrganization)
     .route("/documents", documentsRoutes)

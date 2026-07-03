@@ -4,8 +4,6 @@ import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
 
-// Query-key factory + query/mutation factories for the storage-paths taxonomy. Org-scoped; mirrors
-// tagKeys. Mutations live beside the read so each write owns its own invalidation.
 export const storagePathKeys = {
   root: ["storage-paths"] as const,
   all: (orgId: string) => [...storagePathKeys.root, orgId] as const,
@@ -35,14 +33,11 @@ type UpdateStoragePathBody = InferRequestType<
 >["json"];
 
 export type UpsertStoragePathInput = {
-  // Present → update that path; absent → create a new one.
   id?: string;
   path: NonNullable<UpdateStoragePathBody["path"]>;
   description: UpdateStoragePathBody["description"];
 };
 
-// Create or update a storage path from the manager dialog. Renaming changes how the path renders on
-// documents filed there, so an update also refreshes the document views; a create doesn't.
 export function useUpsertStoragePath(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -77,7 +72,47 @@ export function useUpsertStoragePath(orgId: string) {
   });
 }
 
-// Delete a storage path. Un-files every document filed there, so refresh the document views too.
+export function useSetStoragePathAiEligible(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, aiEligible }: { id: string; aiEligible: boolean }) => {
+      const res = await api.orgs[":orgId"]["storage-paths"][":id"].$patch({
+        param: { orgId, id },
+        json: { aiEligible },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update storage path");
+      }
+    },
+    onMutate: async ({ id, aiEligible }) => {
+      await queryClient.cancelQueries({ queryKey: storagePathKeys.lists(orgId) });
+      const previous = queryClient.getQueryData<{ storagePaths: OrgStoragePath[] }>(
+        storagePathKeys.lists(orgId),
+      );
+      queryClient.setQueryData<{ storagePaths: OrgStoragePath[] }>(
+        storagePathKeys.lists(orgId),
+        (old) =>
+          old
+            ? {
+                ...old,
+                storagePaths: old.storagePaths.map((p) => (p.id === id ? { ...p, aiEligible } : p)),
+              }
+            : old,
+      );
+      return { previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(storagePathKeys.lists(orgId), context.previous);
+      }
+      toast.error("Failed to update storage path");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: storagePathKeys.lists(orgId) });
+    },
+  });
+}
+
 export function useDeleteStoragePath(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -98,8 +133,6 @@ export function useDeleteStoragePath(orgId: string) {
   });
 }
 
-// Quick-create from the document metadata panel's "Create …" row. Returns the created path so the
-// caller can immediately assign it to the document (no success toast — the caller chains a patch).
 export function useCreateStoragePath(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({

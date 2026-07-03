@@ -12,12 +12,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "3.0.85",
-    "@ai-sdk/google": "3.0.80",
-    "@ai-sdk/mistral": "3.0.37",
-    "@ai-sdk/openai": "3.0.74",
+    "@ai-sdk/anthropic": "4.0.0",
+    "@ai-sdk/google": "4.0.0",
+    "@ai-sdk/mistral": "4.0.0",
+    "@ai-sdk/openai": "4.0.0",
     "@omnipaper/shared": "workspace:*",
-    "ai": "6.0.197",
+    "ai": "7.0.2",
     "zod": "catalog:"
   },
   "devDependencies": {

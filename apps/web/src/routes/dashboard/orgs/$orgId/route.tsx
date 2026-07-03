@@ -49,6 +49,7 @@ import { OnboardingChecklist } from "@/features/onboarding/components/onboarding
 import { NavUser } from "@/features/organization/components/nav-user";
 import { OrgSwitcher } from "@/features/organization/components/org-switcher";
 import { fullOrganizationQuery, useOrgMember } from "@/features/organization/queries/organization";
+import { SavedViewsSidebar } from "@/features/saved-views/components/saved-views-sidebar";
 import { DEMO_MODE } from "@/lib/demo-mode";
 import { queryClient } from "@/lib/query-client";
 
@@ -68,7 +69,10 @@ function OrgLayout() {
   const { orgId } = Route.useParams();
   const { upload } = useUploadDocuments(orgId);
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  // A saved view lives on /documents too (just with ?savedView=id), so "Documents" stays plain
+  // unless the user is on the bare collection — otherwise both rows would highlight at once.
+  const onSavedView = Boolean((search as { savedView?: string }).savedView);
   const { data: session } = useQuery(sessionQueryOptions);
   const isAdmin = isInstanceAdmin(session?.user?.role);
   const member = useOrgMember(orgId);
@@ -254,7 +258,10 @@ function OrgLayout() {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.endsWith("/documents")}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname.endsWith("/documents") && !onSavedView}
+                      >
                         <Link to="/dashboard/orgs/$orgId/documents" params={{ orgId }}>
                           <FilesIcon />
                           <span>Documents</span>
@@ -264,6 +271,7 @@ function OrgLayout() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+              <SavedViewsSidebar orgId={orgId} />
               <RecentDocuments orgId={orgId} />
               {canManage ? (
                 <SidebarGroup className="mt-auto">

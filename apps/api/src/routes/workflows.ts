@@ -46,6 +46,16 @@ async function assertTagsBelongToOrg(organizationId: string, definition: Workflo
   }
 }
 
+// AI metadata assignment lives only in the system workflow (managed via /ai-assign), not user-built ones.
+function assertNoAiAction(definition: WorkflowDefinition) {
+  if (definition.actions.some((a) => a.type === "ai.assignMetadata")) {
+    throw errors.badRequest(
+      "ai_action_reserved",
+      "AI metadata assignment is managed in AI settings, not in custom workflows",
+    );
+  }
+}
+
 export const workflowsRoutes = new Hono<{ Variables: Variables }>()
   .get("/", async (c) => {
     const organizationId = c.get("organizationId");
@@ -62,6 +72,7 @@ export const workflowsRoutes = new Hono<{ Variables: Variables }>()
       const { name, enabled, definition } = c.req.valid("json");
 
       await assertTagsBelongToOrg(organizationId, definition);
+      assertNoAiAction(definition);
 
       const workflow = await createWorkflow(db, {
         organizationId,
@@ -92,7 +103,8 @@ export const workflowsRoutes = new Hono<{ Variables: Variables }>()
       const organizationId = c.get("organizationId");
       const id = c.req.param("id");
 
-      if (!(await getOrgWorkflow(db, { organizationId, id }))) {
+      const existing = await getOrgWorkflow(db, { organizationId, id });
+      if (!existing) {
         throw errors.notFound("Workflow not found");
       }
 
@@ -100,6 +112,9 @@ export const workflowsRoutes = new Hono<{ Variables: Variables }>()
 
       if (definition) {
         await assertTagsBelongToOrg(organizationId, definition);
+        if (existing.systemKey === null) {
+          assertNoAiAction(definition);
+        }
       }
 
       const workflow = await updateWorkflow(db, {
@@ -122,8 +137,12 @@ export const workflowsRoutes = new Hono<{ Variables: Variables }>()
     const organizationId = c.get("organizationId");
     const id = c.req.param("id");
 
-    if (!(await getOrgWorkflow(db, { organizationId, id }))) {
+    const existing = await getOrgWorkflow(db, { organizationId, id });
+    if (!existing) {
       throw errors.notFound("Workflow not found");
+    }
+    if (existing.systemKey !== null) {
+      throw errors.badRequest("system_workflow", "This workflow is managed in AI settings");
     }
 
     await deleteWorkflow(db, { organizationId, id });

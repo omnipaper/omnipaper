@@ -27,7 +27,7 @@ import {
   type Workflow,
 } from "@/features/workflows/queries/workflows";
 
-type Mode = "auto" | "suggest";
+type Mode = "apply" | "suggest";
 type ActionType = "tag.add" | "tag.remove" | "ai.assignMetadata";
 
 const AI_FIELDS = [
@@ -45,7 +45,6 @@ type DraftAction = {
   tagId: string;
   fields: Partial<Record<AiFieldKey, Mode>>;
   allowNew: boolean;
-  // Custom fields share one mode across the selected property definitions.
   customFieldIds: string[];
   customFieldsMode: Mode;
 };
@@ -53,7 +52,6 @@ type DraftAction = {
 const ACTION_OPTIONS: { id: ActionType; label: string }[] = [
   { id: "tag.add", label: ACTION_DEFINITIONS["tag.add"].label },
   { id: "tag.remove", label: ACTION_DEFINITIONS["tag.remove"].label },
-  { id: "ai.assignMetadata", label: ACTION_DEFINITIONS["ai.assignMetadata"].label },
 ];
 
 function newAction(): DraftAction {
@@ -68,7 +66,6 @@ function newAction(): DraftAction {
   };
 }
 
-// Inverse of handleSubmit's build: turn a stored definition's actions into editable draft state.
 function hydrateActions(actions: Workflow["definition"]["actions"]): DraftAction[] {
   return actions.map((action) => {
     if (action.type === "ai.assignMetadata") {
@@ -142,6 +139,7 @@ export function WorkflowBuilder({
   const create = useCreateWorkflow(orgId);
   const update = useUpdateWorkflow(orgId);
   const isEditing = workflow !== undefined;
+  const isSystem = workflow?.systemKey != null;
   const pending = create.isPending || update.isPending;
 
   const [name, setName] = useState(() => workflow?.name ?? "");
@@ -151,12 +149,11 @@ export function WorkflowBuilder({
   const [actions, setActions] = useState<DraftAction[]>(() =>
     workflow ? hydrateActions(workflow.definition.actions) : [newAction()],
   );
-  const [enabled, setEnabled] = useState(() => workflow?.enabled ?? false);
+  const [enabled, setEnabled] = useState(() => workflow?.enabled ?? true);
 
   const hasTags = tags.length > 0;
   const usesTags = actions.some((a) => a.type !== "ai.assignMetadata");
   const needsText = actions.some((a) => ACTION_DEFINITIONS[a.type].requiresText);
-  // A text-requiring action forces a text-providing trigger (mirrors the schema's superRefine).
   const triggerOptions = TRIGGER_IDS.filter(
     (id) => !needsText || TRIGGER_DEFINITIONS[id].providesText,
   );
@@ -264,7 +261,6 @@ export function WorkflowBuilder({
     const definition: CreateWorkflowBody["definition"] = {
       schemaVersion: 1,
       trigger: { type: triggerType, config: {} },
-      // The builder doesn't edit filters yet, so carry the original through untouched on edit.
       ...(workflow?.definition.filter ? { filter: workflow.definition.filter } : {}),
       actions: builtActions,
     };
@@ -283,7 +279,7 @@ export function WorkflowBuilder({
         onSuccess: () => {
           setName("");
           setActions([newAction()]);
-          setEnabled(false);
+          setEnabled(true);
           onDone?.();
         },
       },
@@ -346,32 +342,42 @@ export function WorkflowBuilder({
                   }
                 >
                   <div className="flex items-center gap-2">
-                    <Select
-                      value={action.type}
-                      onValueChange={(v) => updateAction(action.key, { type: v as ActionType })}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue>
-                          {ACTION_OPTIONS.find((o) => o.id === action.type)?.label}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ACTION_OPTIONS.map((o) => (
-                          <SelectItem key={o.id} value={o.id}>
-                            {o.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setActions((prev) => prev.filter((a) => a.key !== action.key))}
-                      aria-label="Remove step"
-                    >
-                      <XIcon className="size-4" />
-                    </Button>
+                    {action.type === "ai.assignMetadata" ? (
+                      <span className="flex-1 font-medium text-sm">
+                        {ACTION_DEFINITIONS["ai.assignMetadata"].label}
+                      </span>
+                    ) : (
+                      <>
+                        <Select
+                          value={action.type}
+                          onValueChange={(v) => updateAction(action.key, { type: v as ActionType })}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue>
+                              {ACTION_OPTIONS.find((o) => o.id === action.type)?.label}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ACTION_OPTIONS.map((o) => (
+                              <SelectItem key={o.id} value={o.id}>
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setActions((prev) => prev.filter((a) => a.key !== action.key))
+                          }
+                          aria-label="Remove step"
+                        >
+                          <XIcon className="size-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
 
                   {action.type === "ai.assignMetadata" ? (
@@ -379,38 +385,44 @@ export function WorkflowBuilder({
                       {AI_FIELDS.map((f) => {
                         const mode = action.fields[f.key];
                         return (
-                          <div key={f.key} className="flex items-center gap-2">
-                            <Switch
-                              checked={mode !== undefined}
-                              onCheckedChange={(on) => toggleAiField(action.key, f.key, on)}
-                            />
-                            <span className="flex-1 text-sm">{f.label}</span>
-                            {mode ? (
-                              <Select
-                                value={mode}
-                                onValueChange={(m) => setAiFieldMode(action.key, f.key, m as Mode)}
-                              >
-                                <SelectTrigger className="w-36">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="auto">Auto-apply</SelectItem>
-                                  <SelectItem value="suggest">Suggest</SelectItem>
-                                </SelectContent>
-                              </Select>
+                          <div key={f.key} className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={mode !== undefined}
+                                onCheckedChange={(on) => toggleAiField(action.key, f.key, on)}
+                              />
+                              <span className="flex-1 text-sm">{f.label}</span>
+                              {mode ? (
+                                <Select
+                                  value={mode}
+                                  onValueChange={(m) =>
+                                    setAiFieldMode(action.key, f.key, m as Mode)
+                                  }
+                                >
+                                  <SelectTrigger className="w-36">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="apply">Apply</SelectItem>
+                                    <SelectItem value="suggest">Suggest</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : null}
+                            </div>
+                            {f.key === "tags" && mode ? (
+                              <div className="flex items-center gap-2 pl-7 text-muted-foreground text-xs">
+                                <Switch
+                                  checked={action.allowNew}
+                                  onCheckedChange={(on) =>
+                                    updateAction(action.key, { allowNew: on })
+                                  }
+                                />
+                                Let AI add tags that don't exist yet
+                              </div>
                             ) : null}
                           </div>
                         );
                       })}
-                      {action.fields.tags ? (
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                          <Switch
-                            checked={action.allowNew}
-                            onCheckedChange={(on) => updateAction(action.key, { allowNew: on })}
-                          />
-                          Allow creating new tags
-                        </div>
-                      ) : null}
                       {properties.length > 0 ? (
                         <div className="flex flex-col gap-2 border-t pt-2">
                           <div className="flex items-center justify-between gap-2">
@@ -426,7 +438,7 @@ export function WorkflowBuilder({
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="auto">Auto-apply</SelectItem>
+                                  <SelectItem value="apply">Apply</SelectItem>
                                   <SelectItem value="suggest">Suggest</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -468,22 +480,21 @@ export function WorkflowBuilder({
               </div>
             ))}
 
-            <FlowConnector />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-fit"
-              onClick={() => setActions((prev) => [...prev, newAction()])}
-            >
-              <PlusIcon className="size-4" />
-              Add step
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Switch id="wf-enabled" checked={enabled} onCheckedChange={setEnabled} />
-            <Label htmlFor="wf-enabled">Enabled</Label>
+            {isSystem ? null : (
+              <>
+                <FlowConnector />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-fit"
+                  onClick={() => setActions((prev) => [...prev, newAction()])}
+                >
+                  <PlusIcon className="size-4" />
+                  Add step
+                </Button>
+              </>
+            )}
           </div>
 
           <div className="flex gap-3">

@@ -39,6 +39,7 @@ export function WorkflowCard({
 }) {
   const update = useUpdateWorkflow(orgId);
   const remove = useDeleteWorkflow(orgId);
+  const isSystem = workflow.systemKey !== null;
 
   const triggerLabel =
     TRIGGER_DEFINITIONS[workflow.triggerType as TriggerId]?.label ?? workflow.triggerType;
@@ -79,6 +80,11 @@ export function WorkflowCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          {isSystem ? (
+            <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground text-xs">
+              Built-in
+            </span>
+          ) : null}
           <Switch
             checked={workflow.enabled}
             onCheckedChange={(checked) =>
@@ -93,15 +99,27 @@ export function WorkflowCard({
           >
             <PencilIcon className="size-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => remove.mutate(workflow.id)}
-            disabled={remove.isPending}
-            aria-label="Delete workflow"
-          >
-            <Trash2Icon className="size-4" />
-          </Button>
+          {isSystem ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled
+              aria-label="Built-in workflow, can't be deleted"
+              title="Built-in workflow, can't be deleted"
+            >
+              <Trash2Icon className="size-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => remove.mutate(workflow.id)}
+              disabled={remove.isPending}
+              aria-label="Delete workflow"
+            >
+              <Trash2Icon className="size-4" />
+            </Button>
+          )}
         </div>
       </div>
     </div>

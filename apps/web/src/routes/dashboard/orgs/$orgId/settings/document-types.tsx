@@ -1,5 +1,6 @@
 import { canManageOrg } from "@omnipaper/permissions";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { AiAssignMaster } from "@/features/ai-assign/components/ai-assign-master";
 import { DocumentTypesManager } from "@/features/document-types/components/document-types-manager";
 import { ensureOrgRole } from "@/features/organization/queries/organization";
 
@@ -19,12 +20,15 @@ function DocumentTypesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div>
-        <h1 className="font-semibold text-2xl">Document types</h1>
-        <p className="text-muted-foreground text-sm">
-          Categories you assign to documents. A description helps you (and, later, automatic
-          classification) decide when each type applies.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-semibold text-2xl">Document types</h1>
+          <p className="text-muted-foreground text-sm">
+            Categories you assign to documents. A description helps you (and, later, automatic
+            classification) decide when each type applies.
+          </p>
+        </div>
+        <AiAssignMaster orgId={orgId} field="documentType" label="document types" />
       </div>
       <DocumentTypesManager orgId={orgId} />
     </div>

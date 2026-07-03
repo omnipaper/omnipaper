@@ -54,12 +54,12 @@ import { Zip, ZipPassThrough } from "fflate";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
+import { errors } from "../errors";
 import {
   coerceCustomValue,
   customPropertyRegistry,
   type ValueColumns,
-} from "../custom-properties/registry";
-import { errors } from "../errors";
+} from "../lib/custom-property-registry";
 import { ingestDocument } from "../lib/ingest";
 import { getStorageDriver } from "../lib/storage";
 import { requireOrgPermission } from "../middleware";
@@ -70,7 +70,6 @@ import { toTagRefDto } from "../serializers/tag";
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const listDocumentsQuerySchema = z.object({
   q: z.string().optional(),
-  // Opaque pagination token from a previous response's `nextCursor` (currently an absolute offset).
   cursor: z.string().optional(),
   filters: z
     .string()
@@ -125,8 +124,6 @@ const updateDocumentSchema = z.object({
 const updateOcrTextSchema = z.object({
   ocrText: z.string().max(1000000),
 });
-// Export takes either an explicit id list or "all matching" the current filter/search, so "select
-// all" never has to enumerate thousands of ids.
 const exportDocumentsSchema = z.union([
   z.object({ documents: z.array(z.string().min(1)).min(1) }),
   z.object({
@@ -136,8 +133,6 @@ const exportDocumentsSchema = z.union([
     sort: sortStateSchema.optional(),
   }),
 ]);
-// A filesystem-safe, unique name for a document inside the export zip. Prefers the original filename
-// (it carries the real extension); falls back to the title plus an extension inferred from the MIME.
 function exportFileName(
   doc: { id: string; title: string; originalFilename: string | null; mimeType: string },
   used: Set<string>,
@@ -159,8 +154,6 @@ function exportFileName(
   used.add(name);
   return name;
 }
-// Apply an accepted AI suggestion to the document, resolving its stored id-based value to a write.
-// Mirrors the executor's auto-apply; unknown ids (taxonomy deleted since) error out.
 async function applySuggestionValue(
   organizationId: string,
   documentId: string,
@@ -270,7 +263,6 @@ export const documentsRoutes = new Hono<{
   .get("/", zValidator("query", listDocumentsQuerySchema), async (c) => {
     const organizationId = c.get("organizationId");
     const { q, cursor, filters, sort } = c.req.valid("query");
-    // The cursor is an opaque token wrapping an absolute row offset; decode defensively.
     const parsedOffset = cursor ? Number.parseInt(cursor, 10) : 0;
     const offset = Number.isFinite(parsedOffset) && parsedOffset > 0 ? parsedOffset : 0;
     const customPropertyTypes =
@@ -298,7 +290,6 @@ export const documentsRoutes = new Hono<{
       tagsByDocument.set(row.documentId, list);
     }
     const documents = rows.map((d) => toDocumentListItemDto(d, tagsByDocument.get(d.id) ?? []));
-    // A full page means there may be more; an opaque token pointing at the next offset. null = end.
     const nextCursor =
       rows.length === DEFAULT_PAGE_SIZE ? String(offset + DEFAULT_PAGE_SIZE) : null;
     return c.json({ documents, nextCursor });
@@ -333,8 +324,6 @@ export const documentsRoutes = new Hono<{
     if (docs.length === 0) {
       throw errors.badRequest("no_documents", "No documents to export");
     }
-    // Build the zip on the fly: pull each object from storage and stream it straight into the
-    // response, so server memory stays flat regardless of how many documents are selected.
     const used = new Set<string>();
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -353,7 +342,7 @@ export const documentsRoutes = new Hono<{
             for (const doc of docs) {
               const obj = await driver.getObject({ key: doc.storageKey });
               if (!obj) {
-                continue; // skip files missing from storage rather than failing the whole zip
+                continue;
               }
               const entry = new ZipPassThrough(exportFileName(doc, used));
               zip.add(entry);
@@ -434,7 +423,6 @@ export const documentsRoutes = new Hono<{
         }
       }
       await updateDocument(db, { organizationId, id, ...values });
-      // A manual edit invalidates any pending AI suggestion for the same field.
       const supersededField: Record<
         string,
         "documentType" | "storagePath" | "title" | "documentDate"
@@ -509,7 +497,6 @@ export const documentsRoutes = new Hono<{
     if (!driver) {
       throw errors.badRequest("storage_not_configured", "Storage is not configured");
     }
-    // Images are their own thumbnail — serve the original bytes; PDFs serve the rendered .thumb.png.
     const key = doc.mimeType.startsWith("image/") ? doc.storageKey : `${doc.storageKey}.thumb.png`;
     const object = await driver.getObject({ key });
     if (!object) {

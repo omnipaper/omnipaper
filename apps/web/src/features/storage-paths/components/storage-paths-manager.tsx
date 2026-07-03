@@ -10,6 +10,7 @@ import {
 } from "@omnipaper/ui/components/dialog";
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
+import { Switch } from "@omnipaper/ui/components/switch";
 import {
   Table,
   TableBody,
@@ -19,25 +20,26 @@ import {
   TableRow,
 } from "@omnipaper/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
-import { PlusIcon } from "lucide-react";
+import { CircleHelpIcon, PlusIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import {
   RowActions,
   SettingsTableToolbar,
   TableEmptyRow,
 } from "@/components/settings/settings-table";
+import { aiAssignQuery } from "@/features/ai-assign/queries/ai-assign";
 import { STORAGE_PATH_PATTERN as PATH_PATTERN } from "@/features/storage-paths/path-format";
 import {
   type OrgStoragePath,
   orgStoragePathsQuery,
   useDeleteStoragePath,
+  useSetStoragePathAiEligible,
   useUpsertStoragePath,
 } from "@/features/storage-paths/queries/storage-paths";
 
-const COLUMN_COUNT = 3;
-
 export function StoragePathsManager({ orgId }: { orgId: string }) {
   const { data, isPending, isError } = useQuery(orgStoragePathsQuery({ orgId }));
+  const aiQuery = useQuery(aiAssignQuery({ orgId }));
   const deleteStoragePath = useDeleteStoragePath(orgId);
 
   const [search, setSearch] = useState("");
@@ -60,23 +62,27 @@ export function StoragePathsManager({ orgId }: { orgId: string }) {
     ? paths.filter((storagePath) => storagePath.path.toLowerCase().includes(query))
     : paths;
 
+  const setAiEligible = useSetStoragePathAiEligible(orgId);
+  const aiEnabled = aiQuery.data?.fields.storagePath.enabled ?? false;
+  const columnCount = aiEnabled ? 4 : 3;
+
   let body: ReactNode;
   if (isPending) {
-    body = <TableEmptyRow colSpan={COLUMN_COUNT}>Loading…</TableEmptyRow>;
+    body = <TableEmptyRow colSpan={columnCount}>Loading…</TableEmptyRow>;
   } else if (isError) {
     body = (
-      <TableEmptyRow colSpan={COLUMN_COUNT} className="text-destructive">
+      <TableEmptyRow colSpan={columnCount} className="text-destructive">
         Failed to load storage paths.
       </TableEmptyRow>
     );
   } else if (paths.length === 0) {
     body = (
-      <TableEmptyRow colSpan={COLUMN_COUNT}>
+      <TableEmptyRow colSpan={columnCount}>
         No storage paths yet. Create your first one.
       </TableEmptyRow>
     );
   } else if (filtered.length === 0) {
-    body = <TableEmptyRow colSpan={COLUMN_COUNT}>No storage paths match “{search}”.</TableEmptyRow>;
+    body = <TableEmptyRow colSpan={columnCount}>No storage paths match “{search}”.</TableEmptyRow>;
   } else {
     body = filtered.map((storagePath) => (
       <TableRow key={storagePath.id}>
@@ -84,6 +90,17 @@ export function StoragePathsManager({ orgId }: { orgId: string }) {
         <TableCell className="text-muted-foreground">
           <span className="line-clamp-1">{storagePath.description || "—"}</span>
         </TableCell>
+        {aiEnabled ? (
+          <TableCell className="text-center">
+            <Switch
+              checked={storagePath.aiEligible}
+              onCheckedChange={(next) =>
+                setAiEligible.mutate({ id: storagePath.id, aiEligible: next })
+              }
+              aria-label={`Allow AI to use ${storagePath.path}`}
+            />
+          </TableCell>
+        ) : null}
         <TableCell className="text-right">
           <RowActions
             onEdit={() => openEdit(storagePath)}
@@ -120,6 +137,19 @@ export function StoragePathsManager({ orgId }: { orgId: string }) {
             <TableRow className="hover:bg-transparent">
               <TableHead>Path</TableHead>
               <TableHead>Description</TableHead>
+              {aiEnabled ? (
+                <TableHead className="w-28 text-center">
+                  <span className="inline-flex items-center justify-center gap-1">
+                    Used by AI
+                    <span
+                      className="cursor-help text-muted-foreground"
+                      title="When off, AI won't assign this storage path."
+                    >
+                      <CircleHelpIcon className="size-3.5" aria-hidden="true" />
+                    </span>
+                  </span>
+                </TableHead>
+              ) : null}
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>

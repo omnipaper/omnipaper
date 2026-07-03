@@ -17,16 +17,16 @@ import { toDocumentTypeDto } from "../serializers/document-type";
 const createDocumentTypeSchema = z.object({
   name: z.string().trim().min(1).max(100),
   description: z.string().trim().max(500).optional(),
+  aiEligible: z.boolean().optional(),
 });
 
 const updateDocumentTypeSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   description: z.string().trim().max(500).nullable().optional(),
+  aiEligible: z.boolean().optional(),
 });
 
-// Postgres raises 23505 on unique(organizationId, name) for a duplicate name; turn it into a
-// friendly 400 instead of pre-checking (which would race). drizzle wraps the pg error, so the real
-// code can sit on `.cause` — that branch is load-bearing, not redundant.
+// drizzle wraps the pg error, so the 23505 code can sit on `.cause` rather than `.code`.
 function isUniqueViolation(err: unknown): boolean {
   if (typeof err !== "object" || err === null) {
     return false;

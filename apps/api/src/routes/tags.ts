@@ -20,18 +20,17 @@ const createTagSchema = z.object({
   name: z.string().trim().min(1).max(50),
   color: hexColor.optional(),
   description: z.string().trim().max(500).optional(),
+  aiEligible: z.boolean().optional(),
 });
 
 const updateTagSchema = z.object({
   name: z.string().trim().min(1).max(50).optional(),
   color: hexColor.optional(),
   description: z.string().trim().max(500).nullable().optional(),
+  aiEligible: z.boolean().optional(),
 });
 
-// Postgres raises 23505 on the unique(organizationId, name) index when a duplicate name is created.
-// Catching it turns a would-be 500 into a friendly 400 instead of pre-checking (which would race).
-// drizzle wraps the pg error in DrizzleQueryError whose own `.code` is undefined, so the real code
-// lives on `.cause` — that branch is load-bearing, not redundant. `.code` covers an unwrapped error.
+// drizzle wraps the pg error, so the 23505 code can sit on `.cause` rather than `.code`.
 function isUniqueViolation(err: unknown): boolean {
   if (typeof err !== "object" || err === null) {
     return false;

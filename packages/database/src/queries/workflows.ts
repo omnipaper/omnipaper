@@ -26,7 +26,7 @@ export type CreateWorkflowInput = {
   triggerType: string;
   definition: NewWorkflow["definition"];
   enabled?: boolean;
-  origin?: NewWorkflow["origin"];
+  systemKey?: string | null;
 };
 
 export type UpdateWorkflowInput = {
@@ -74,12 +74,28 @@ export async function getOrgWorkflow(db: Database, params: GetOrgWorkflowParams)
   return workflow;
 }
 
-export async function getWorkflowById(db: Database, params: GetWorkflowByIdParams) {
+export type GetOrgSystemWorkflowParams = {
+  organizationId: string;
+  systemKey: string;
+};
+
+export async function getOrgSystemWorkflow(db: Database, params: GetOrgSystemWorkflowParams) {
   const [workflow] = await db
     .select()
     .from(workflows)
-    .where(eq(workflows.id, params.id))
+    .where(
+      and(
+        eq(workflows.organizationId, params.organizationId),
+        eq(workflows.systemKey, params.systemKey),
+      ),
+    )
     .limit(1);
+
+  return workflow;
+}
+
+export async function getWorkflowById(db: Database, params: GetWorkflowByIdParams) {
+  const [workflow] = await db.select().from(workflows).where(eq(workflows.id, params.id)).limit(1);
 
   return workflow;
 }
@@ -109,7 +125,7 @@ export async function createWorkflow(db: Database, input: CreateWorkflowInput) {
       triggerType: input.triggerType,
       definition: input.definition,
       enabled: input.enabled ?? false,
-      origin: input.origin ?? "user",
+      systemKey: input.systemKey ?? null,
     })
     .returning();
 

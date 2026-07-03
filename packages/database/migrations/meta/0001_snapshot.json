@@ -1,5 +1,5 @@
 {
-  "id": "7fcd3053-ecfd-4971-80f5-61937134edc8",
+  "id": "c68b19ba-e318-4084-b78f-9e4de07bf7a2",
   "prevId": "4d83ed76-5ef9-4a26-8217-b904deb6fdc6",
   "version": "7",
   "dialect": "postgresql",
@@ -149,6 +149,164 @@
             "id"
           ],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ai_suggestions": {
+      "name": "ai_suggestions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field": {
+          "name": "field",
+          "type": "ai_suggestion_field",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "custom_property_definition_id": {
+          "name": "custom_property_definition_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "suggested_value": {
+          "name": "suggested_value",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "ai_suggestion_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ai_suggestions_doc_field_idx": {
+          "name": "ai_suggestions_doc_field_idx",
+          "columns": [
+            {
+              "expression": "document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "field",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"ai_suggestions\".\"custom_property_definition_id\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ai_suggestions_doc_field_def_idx": {
+          "name": "ai_suggestions_doc_field_def_idx",
+          "columns": [
+            {
+              "expression": "document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "field",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "custom_property_definition_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"ai_suggestions\".\"custom_property_definition_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ai_suggestions_doc_status_idx": {
+          "name": "ai_suggestions_doc_status_idx",
+          "columns": [
+            {
+              "expression": "document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ai_suggestions_document_id_documents_id_fk": {
+          "name": "ai_suggestions_document_id_documents_id_fk",
+          "tableFrom": "ai_suggestions",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "document_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "ai_suggestions_custom_property_definition_id_custom_property_definitions_id_fk": {
+          "name": "ai_suggestions_custom_property_definition_id_custom_property_definitions_id_fk",
+          "tableFrom": "ai_suggestions",
+          "tableTo": "custom_property_definitions",
+          "columnsFrom": [
+            "custom_property_definition_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -575,6 +733,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "ai_eligible": {
+          "name": "ai_eligible",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "created_at": {
           "name": "created_at",
@@ -1095,6 +1260,108 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.saved_views": {
+      "name": "saved_views",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "saved_views_org_name_idx": {
+          "name": "saved_views_org_name_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "saved_views_organization_id_idx": {
+          "name": "saved_views_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "saved_views_organization_id_organization_id_fk": {
+          "name": "saved_views_organization_id_organization_id_fk",
+          "tableFrom": "saved_views",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.settings": {
       "name": "settings",
       "schema": "",
@@ -1161,6 +1428,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "ai_eligible": {
+          "name": "ai_eligible",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "created_at": {
           "name": "created_at",
@@ -1270,6 +1544,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "ai_eligible": {
+          "name": "ai_eligible",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "created_at": {
           "name": "created_at",
@@ -1507,13 +1788,11 @@
           "notNull": true,
           "default": false
         },
-        "origin": {
-          "name": "origin",
-          "type": "workflow_origin",
-          "typeSchema": "public",
+        "system_key": {
+          "name": "system_key",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'user'"
+          "notNull": false
         },
         "trigger_type": {
           "name": "trigger_type",
@@ -1577,18 +1856,24 @@
           "method": "btree",
           "with": {}
         },
-        "workflows_org_system_unique": {
-          "name": "workflows_org_system_unique",
+        "workflows_org_system_key_unique": {
+          "name": "workflows_org_system_key_unique",
           "columns": [
             {
               "expression": "organization_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
+            },
+            {
+              "expression": "system_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
             }
           ],
           "isUnique": true,
-          "where": "\"workflows\".\"origin\" = 'system'",
+          "where": "\"workflows\".\"system_key\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -2285,6 +2570,27 @@
         "document"
       ]
     },
+    "public.ai_suggestion_field": {
+      "name": "ai_suggestion_field",
+      "schema": "public",
+      "values": [
+        "documentType",
+        "storagePath",
+        "tags",
+        "documentDate",
+        "title",
+        "customProperty"
+      ]
+    },
+    "public.ai_suggestion_status": {
+      "name": "ai_suggestion_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "accepted",
+        "dismissed"
+      ]
+    },
     "public.custom_property_type": {
       "name": "custom_property_type",
       "schema": "public",
@@ -2317,14 +2623,6 @@
         "completed",
         "failed",
         "unsupported"
-      ]
-    },
-    "public.workflow_origin": {
-      "name": "workflow_origin",
-      "schema": "public",
-      "values": [
-        "user",
-        "system"
       ]
     },
     "public.workflow_run_status": {

@@ -1,3 +1,4 @@
+import type { SavedViewState } from "@omnipaper/shared/saved-views";
 import type { AiSuggestionValue } from "@omnipaper/shared/workflows/ai-assign";
 import type { WorkflowDefinition } from "@omnipaper/shared/workflows/schema";
 import { type SQL, sql } from "drizzle-orm";
@@ -66,8 +67,6 @@ export const activityActorTypeEnum = pgEnum("activity_actor_type", ["user", "sys
 
 export const activityResourceTypeEnum = pgEnum("activity_resource_type", ["document"]);
 
-export const workflowOriginEnum = pgEnum("workflow_origin", ["user", "system"]);
-
 export const workflowRunStatusEnum = pgEnum("workflow_run_status", [
   "running",
   "succeeded",
@@ -90,7 +89,6 @@ export const aiSuggestionStatusEnum = pgEnum("ai_suggestion_status", [
   "dismissed",
 ]);
 
-// First-class taxonomy because descriptions are used by users and future AI auto-assignment.
 export const documentTypes = pgTable(
   "document_types",
   {
@@ -115,7 +113,6 @@ export const documentTypes = pgTable(
   ],
 );
 
-// Flat slash-delimited paths; the folder tree is derived app-side.
 export const storagePaths = pgTable(
   "storage_paths",
   {
@@ -162,6 +159,29 @@ export const tags = pgTable(
   (t) => [
     uniqueIndex("tags_org_name_idx").on(t.organizationId, t.name),
     index("tags_organization_id_idx").on(t.organizationId),
+  ],
+);
+
+export const savedViews = pgTable(
+  "saved_views",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("view")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    state: jsonb("state").$type<SavedViewState>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("saved_views_org_name_idx").on(t.organizationId, t.name),
+    index("saved_views_organization_id_idx").on(t.organizationId),
   ],
 );
 
@@ -345,7 +365,7 @@ export const activityEvents = pgTable(
   ],
 );
 
-// Automations stored as JSON; triggerType is denormalised from the definition for indexed dispatch.
+// triggerType is denormalised from the definition for indexed dispatch.
 export const workflows = pgTable(
   "workflows",
   {
@@ -357,7 +377,7 @@ export const workflows = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     enabled: boolean("enabled").notNull().default(false),
-    origin: workflowOriginEnum("origin").notNull().default("user"),
+    systemKey: text("system_key"),
     triggerType: text("trigger_type").notNull(),
     schemaVersion: integer("schema_version").notNull().default(1),
     definition: jsonb("definition").$type<WorkflowDefinition>().notNull(),
@@ -369,9 +389,9 @@ export const workflows = pgTable(
   },
   (t) => [
     index("workflows_org_trigger_enabled_idx").on(t.organizationId, t.triggerType, t.enabled),
-    uniqueIndex("workflows_org_system_unique")
-      .on(t.organizationId)
-      .where(sql`${t.origin} = 'system'`),
+    uniqueIndex("workflows_org_system_key_unique")
+      .on(t.organizationId, t.systemKey)
+      .where(sql`${t.systemKey} is not null`),
   ],
 );
 
@@ -437,6 +457,9 @@ export type NewStoragePath = typeof storagePaths.$inferInsert;
 
 export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
+
+export type SavedView = typeof savedViews.$inferSelect;
+export type NewSavedView = typeof savedViews.$inferInsert;
 
 export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;

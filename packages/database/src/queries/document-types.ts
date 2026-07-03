@@ -2,9 +2,6 @@ import { and, asc, count, eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { documents, documentTypes } from "../schema";
 
-// Data access for the `document_types` taxonomy. Mirrors the tags queries: db-first so it works
-// from a route, worker, or test, and can be handed a transaction.
-
 export type GetOrgDocumentTypesParams = {
   organizationId: string;
 };
@@ -32,7 +29,6 @@ export type GetOrgDocumentTypeParams = {
   id: string;
 };
 
-// Single type scoped to its org — so one tenant can't read another's by id.
 export async function getOrgDocumentType(db: Database, params: GetOrgDocumentTypeParams) {
   const [documentType] = await db
     .select()
@@ -78,8 +74,6 @@ export type UpdateDocumentTypeInput = {
   aiEligible?: boolean;
 };
 
-// Patch scoped to the org. Only provided fields are written; an empty patch returns the current
-// row so the route never issues an invalid empty UPDATE.
 export async function updateDocumentType(db: Database, input: UpdateDocumentTypeInput) {
   const patch: { name?: string; description?: string | null; aiEligible?: boolean } = {};
 
@@ -108,8 +102,6 @@ export async function updateDocumentType(db: Database, input: UpdateDocumentType
   return documentType;
 }
 
-// Delete scoped to its org. documents.document_type_id is ON DELETE SET NULL, so assigned
-// documents are simply un-typed, never removed.
 export async function deleteDocumentType(
   db: Database,
   params: { organizationId: string; id: string },

@@ -1,72 +1,12 @@
-import { env } from "@omnipaper/env";
-import type { AiAssignParams } from "@omnipaper/shared/workflows/ai-assign";
-import { generateText, Output, stepCountIs, tool } from "ai";
-import { z } from "zod";
-import { type AiProvider, resolveModel } from "./model";
+import { generateText, isStepCount } from "ai";
+import { resolveModel } from "./model";
+import { readDocumentOcrTool } from "./tools/read-document-ocr";
+import { submitDocumentMetadataTool } from "./tools/submit-document-metadata";
+import type { ClassifyInput, ClassifyResult } from "./types";
 
 const OCR_HEAD_CHARS = 12000;
-const MAX_STEPS = 4;
-const TITLE_MAX = 200;
+const MAX_STEPS = 6;
 const TIMEOUT_MS = 60_000;
-
-export type ClassifyCandidates = {
-  documentTypes: { name: string; description: string | null }[];
-  storagePaths: { path: string; description: string | null }[];
-  tags: { name: string }[];
-  customFields: { name: string; type: string; description: string | null; options: string[] }[];
-};
-
-export type ClassifyResult = {
-  documentType?: string | null;
-  storagePath?: string | null;
-  tags?: string[];
-  documentDate?: string | null;
-  title?: string | null;
-  customFields?: { field: string; value: string | null }[];
-};
-
-export type ClassifyInput = {
-  provider: AiProvider;
-  model: string;
-  apiKey: string;
-  fields: AiAssignParams;
-  candidates: ClassifyCandidates;
-  ocrText: string;
-};
-
-function buildSchema(input: ClassifyInput) {
-  const { fields, candidates } = input;
-  const shape: Record<string, z.ZodTypeAny> = {};
-
-  if (fields.documentType && candidates.documentTypes.length > 0) {
-    const names = candidates.documentTypes.map((t) => t.name) as [string, ...string[]];
-    shape.documentType = z.enum(names).nullable();
-  }
-  if (fields.storagePath && candidates.storagePaths.length > 0) {
-    const paths = candidates.storagePaths.map((p) => p.path) as [string, ...string[]];
-    shape.storagePath = z.enum(paths).nullable();
-  }
-  if (fields.tags) {
-    shape.tags = z.array(z.string());
-  }
-  if (fields.documentDate) {
-    shape.documentDate = z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .nullable();
-  }
-  if (fields.title) {
-    shape.title = z.string().nullable();
-  }
-  if (fields.customFields && candidates.customFields.length > 0) {
-    const fieldNames = candidates.customFields.map((c) => c.name) as [string, ...string[]];
-    shape.customFields = z.array(
-      z.object({ field: z.enum(fieldNames), value: z.string().nullable() }),
-    );
-  }
-
-  return z.object(shape);
-}
 
 function buildPrompt(input: ClassifyInput) {
   const { fields, candidates, ocrText } = input;
@@ -88,6 +28,11 @@ function buildPrompt(input: ClassifyInput) {
     const existing = candidates.tags.map((t) => t.name).join(", ");
     sections.push(
       `## Tags (reuse these names where they fit; you may also propose new ones)\n${existing || "(none yet)"}`,
+    );
+  }
+  if (fields.tags && input.reservedTagNames.length > 0) {
+    sections.push(
+      `## Excluded tags (these names already exist but are off-limits; never use or recreate them)\n${input.reservedTagNames.join(", ")}`,
     );
   }
   if (fields.documentDate) {
@@ -125,6 +70,7 @@ function buildPrompt(input: ClassifyInput) {
     truncated
       ? "- The document text is truncated; call read_document_ocr to read more if you need it."
       : "",
+    "- When every value is ready, call submit_document_metadata exactly once to record them. If it returns errors, correct only those fields and call it again.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -136,74 +82,28 @@ function buildPrompt(input: ClassifyInput) {
   return { system, prompt };
 }
 
-function normalizeOutput(input: ClassifyInput, raw: ClassifyResult): ClassifyResult {
-  const { fields, candidates } = input;
-  const out: ClassifyResult = {};
-
-  if (fields.documentType) {
-    out.documentType = raw.documentType ?? null;
-  }
-  if (fields.storagePath) {
-    out.storagePath = raw.storagePath ?? null;
-  }
-  if (fields.tags) {
-    const seen = new Set<string>();
-    out.tags = (raw.tags ?? [])
-      .map((name) => name.trim())
-      .filter((name) => {
-        const key = name.toLowerCase();
-        if (!name || seen.has(key)) {
-          return false;
-        }
-        seen.add(key);
-        return true;
-      });
-  }
-  if (fields.documentDate) {
-    out.documentDate = raw.documentDate ?? null;
-  }
-  if (fields.title) {
-    const value = raw.title?.trim();
-    out.title = value ? value.slice(0, TITLE_MAX) : null;
-  }
-  if (fields.customFields) {
-    const known = new Set(candidates.customFields.map((c) => c.name));
-    out.customFields = (raw.customFields ?? []).filter(
-      (c) => known.has(c.field) && c.value != null,
-    );
-  }
-
-  return out;
-}
-
 export async function classifyDocument(input: ClassifyInput): Promise<ClassifyResult> {
-  const { system, prompt } = buildPrompt(input);
+  const { system: instructions, prompt } = buildPrompt(input);
+  const submit = submitDocumentMetadataTool(input);
 
-  const readDocumentOcr = tool({
-    description:
-      "Read a slice of the document's full OCR text when the provided text is truncated.",
-    inputSchema: z.object({
-      offset: z.number().int().min(0),
-      length: z.number().int().min(1).max(20000),
-    }),
-    execute: async ({ offset, length }) => ({
-      text: input.ocrText.slice(offset, offset + length),
-      totalLength: input.ocrText.length,
-    }),
-  });
-
-  const result = await generateText({
+  await generateText({
     model: resolveModel(input.provider, input.model, input.apiKey),
-    tools: { read_document_ocr: readDocumentOcr },
-    stopWhen: stepCountIs(MAX_STEPS),
-    output: Output.object({ schema: buildSchema(input) }),
-    system,
+    tools: {
+      read_document_ocr: readDocumentOcrTool(input.ocrText),
+      submit_document_metadata: submit.tool,
+    },
+    stopWhen: [isStepCount(MAX_STEPS), submit.isDone],
+    instructions,
     prompt,
     abortSignal: AbortSignal.timeout(TIMEOUT_MS),
-    experimental_telemetry: {
-      isEnabled: process.env.NODE_ENV !== "production" && Boolean(env.LANGFUSE_PUBLIC_KEY),
+    telemetry: {
+      functionId: "classify-document",
     },
   });
 
-  return normalizeOutput(input, result.output as ClassifyResult);
+  if (!submit.isDone()) {
+    console.warn("[classify] classify-document produced no valid submission");
+  }
+
+  return submit.getResult();
 }
