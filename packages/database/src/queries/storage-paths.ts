@@ -6,6 +6,31 @@ export type GetOrgStoragePathsParams = {
   organizationId: string;
 };
 
+export type GetOrgStoragePathParams = {
+  organizationId: string;
+  id: string;
+};
+
+export type CreateStoragePathInput = {
+  organizationId: string;
+  path: string;
+  description?: string;
+  aiEligible?: boolean;
+};
+
+export type UpdateStoragePathInput = {
+  organizationId: string;
+  id: string;
+  path?: string;
+  description?: string | null;
+  aiEligible?: boolean;
+};
+
+export type DeleteStoragePathParams = {
+  organizationId: string;
+  id: string;
+};
+
 export async function getOrgStoragePaths(db: Database, params: GetOrgStoragePathsParams) {
   return db
     .select({
@@ -24,11 +49,6 @@ export async function getOrgStoragePaths(db: Database, params: GetOrgStoragePath
     .orderBy(asc(storagePaths.path));
 }
 
-export type GetOrgStoragePathParams = {
-  organizationId: string;
-  id: string;
-};
-
 export async function getOrgStoragePath(db: Database, params: GetOrgStoragePathParams) {
   const [storagePath] = await db
     .select()
@@ -40,13 +60,6 @@ export async function getOrgStoragePath(db: Database, params: GetOrgStoragePathP
 
   return storagePath;
 }
-
-export type CreateStoragePathInput = {
-  organizationId: string;
-  path: string;
-  description?: string;
-  aiEligible?: boolean;
-};
 
 export async function createStoragePath(db: Database, input: CreateStoragePathInput) {
   const [storagePath] = await db
@@ -65,14 +78,6 @@ export async function createStoragePath(db: Database, input: CreateStoragePathIn
 
   return storagePath;
 }
-
-export type UpdateStoragePathInput = {
-  organizationId: string;
-  id: string;
-  path?: string;
-  description?: string | null;
-  aiEligible?: boolean;
-};
 
 export async function updateStoragePath(db: Database, input: UpdateStoragePathInput) {
   const patch: { path?: string; description?: string | null; aiEligible?: boolean } = {};
@@ -102,10 +107,7 @@ export async function updateStoragePath(db: Database, input: UpdateStoragePathIn
   return storagePath;
 }
 
-export async function deleteStoragePath(
-  db: Database,
-  params: { organizationId: string; id: string },
-) {
+export async function deleteStoragePath(db: Database, params: DeleteStoragePathParams) {
   await db
     .delete(storagePaths)
     .where(

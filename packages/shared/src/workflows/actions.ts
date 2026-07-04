@@ -9,7 +9,7 @@ export const ACTION_DEFINITIONS = {
   "tag.remove": { id: "tag.remove", label: "Remove tag", requiresText: false },
   "ai.assignMetadata": {
     id: "ai.assignMetadata",
-    label: "AI: assign metadata",
+    label: "Assign metadata with AI",
     requiresText: true,
   },
 } as const satisfies Record<string, ActionDefinition>;

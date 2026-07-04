@@ -75,9 +75,8 @@ export async function runAiAssignMetadata(
         type: d.definition.type,
         description: d.definition.description,
         options: d.definition.type === "select" ? d.options.map((o) => o.label) : [],
-        allowNewOptions:
-          d.definition.type === "select" &&
-          (customEntries.get(d.definition.id)?.allowNewOptions ?? false),
+        allowNew:
+          d.definition.type === "select" && (customEntries.get(d.definition.id)?.allowNew ?? false),
       })),
     },
   });
@@ -209,7 +208,7 @@ export async function runAiAssignMetadata(
       if (!def || !cfg || !value) {
         continue;
       }
-      const allowNew = def.definition.type === "select" && (cfg.allowNewOptions ?? false);
+      const allowNew = def.definition.type === "select" && (cfg.allowNew ?? false);
       if (cfg.mode === "apply") {
         let columns = coerceCustomValue(def.definition.type, def.options, value);
         if (!columns && allowNew) {

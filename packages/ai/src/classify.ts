@@ -5,7 +5,7 @@ import { submitDocumentMetadataTool } from "./tools/submit-document-metadata";
 import type { ClassifyInput, ClassifyResult } from "./types";
 
 const OCR_HEAD_CHARS = 12000;
-const MAX_STEPS = 6;
+const MAX_STEPS = 3;
 const TIMEOUT_MS = 60_000;
 
 function buildPrompt(input: ClassifyInput) {
@@ -50,9 +50,9 @@ function buildPrompt(input: ClassifyInput) {
         const opts =
           c.type === "select" && c.options.length > 0
             ? ` (options: ${c.options.join(", ")}${
-                c.allowNewOptions ? "; you may propose a new option if none fits" : ""
+                c.allowNew ? "; you may propose a new option if none fits" : ""
               })`
-            : c.type === "select" && c.allowNewOptions
+            : c.type === "select" && c.allowNew
               ? " (no options yet; propose one if the text warrants it)"
               : "";
         return `${c.name} [${c.type}]${desc}${opts}`;

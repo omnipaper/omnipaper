@@ -1,3 +1,4 @@
+import { ACTION_DEFINITIONS } from "@omnipaper/shared/workflows/actions";
 import { TRIGGER_DEFINITIONS, type TriggerId } from "@omnipaper/shared/workflows/triggers";
 import { Button } from "@omnipaper/ui/components/button";
 import { Switch } from "@omnipaper/ui/components/switch";
@@ -48,7 +49,8 @@ export function WorkflowCard({
   function actionLabel(action: Workflow["definition"]["actions"][number]): string {
     if (action.type === "ai.assignMetadata") {
       const fields = Object.keys(action.config);
-      return `AI: ${fields.length > 0 ? fields.join(", ") : "assign metadata"}`;
+      const base = ACTION_DEFINITIONS["ai.assignMetadata"].label;
+      return fields.length > 0 ? `${base}: ${fields.join(", ")}` : base;
     }
     const verb = action.type === "tag.remove" ? "Remove tag" : "Add tag";
     return `${verb}: ${tagName(action.config.tagId)}`;

@@ -3,7 +3,34 @@ import { and, asc, eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { savedViews } from "../schema";
 
-export async function getOrgSavedViews(db: Database, params: { organizationId: string }) {
+export type GetOrgSavedViewsParams = {
+  organizationId: string;
+};
+
+export type GetOrgSavedViewParams = {
+  organizationId: string;
+  id: string;
+};
+
+export type CreateSavedViewInput = {
+  organizationId: string;
+  name: string;
+  state: SavedViewState;
+};
+
+export type UpdateSavedViewInput = {
+  organizationId: string;
+  id: string;
+  name?: string;
+  state?: SavedViewState;
+};
+
+export type DeleteSavedViewParams = {
+  organizationId: string;
+  id: string;
+};
+
+export async function getOrgSavedViews(db: Database, params: GetOrgSavedViewsParams) {
   return db
     .select()
     .from(savedViews)
@@ -11,10 +38,7 @@ export async function getOrgSavedViews(db: Database, params: { organizationId: s
     .orderBy(asc(savedViews.name));
 }
 
-export async function getOrgSavedView(
-  db: Database,
-  params: { organizationId: string; id: string },
-) {
+export async function getOrgSavedView(db: Database, params: GetOrgSavedViewParams) {
   const [view] = await db
     .select()
     .from(savedViews)
@@ -23,12 +47,6 @@ export async function getOrgSavedView(
 
   return view;
 }
-
-export type CreateSavedViewInput = {
-  organizationId: string;
-  name: string;
-  state: SavedViewState;
-};
 
 export async function createSavedView(db: Database, input: CreateSavedViewInput) {
   const [view] = await db
@@ -46,13 +64,6 @@ export async function createSavedView(db: Database, input: CreateSavedViewInput)
 
   return view;
 }
-
-export type UpdateSavedViewInput = {
-  organizationId: string;
-  id: string;
-  name?: string;
-  state?: SavedViewState;
-};
 
 export async function updateSavedView(db: Database, input: UpdateSavedViewInput) {
   const patch: { name?: string; state?: SavedViewState } = {};
@@ -77,10 +88,7 @@ export async function updateSavedView(db: Database, input: UpdateSavedViewInput)
   return view;
 }
 
-export async function deleteSavedView(
-  db: Database,
-  params: { organizationId: string; id: string },
-) {
+export async function deleteSavedView(db: Database, params: DeleteSavedViewParams) {
   await db
     .delete(savedViews)
     .where(and(eq(savedViews.id, params.id), eq(savedViews.organizationId, params.organizationId)));

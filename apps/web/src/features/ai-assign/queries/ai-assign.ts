@@ -52,7 +52,7 @@ export function useSetAiAssignField(orgId: string) {
             entries.push({
               definitionId: input.definitionId,
               mode: "suggest",
-              allowNewOptions: false,
+              allowNew: false,
             });
           }
           next = { ...previous, customFields: entries };

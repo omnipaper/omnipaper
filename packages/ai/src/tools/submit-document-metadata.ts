@@ -100,11 +100,7 @@ function validateSubmission(input: ClassifyInput, raw: ClassifyResult): string[]
       if (!field || entry.value == null) {
         continue;
       }
-      if (
-        field.type === "select" &&
-        !field.allowNewOptions &&
-        !field.options.includes(entry.value)
-      ) {
+      if (field.type === "select" && !field.allowNew && !field.options.includes(entry.value)) {
         errors.push(
           `customFields["${entry.field}"]: "${entry.value}" is not a valid option. Pick one of: ${field.options.join(", ")}, or set value to null.`,
         );

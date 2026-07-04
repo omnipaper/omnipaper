@@ -6,6 +6,31 @@ export type GetOrgDocumentTypesParams = {
   organizationId: string;
 };
 
+export type GetOrgDocumentTypeParams = {
+  organizationId: string;
+  id: string;
+};
+
+export type CreateDocumentTypeInput = {
+  organizationId: string;
+  name: string;
+  description?: string;
+  aiEligible?: boolean;
+};
+
+export type UpdateDocumentTypeInput = {
+  organizationId: string;
+  id: string;
+  name?: string;
+  description?: string | null;
+  aiEligible?: boolean;
+};
+
+export type DeleteDocumentTypeParams = {
+  organizationId: string;
+  id: string;
+};
+
 export async function getOrgDocumentTypes(db: Database, params: GetOrgDocumentTypesParams) {
   return db
     .select({
@@ -24,11 +49,6 @@ export async function getOrgDocumentTypes(db: Database, params: GetOrgDocumentTy
     .orderBy(asc(documentTypes.name));
 }
 
-export type GetOrgDocumentTypeParams = {
-  organizationId: string;
-  id: string;
-};
-
 export async function getOrgDocumentType(db: Database, params: GetOrgDocumentTypeParams) {
   const [documentType] = await db
     .select()
@@ -40,13 +60,6 @@ export async function getOrgDocumentType(db: Database, params: GetOrgDocumentTyp
 
   return documentType;
 }
-
-export type CreateDocumentTypeInput = {
-  organizationId: string;
-  name: string;
-  description?: string;
-  aiEligible?: boolean;
-};
 
 export async function createDocumentType(db: Database, input: CreateDocumentTypeInput) {
   const [documentType] = await db
@@ -65,14 +78,6 @@ export async function createDocumentType(db: Database, input: CreateDocumentType
 
   return documentType;
 }
-
-export type UpdateDocumentTypeInput = {
-  organizationId: string;
-  id: string;
-  name?: string;
-  description?: string | null;
-  aiEligible?: boolean;
-};
 
 export async function updateDocumentType(db: Database, input: UpdateDocumentTypeInput) {
   const patch: { name?: string; description?: string | null; aiEligible?: boolean } = {};
@@ -102,10 +107,7 @@ export async function updateDocumentType(db: Database, input: UpdateDocumentType
   return documentType;
 }
 
-export async function deleteDocumentType(
-  db: Database,
-  params: { organizationId: string; id: string },
-) {
+export async function deleteDocumentType(db: Database, params: DeleteDocumentTypeParams) {
   await db
     .delete(documentTypes)
     .where(

@@ -15,7 +15,7 @@ export const aiAssignParamsSchema = z
         z.object({
           definitionId: z.string(),
           mode: fieldMode,
-          allowNewOptions: z.boolean().optional(),
+          allowNew: z.boolean().optional(),
         }),
       )
       .min(1)

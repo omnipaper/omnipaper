@@ -16,7 +16,7 @@ export const AI_MODELS = {
     ],
   },
   anthropic: {
-    recommended: "claude-haiku-4-5",
+    recommended: "claude-sonnet-4-6",
     models: [
       { id: "claude-opus-4-8", label: "Claude Opus 4.8 (most capable)" },
       { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
@@ -24,7 +24,7 @@ export const AI_MODELS = {
     ],
   },
   google: {
-    recommended: "gemini-2.5-flash",
+    recommended: "gemini-3.5-flash",
     models: [
       { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro (most capable)" },
       { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },

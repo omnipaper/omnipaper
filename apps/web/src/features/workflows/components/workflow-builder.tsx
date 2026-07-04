@@ -39,7 +39,7 @@ const AI_FIELDS = [
 ] as const;
 type AiFieldKey = (typeof AI_FIELDS)[number]["key"];
 
-type DraftCustomField = { mode: Mode; allowNewOptions: boolean };
+type DraftCustomField = { mode: Mode; allowNew: boolean };
 
 type DraftAction = {
   key: string;
@@ -95,7 +95,7 @@ function hydrateActions(actions: Workflow["definition"]["actions"]): DraftAction
         customFields: Object.fromEntries(
           (config.customFields ?? []).map((e) => [
             e.definitionId,
-            { mode: e.mode, allowNewOptions: e.allowNewOptions ?? false },
+            { mode: e.mode, allowNew: e.allowNew ?? false },
           ]),
         ),
       };
@@ -215,7 +215,7 @@ export function WorkflowBuilder({
         }
         const customFields = { ...a.customFields };
         if (on) {
-          customFields[id] = { mode: "suggest", allowNewOptions: false };
+          customFields[id] = { mode: "suggest", allowNew: false };
         } else {
           delete customFields[id];
         }
@@ -250,7 +250,7 @@ export function WorkflowBuilder({
           tags?: { mode: Mode; allowNew: boolean };
           documentDate?: { mode: Mode };
           title?: { mode: Mode };
-          customFields?: { definitionId: string; mode: Mode; allowNewOptions?: boolean }[];
+          customFields?: { definitionId: string; mode: Mode; allowNew?: boolean }[];
         } = {};
         if (a.fields.documentType) {
           config.documentType = { mode: a.fields.documentType };
@@ -272,7 +272,7 @@ export function WorkflowBuilder({
           config.customFields = customEntries.map(([definitionId, v]) => ({
             definitionId,
             mode: v.mode,
-            ...(v.allowNewOptions ? { allowNewOptions: true } : {}),
+            ...(v.allowNew ? { allowNew: true } : {}),
           }));
         }
         return { id, type: "ai.assignMetadata" as const, config };
@@ -483,10 +483,10 @@ export function WorkflowBuilder({
                                 {p.type === "select" && entry ? (
                                   <div className="flex items-center gap-2 pl-7 text-muted-foreground text-xs">
                                     <Switch
-                                      checked={entry.allowNewOptions}
+                                      checked={entry.allowNew}
                                       onCheckedChange={(on) =>
                                         updateCustomField(action.key, p.id, {
-                                          allowNewOptions: on,
+                                          allowNew: on,
                                         })
                                       }
                                     />

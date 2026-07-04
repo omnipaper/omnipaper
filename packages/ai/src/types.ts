@@ -10,7 +10,7 @@ export type ClassifyCandidates = {
     type: string;
     description: string | null;
     options: string[];
-    allowNewOptions: boolean;
+    allowNew: boolean;
   }[];
 };
 

@@ -25,7 +25,7 @@ export type AiAssignView = {
     title: { enabled: boolean; mode: FieldMode };
     documentDate: { enabled: boolean; mode: FieldMode };
   };
-  customFields: { definitionId: string; mode: FieldMode; allowNewOptions: boolean }[];
+  customFields: { definitionId: string; mode: FieldMode; allowNew: boolean }[];
 };
 
 function buildDefinition(config: AiAssignParams): WorkflowDefinition {
@@ -79,7 +79,7 @@ function toView(workflow: Workflow): AiAssignView {
     customFields: (config.customFields ?? []).map((e) => ({
       definitionId: e.definitionId,
       mode: e.mode,
-      allowNewOptions: e.allowNewOptions ?? false,
+      allowNew: e.allowNew ?? false,
     })),
   };
 }

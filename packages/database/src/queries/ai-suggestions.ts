@@ -9,6 +9,27 @@ export type UpsertAiSuggestionInput = {
   suggestedValue: NewAiSuggestion["suggestedValue"];
 };
 
+export type GetPendingSuggestionsParams = {
+  documentId: string;
+};
+
+export type GetSuggestionByIdParams = {
+  id: string;
+  documentId: string;
+};
+
+export type SetSuggestionStatusInput = {
+  documentId: string;
+  id: string;
+  status: "accepted" | "dismissed";
+};
+
+export type DismissSuggestionsForFieldInput = {
+  documentId: string;
+  field: NewAiSuggestion["field"];
+  customPropertyDefinitionId?: string | null;
+};
+
 // One open suggestion per (document, field, customPropertyDefinitionId): a re-run replaces the
 // previous one and reopens it as pending. Backed by ai_suggestions_doc_field_def_idx (NULLS NOT
 // DISTINCT), so the NULL definition id of non-custom fields still collapses to one row.
@@ -55,7 +76,7 @@ export async function upsertAiSuggestion(db: Database, input: UpsertAiSuggestion
   return suggestion;
 }
 
-export async function getPendingSuggestions(db: Database, params: { documentId: string }) {
+export async function getPendingSuggestions(db: Database, params: GetPendingSuggestionsParams) {
   return db
     .select()
     .from(aiSuggestions)
@@ -64,7 +85,7 @@ export async function getPendingSuggestions(db: Database, params: { documentId: 
     );
 }
 
-export async function getSuggestionById(db: Database, params: { id: string; documentId: string }) {
+export async function getSuggestionById(db: Database, params: GetSuggestionByIdParams) {
   const [suggestion] = await db
     .select()
     .from(aiSuggestions)
@@ -73,12 +94,6 @@ export async function getSuggestionById(db: Database, params: { id: string; docu
 
   return suggestion;
 }
-
-export type SetSuggestionStatusInput = {
-  documentId: string;
-  id: string;
-  status: "accepted" | "dismissed";
-};
 
 export async function setSuggestionStatus(db: Database, input: SetSuggestionStatusInput) {
   const [suggestion] = await db
@@ -89,12 +104,6 @@ export async function setSuggestionStatus(db: Database, input: SetSuggestionStat
 
   return suggestion;
 }
-
-export type DismissSuggestionsForFieldInput = {
-  documentId: string;
-  field: NewAiSuggestion["field"];
-  customPropertyDefinitionId?: string | null;
-};
 
 // A manual edit to a field invalidates any pending suggestion for it, so the chip stops showing.
 export async function dismissSuggestionsForField(
