@@ -13,7 +13,9 @@ export const Route = createFileRoute("/dashboard")({
     // a misconfigured demo lands on /sign-in rather than looping.
     if (!session && DEMO_MODE) {
       await bootstrapDemoSession();
-      await queryClient.invalidateQueries({ queryKey: sessionKeys.all });
+      // removeQueries, NOT invalidateQueries: the cached `null` has no active observers here, so
+      // invalidate doesn't refetch and ensureQueryData would return the stale null from cache.
+      queryClient.removeQueries({ queryKey: sessionKeys.all });
       session = await queryClient.ensureQueryData(sessionQueryOptions);
     }
 
