@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@better-auth/expo": "catalog:",
     "@hono/zod-validator": "0.8.0",
     "@hyzyla/pdfium": "2.1.13",
     "@omnipaper/ai": "workspace:*",
@@ -32,10 +33,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@ai-sdk/otel": "1.0.2",
-    "@langfuse/otel": "5.7.0",
+    "@ai-sdk/otel": "1.0.9",
+    "@langfuse/otel": "5.9.1",
     "@opentelemetry/sdk-node": "0.219.0",
-    "ai": "7.0.2",
+    "ai": "catalog:",
     "@types/bun": "catalog:",
     "@types/pngjs": "6.0.5",
     "typescript": "catalog:"

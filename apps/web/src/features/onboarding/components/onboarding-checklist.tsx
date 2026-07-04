@@ -67,14 +67,14 @@ export function OnboardingChecklist({ orgId }: { orgId: string }) {
               Connect an S3-compatible bucket (S3, R2, MinIO) to store your files.
             </TaskLink>
           </Task>
-          <Task done={hasDocuments} icon={FileUpIcon} title="Upload your first document">
-            <TaskLink to="/dashboard/orgs/$orgId/documents" orgId={orgId}>
-              Drag a PDF or image in, or use the upload button.
-            </TaskLink>
-          </Task>
           <Task done={ocrConfigured} icon={KeyIcon} title="Set up OCR">
             <TaskLink to="/dashboard/orgs/$orgId/settings/ocr" orgId={orgId}>
               Make scans and PDFs searchable with Mistral OCR.
+            </TaskLink>
+          </Task>
+          <Task done={hasDocuments} icon={FileUpIcon} title="Upload your first document">
+            <TaskLink to="/dashboard/orgs/$orgId/documents" orgId={orgId}>
+              Drag a PDF or image in, or use the upload button.
             </TaskLink>
           </Task>
         </ul>

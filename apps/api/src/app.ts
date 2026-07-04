@@ -2,6 +2,8 @@ import { env } from "@omnipaper/env";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
+import pkg from "../../../package.json";
+import { API_LEVEL, MIN_API_LEVEL } from "./api-level";
 import { auth } from "./auth";
 import type { Variables } from "./context";
 import { demoReadOnly, demoRoutes } from "./demo";
@@ -66,7 +68,14 @@ export function createApp() {
       return c.json({ error: { code: "internal_error", message: "Internal server error" } }, 500);
     })
     .on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
-    .get("/health", (c) => c.json({ status: "ok" }))
+    .get("/health", (c) =>
+      c.json({
+        status: "ok",
+        version: pkg.version,
+        apiLevel: API_LEVEL,
+        minApiLevel: MIN_API_LEVEL,
+      }),
+    )
     .route("/api/demo", demoRoutes)
     .route("/api", apiRoutes);
 
