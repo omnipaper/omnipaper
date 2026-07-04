@@ -2,6 +2,7 @@ import { db } from "@omnipaper/database/client";
 import {
   createWorkflow,
   getOrgSystemWorkflow,
+  getOrgWorkflows,
   updateWorkflow,
 } from "@omnipaper/database/queries/workflows";
 import type { Workflow } from "@omnipaper/database/schema";
@@ -24,6 +25,7 @@ export type AiAssignView = {
     title: { enabled: boolean; mode: FieldMode };
     documentDate: { enabled: boolean; mode: FieldMode };
   };
+  customFields: { definitionId: string; mode: FieldMode; allowNewOptions: boolean }[];
 };
 
 function buildDefinition(config: AiAssignParams): WorkflowDefinition {
@@ -74,6 +76,11 @@ function toView(workflow: Workflow): AiAssignView {
       title: field(config.title),
       documentDate: field(config.documentDate),
     },
+    customFields: (config.customFields ?? []).map((e) => ({
+      definitionId: e.definitionId,
+      mode: e.mode,
+      allowNewOptions: e.allowNewOptions ?? false,
+    })),
   };
 }
 
@@ -99,4 +106,62 @@ export async function setSystemAiAssign(
     definition: buildDefinition(config),
   });
   return toView(updated ?? workflow);
+}
+
+export async function setSystemAiAssignCustomField(
+  organizationId: string,
+  definitionId: string,
+  enabled: boolean,
+): Promise<AiAssignView> {
+  const workflow = await getOrCreate(organizationId);
+  const current = readConfig(workflow).customFields ?? [];
+  const entries = enabled
+    ? current.some((e) => e.definitionId === definitionId)
+      ? current
+      : [...current, { definitionId, mode: "suggest" as const }]
+    : current.filter((e) => e.definitionId !== definitionId);
+  return setSystemAiAssign(organizationId, {
+    customFields: entries.length > 0 ? entries : undefined,
+  });
+}
+
+// A deleted definition would otherwise linger as a dead id inside workflow JSON (harmless to the
+// engine, but it would read as "enabled" in the settings UI).
+export async function removeCustomFieldFromWorkflows(
+  organizationId: string,
+  definitionId: string,
+): Promise<void> {
+  const all = await getOrgWorkflows(db, { organizationId });
+  for (const workflow of all) {
+    let changed = false;
+    const actions = workflow.definition.actions.map((action) => {
+      if (action.type !== "ai.assignMetadata" || !action.config.customFields) {
+        return action;
+      }
+      const entries = action.config.customFields.filter((e) => e.definitionId !== definitionId);
+      if (entries.length === action.config.customFields.length) {
+        return action;
+      }
+      changed = true;
+      const config = { ...action.config };
+      if (entries.length > 0) {
+        config.customFields = entries;
+      } else {
+        delete config.customFields;
+      }
+      return { ...action, config };
+    });
+    if (!changed) {
+      continue;
+    }
+    const emptySystemConfig =
+      workflow.systemKey === SYSTEM_KEY &&
+      actions.every((a) => a.type !== "ai.assignMetadata" || Object.keys(a.config).length === 0);
+    await updateWorkflow(db, {
+      organizationId,
+      id: workflow.id,
+      ...(emptySystemConfig ? { enabled: false } : {}),
+      definition: { ...workflow.definition, actions },
+    });
+  }
 }

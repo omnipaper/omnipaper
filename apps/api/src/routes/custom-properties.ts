@@ -15,6 +15,7 @@ import { z } from "zod";
 import type { Variables } from "../context";
 import { errors } from "../errors";
 import { getPropertyTypeDefinition, propertyKeyFromName } from "../lib/custom-property-registry";
+import { removeCustomFieldFromWorkflows } from "../lib/system-ai-workflow";
 import { requireOrgPermission } from "../middleware";
 import { toPropertyDefinitionDto } from "../serializers/custom-property";
 
@@ -148,6 +149,7 @@ export const customPropertiesRoutes = new Hono<{ Variables: Variables }>()
     }
 
     await deletePropertyDefinition(db, { organizationId, id });
+    await removeCustomFieldFromWorkflows(organizationId, id);
 
     return c.json({ ok: true });
   })

@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@omnipaper/ui/components/select";
+import { Switch } from "@omnipaper/ui/components/switch";
 import {
   Table,
   TableBody,
@@ -44,9 +45,10 @@ import {
   SettingsTableToolbar,
   TableEmptyRow,
 } from "@/components/settings/settings-table";
+import { aiAssignQuery, useSetAiAssignField } from "@/features/ai-assign/queries/ai-assign";
 import {
-  type PropertyDefinition,
   orgPropertyDefinitionsQuery,
+  type PropertyDefinition,
   useAddPropertyOption,
   useDeletePropertyDefinition,
   useDeletePropertyOption,
@@ -70,11 +72,14 @@ const TYPE_LABEL: Record<string, string> = Object.fromEntries(
   PROPERTY_TYPES.map((t) => [t.value, t.label]),
 );
 
-const COLUMN_COUNT = 5;
+const COLUMN_COUNT = 6;
 
 export function CustomPropertiesManager({ orgId }: { orgId: string }) {
   const { data, isPending, isError } = useQuery(orgPropertyDefinitionsQuery({ orgId }));
   const deleteDefinition = useDeletePropertyDefinition(orgId);
+  const { data: aiAssign } = useQuery(aiAssignQuery({ orgId }));
+  const setAiField = useSetAiAssignField(orgId);
+  const aiDefinitionIds = aiAssign?.customFields.map((e) => e.definitionId) ?? [];
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -135,6 +140,19 @@ export function CustomPropertiesManager({ orgId }: { orgId: string }) {
         <TableCell className="text-right text-muted-foreground tabular-nums">
           {definition.documentCount}
         </TableCell>
+        <TableCell className="text-center">
+          <Switch
+            checked={aiDefinitionIds.includes(definition.id)}
+            onCheckedChange={(next) =>
+              setAiField.mutate({
+                field: "customProperty",
+                definitionId: definition.id,
+                enabled: next,
+              })
+            }
+            aria-label={`Let AI fill ${definition.name}`}
+          />
+        </TableCell>
         <TableCell className="text-right">
           <RowActions
             onEdit={() => openEdit(definition.id)}
@@ -173,6 +191,7 @@ export function CustomPropertiesManager({ orgId }: { orgId: string }) {
               <TableHead>Type</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="text-right">Documents</TableHead>
+              <TableHead className="w-24 text-center">Used by AI</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>

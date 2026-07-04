@@ -39,14 +39,15 @@ const AI_FIELDS = [
 ] as const;
 type AiFieldKey = (typeof AI_FIELDS)[number]["key"];
 
+type DraftCustomField = { mode: Mode; allowNewOptions: boolean };
+
 type DraftAction = {
   key: string;
   type: ActionType;
   tagId: string;
   fields: Partial<Record<AiFieldKey, Mode>>;
   allowNew: boolean;
-  customFieldIds: string[];
-  customFieldsMode: Mode;
+  customFields: Record<string, DraftCustomField>;
 };
 
 const ACTION_OPTIONS: { id: ActionType; label: string }[] = [
@@ -61,8 +62,7 @@ function newAction(): DraftAction {
     tagId: "",
     fields: {},
     allowNew: false,
-    customFieldIds: [],
-    customFieldsMode: "suggest",
+    customFields: {},
   };
 }
 
@@ -92,8 +92,12 @@ function hydrateActions(actions: Workflow["definition"]["actions"]): DraftAction
         tagId: "",
         fields,
         allowNew: config.tags?.allowNew ?? false,
-        customFieldIds: config.customFields?.definitionIds ?? [],
-        customFieldsMode: config.customFields?.mode ?? "suggest",
+        customFields: Object.fromEntries(
+          (config.customFields ?? []).map((e) => [
+            e.definitionId,
+            { mode: e.mode, allowNewOptions: e.allowNewOptions ?? false },
+          ]),
+        ),
       };
     }
     return {
@@ -102,8 +106,7 @@ function hydrateActions(actions: Workflow["definition"]["actions"]): DraftAction
       tagId: action.config.tagId,
       fields: {},
       allowNew: false,
-      customFieldIds: [],
-      customFieldsMode: "suggest",
+      customFields: {},
     };
   });
 }
@@ -172,7 +175,7 @@ export function WorkflowBuilder({
     actions.length > 0 &&
     actions.every((a) =>
       a.type === "ai.assignMetadata"
-        ? Object.keys(a.fields).length > 0 || a.customFieldIds.length > 0
+        ? Object.keys(a.fields).length > 0 || Object.keys(a.customFields).length > 0
         : a.tagId.length > 0,
     ) &&
     !pending;
@@ -210,8 +213,25 @@ export function WorkflowBuilder({
         if (a.key !== key) {
           return a;
         }
-        const ids = on ? [...a.customFieldIds, id] : a.customFieldIds.filter((x) => x !== id);
-        return { ...a, customFieldIds: ids };
+        const customFields = { ...a.customFields };
+        if (on) {
+          customFields[id] = { mode: "suggest", allowNewOptions: false };
+        } else {
+          delete customFields[id];
+        }
+        return { ...a, customFields };
+      }),
+    );
+  }
+
+  function updateCustomField(key: string, id: string, patch: Partial<DraftCustomField>) {
+    setActions((prev) =>
+      prev.map((a) => {
+        const entry = a.customFields[id];
+        if (a.key !== key || !entry) {
+          return a;
+        }
+        return { ...a, customFields: { ...a.customFields, [id]: { ...entry, ...patch } } };
       }),
     );
   }
@@ -230,7 +250,7 @@ export function WorkflowBuilder({
           tags?: { mode: Mode; allowNew: boolean };
           documentDate?: { mode: Mode };
           title?: { mode: Mode };
-          customFields?: { mode: Mode; definitionIds: string[] };
+          customFields?: { definitionId: string; mode: Mode; allowNewOptions?: boolean }[];
         } = {};
         if (a.fields.documentType) {
           config.documentType = { mode: a.fields.documentType };
@@ -247,8 +267,13 @@ export function WorkflowBuilder({
         if (a.fields.title) {
           config.title = { mode: a.fields.title };
         }
-        if (a.customFieldIds.length > 0) {
-          config.customFields = { mode: a.customFieldsMode, definitionIds: a.customFieldIds };
+        const customEntries = Object.entries(a.customFields);
+        if (customEntries.length > 0) {
+          config.customFields = customEntries.map(([definitionId, v]) => ({
+            definitionId,
+            mode: v.mode,
+            ...(v.allowNewOptions ? { allowNewOptions: true } : {}),
+          }));
         }
         return { id, type: "ai.assignMetadata" as const, config };
       }
@@ -425,34 +450,52 @@ export function WorkflowBuilder({
                       })}
                       {properties.length > 0 ? (
                         <div className="flex flex-col gap-2 border-t pt-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm">Custom fields</span>
-                            {action.customFieldIds.length > 0 ? (
-                              <Select
-                                value={action.customFieldsMode}
-                                onValueChange={(m) =>
-                                  updateAction(action.key, { customFieldsMode: m as Mode })
-                                }
-                              >
-                                <SelectTrigger className="w-36">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="apply">Apply</SelectItem>
-                                  <SelectItem value="suggest">Suggest</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            ) : null}
-                          </div>
-                          {properties.map((p) => (
-                            <div key={p.id} className="flex items-center gap-2 pl-1">
-                              <Switch
-                                checked={action.customFieldIds.includes(p.id)}
-                                onCheckedChange={(on) => toggleCustomField(action.key, p.id, on)}
-                              />
-                              <span className="flex-1 text-muted-foreground text-sm">{p.name}</span>
-                            </div>
-                          ))}
+                          <span className="text-sm">Custom fields</span>
+                          {properties.map((p) => {
+                            const entry = action.customFields[p.id];
+                            return (
+                              <div key={p.id} className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={entry !== undefined}
+                                    onCheckedChange={(on) =>
+                                      toggleCustomField(action.key, p.id, on)
+                                    }
+                                  />
+                                  <span className="flex-1 text-sm">{p.name}</span>
+                                  {entry ? (
+                                    <Select
+                                      value={entry.mode}
+                                      onValueChange={(m) =>
+                                        updateCustomField(action.key, p.id, { mode: m as Mode })
+                                      }
+                                    >
+                                      <SelectTrigger className="w-36">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="apply">Apply</SelectItem>
+                                        <SelectItem value="suggest">Suggest</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : null}
+                                </div>
+                                {p.type === "select" && entry ? (
+                                  <div className="flex items-center gap-2 pl-7 text-muted-foreground text-xs">
+                                    <Switch
+                                      checked={entry.allowNewOptions}
+                                      onCheckedChange={(on) =>
+                                        updateCustomField(action.key, p.id, {
+                                          allowNewOptions: on,
+                                        })
+                                      }
+                                    />
+                                    Let AI add options that don't exist yet
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : null}
                     </div>

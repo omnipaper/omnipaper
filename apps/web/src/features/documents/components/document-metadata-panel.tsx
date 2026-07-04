@@ -85,9 +85,11 @@ export function DocumentMetadataPanel({
       const display =
         "selectOptionId" in value
           ? (prop?.options.find((o) => o.id === value.selectOptionId)?.label ?? "?")
-          : "value" in value
-            ? value.value
-            : "";
+          : "newOptionLabel" in value
+            ? `${value.newOptionLabel} (new option)`
+            : "value" in value
+              ? value.value
+              : "";
       return `${prop?.name ?? "Property"}: ${display}`;
     }
     return suggestion.field;

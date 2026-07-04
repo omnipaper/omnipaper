@@ -8,6 +8,7 @@ import {
   setSuggestionStatus,
 } from "@omnipaper/database/queries/ai-suggestions";
 import {
+  addPropertyOption,
   clearDocumentPropertyValue,
   getDocumentPropertyValues,
   getOrgCustomPropertyTypes,
@@ -209,6 +210,14 @@ async function applySuggestionValue(
         throw errors.badRequest("invalid_option", "Option no longer exists");
       }
       columns = customPropertyRegistry.select.toDb(value.selectOptionId);
+    } else if ("newOptionLabel" in value) {
+      // The option may have been created since the suggestion was made (another accept, manual add).
+      const existing = found.options.find(
+        (o) => o.label.toLowerCase() === value.newOptionLabel.toLowerCase(),
+      );
+      const option =
+        existing ?? (await addPropertyOption(db, { definitionId, label: value.newOptionLabel }));
+      columns = customPropertyRegistry.select.toDb(option.id);
     } else if ("value" in value) {
       columns = coerceCustomValue(found.definition.type, found.options, value.value);
     }

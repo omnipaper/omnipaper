@@ -43,19 +43,34 @@ export function useSetAiAssignField(orgId: string) {
       await queryClient.cancelQueries({ queryKey: aiAssignKeys.all(orgId) });
       const previous = queryClient.getQueryData<AiAssignConfig>(aiAssignKeys.all(orgId));
       if (previous) {
-        const current = previous.fields[input.field];
-        const next = {
-          ...previous,
-          fields: {
-            ...previous.fields,
-            [input.field]: {
-              ...current,
-              enabled: input.enabled,
-              mode: input.mode ?? current.mode,
-              ...(input.allowNew !== undefined ? { allowNew: input.allowNew } : {}),
+        let next: AiAssignConfig;
+        if (input.field === "customProperty") {
+          const entries = previous.customFields.filter(
+            (e) => e.definitionId !== input.definitionId,
+          );
+          if (input.enabled) {
+            entries.push({
+              definitionId: input.definitionId,
+              mode: "suggest",
+              allowNewOptions: false,
+            });
+          }
+          next = { ...previous, customFields: entries };
+        } else {
+          const current = previous.fields[input.field];
+          next = {
+            ...previous,
+            fields: {
+              ...previous.fields,
+              [input.field]: {
+                ...current,
+                enabled: input.enabled,
+                mode: input.mode ?? current.mode,
+                ...(input.allowNew !== undefined ? { allowNew: input.allowNew } : {}),
+              },
             },
-          },
-        } as AiAssignConfig;
+          } as AiAssignConfig;
+        }
         queryClient.setQueryData(aiAssignKeys.all(orgId), next);
       }
       return { previous };

@@ -11,7 +11,14 @@ export const aiAssignParamsSchema = z
     documentDate: field.optional(),
     title: field.optional(),
     customFields: z
-      .object({ mode: fieldMode, definitionIds: z.array(z.string()).min(1) })
+      .array(
+        z.object({
+          definitionId: z.string(),
+          mode: fieldMode,
+          allowNewOptions: z.boolean().optional(),
+        }),
+      )
+      .min(1)
       .optional(),
   })
   .refine((fields) => Object.keys(fields).length > 0, {
@@ -24,4 +31,5 @@ export type AiSuggestionValue =
   | { id: string }
   | { existingIds: string[]; newNames: string[] }
   | { value: string }
-  | { selectOptionId: string };
+  | { selectOptionId: string }
+  | { newOptionLabel: string };

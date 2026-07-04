@@ -5,7 +5,13 @@ export type ClassifyCandidates = {
   documentTypes: { name: string; description: string | null }[];
   storagePaths: { path: string; description: string | null }[];
   tags: { name: string }[];
-  customFields: { name: string; type: string; description: string | null; options: string[] }[];
+  customFields: {
+    name: string;
+    type: string;
+    description: string | null;
+    options: string[];
+    allowNewOptions: boolean;
+  }[];
 };
 
 export type ClassifyResult = {

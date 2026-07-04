@@ -48,7 +48,13 @@ function buildPrompt(input: ClassifyInput) {
       .map((c) => {
         const desc = c.description ? ` — ${c.description}` : "";
         const opts =
-          c.type === "select" && c.options.length > 0 ? ` (options: ${c.options.join(", ")})` : "";
+          c.type === "select" && c.options.length > 0
+            ? ` (options: ${c.options.join(", ")}${
+                c.allowNewOptions ? "; you may propose a new option if none fits" : ""
+              })`
+            : c.type === "select" && c.allowNewOptions
+              ? " (no options yet; propose one if the text warrants it)"
+              : "";
         return `${c.name} [${c.type}]${desc}${opts}`;
       })
       .join("\n");

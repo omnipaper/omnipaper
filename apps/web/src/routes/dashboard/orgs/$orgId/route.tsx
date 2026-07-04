@@ -153,7 +153,7 @@ function OrgLayout() {
                             params={{ orgId }}
                           >
                             <SlidersHorizontalIcon />
-                            <span>Properties</span>
+                            <span>Custom properties</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

@@ -3,6 +3,7 @@ import { recordEvent } from "@omnipaper/database/activity";
 import { db } from "@omnipaper/database/client";
 import { upsertAiSuggestion } from "@omnipaper/database/queries/ai-suggestions";
 import {
+  addPropertyOption,
   getOrgPropertyDefinitions,
   setDocumentPropertyValue,
 } from "@omnipaper/database/queries/custom-properties";
@@ -14,7 +15,7 @@ import { getAiSettings } from "@omnipaper/settings/ai-settings";
 import { getProviderKeys } from "@omnipaper/settings/provider-settings";
 import { resolveAiModel } from "@omnipaper/shared/ai-models";
 import type { AiAssignParams } from "@omnipaper/shared/workflows/ai-assign";
-import { coerceCustomValue } from "./custom-property-registry";
+import { coerceCustomValue, customPropertyRegistry } from "./custom-property-registry";
 
 type Doc = {
   id: string;
@@ -40,17 +41,18 @@ export async function runAiAssignMetadata(
     return { ok: false, detail: `missing ${ai.provider} API key` };
   }
 
-  const customConfig = config.customFields;
+  const customEntries = new Map((config.customFields ?? []).map((e) => [e.definitionId, e]));
   const [types, paths, tags] = await Promise.all([
     getOrgDocumentTypes(db, { organizationId: doc.organizationId }),
     getOrgStoragePaths(db, { organizationId: doc.organizationId }),
     getOrgTags(db, { organizationId: doc.organizationId }),
   ]);
-  const customDefs = customConfig
-    ? (await getOrgPropertyDefinitions(db, { organizationId: doc.organizationId })).filter((d) =>
-        customConfig.definitionIds.includes(d.definition.id),
-      )
-    : [];
+  const customDefs =
+    customEntries.size > 0
+      ? (await getOrgPropertyDefinitions(db, { organizationId: doc.organizationId })).filter((d) =>
+          customEntries.has(d.definition.id),
+        )
+      : [];
 
   const eligibleTypes = types.filter((t) => t.aiEligible);
   const eligiblePaths = paths.filter((p) => p.aiEligible);
@@ -73,6 +75,9 @@ export async function runAiAssignMetadata(
         type: d.definition.type,
         description: d.definition.description,
         options: d.definition.type === "select" ? d.options.map((o) => o.label) : [],
+        allowNewOptions:
+          d.definition.type === "select" &&
+          (customEntries.get(d.definition.id)?.allowNewOptions ?? false),
       })),
     },
   });
@@ -195,15 +200,25 @@ export async function runAiAssignMetadata(
     }
   }
 
-  if (customConfig && result.customFields) {
+  if (customEntries.size > 0 && result.customFields) {
     const byName = new Map(customDefs.map((d) => [d.definition.name, d] as const));
     for (const entry of result.customFields) {
       const def = byName.get(entry.field);
-      if (!def || entry.value == null) {
+      const cfg = def ? customEntries.get(def.definition.id) : undefined;
+      const value = entry.value?.trim();
+      if (!def || !cfg || !value) {
         continue;
       }
-      if (customConfig.mode === "apply") {
-        const columns = coerceCustomValue(def.definition.type, def.options, entry.value);
+      const allowNew = def.definition.type === "select" && (cfg.allowNewOptions ?? false);
+      if (cfg.mode === "apply") {
+        let columns = coerceCustomValue(def.definition.type, def.options, value);
+        if (!columns && allowNew) {
+          const option = await addPropertyOption(db, {
+            definitionId: def.definition.id,
+            label: value,
+          });
+          columns = customPropertyRegistry.select.toDb(option.id);
+        }
         if (columns) {
           await setDocumentPropertyValue(db, {
             documentId: doc.id,
@@ -213,9 +228,7 @@ export async function runAiAssignMetadata(
           updatedDefinitions.push(def.definition.id);
         }
       } else if (def.definition.type === "select") {
-        const option = def.options.find(
-          (o) => o.label.toLowerCase() === entry.value?.toLowerCase(),
-        );
+        const option = def.options.find((o) => o.label.toLowerCase() === value.toLowerCase());
         if (option) {
           await upsertAiSuggestion(db, {
             documentId: doc.id,
@@ -223,13 +236,20 @@ export async function runAiAssignMetadata(
             customPropertyDefinitionId: def.definition.id,
             suggestedValue: { selectOptionId: option.id },
           });
+        } else if (allowNew) {
+          await upsertAiSuggestion(db, {
+            documentId: doc.id,
+            field: "customProperty",
+            customPropertyDefinitionId: def.definition.id,
+            suggestedValue: { newOptionLabel: value },
+          });
         }
       } else {
         await upsertAiSuggestion(db, {
           documentId: doc.id,
           field: "customProperty",
           customPropertyDefinitionId: def.definition.id,
-          suggestedValue: { value: entry.value },
+          suggestedValue: { value },
         });
       }
     }
