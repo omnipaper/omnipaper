@@ -11,21 +11,21 @@
   },
   "devDependencies": {
     "@orama/orama": "3.1.18",
-    "@tailwindcss/postcss": "4.3.0",
+    "@tailwindcss/postcss": "4.3.2",
     "@types/mdx": "2.0.14",
     "@types/node": "25.9.3",
-    "@types/react": "19.2.15",
-    "@types/react-dom": "19.2.3",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "fumadocs-core": "16.10.0",
     "fumadocs-mdx": "15.0.12",
     "fumadocs-ui": "16.10.0",
-    "lucide-react": "1.17.0",
+    "lucide-react": "catalog:",
     "next": "16.2.9",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "serve": "14.2.6",
-    "tailwindcss": "4.3.0",
-    "typescript": "6.0.3"
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
   },
   "dependencies": {
     "@openpanel/nextjs": "1.5.1" 

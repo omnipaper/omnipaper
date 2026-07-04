@@ -2,11 +2,33 @@ import { and, asc, count, eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { documents, documentTypes } from "../schema";
 
-// Data access for the `document_types` taxonomy. Mirrors the tags queries: db-first so it works
-// from a route, worker, or test, and can be handed a transaction.
-
 export type GetOrgDocumentTypesParams = {
   organizationId: string;
+};
+
+export type GetOrgDocumentTypeParams = {
+  organizationId: string;
+  id: string;
+};
+
+export type CreateDocumentTypeInput = {
+  organizationId: string;
+  name: string;
+  description?: string;
+  aiEligible?: boolean;
+};
+
+export type UpdateDocumentTypeInput = {
+  organizationId: string;
+  id: string;
+  name?: string;
+  description?: string | null;
+  aiEligible?: boolean;
+};
+
+export type DeleteDocumentTypeParams = {
+  organizationId: string;
+  id: string;
 };
 
 export async function getOrgDocumentTypes(db: Database, params: GetOrgDocumentTypesParams) {
@@ -15,6 +37,7 @@ export async function getOrgDocumentTypes(db: Database, params: GetOrgDocumentTy
       id: documentTypes.id,
       name: documentTypes.name,
       description: documentTypes.description,
+      aiEligible: documentTypes.aiEligible,
       createdAt: documentTypes.createdAt,
       updatedAt: documentTypes.updatedAt,
       documentCount: count(documents.id),
@@ -26,12 +49,6 @@ export async function getOrgDocumentTypes(db: Database, params: GetOrgDocumentTy
     .orderBy(asc(documentTypes.name));
 }
 
-export type GetOrgDocumentTypeParams = {
-  organizationId: string;
-  id: string;
-};
-
-// Single type scoped to its org — so one tenant can't read another's by id.
 export async function getOrgDocumentType(db: Database, params: GetOrgDocumentTypeParams) {
   const [documentType] = await db
     .select()
@@ -44,12 +61,6 @@ export async function getOrgDocumentType(db: Database, params: GetOrgDocumentTyp
   return documentType;
 }
 
-export type CreateDocumentTypeInput = {
-  organizationId: string;
-  name: string;
-  description?: string;
-};
-
 export async function createDocumentType(db: Database, input: CreateDocumentTypeInput) {
   const [documentType] = await db
     .insert(documentTypes)
@@ -57,6 +68,7 @@ export async function createDocumentType(db: Database, input: CreateDocumentType
       organizationId: input.organizationId,
       name: input.name.trim(),
       description: input.description,
+      aiEligible: input.aiEligible,
     })
     .returning();
 
@@ -67,23 +79,17 @@ export async function createDocumentType(db: Database, input: CreateDocumentType
   return documentType;
 }
 
-export type UpdateDocumentTypeInput = {
-  organizationId: string;
-  id: string;
-  name?: string;
-  description?: string | null;
-};
-
-// Patch scoped to the org. Only provided fields are written; an empty patch returns the current
-// row so the route never issues an invalid empty UPDATE.
 export async function updateDocumentType(db: Database, input: UpdateDocumentTypeInput) {
-  const patch: { name?: string; description?: string | null } = {};
+  const patch: { name?: string; description?: string | null; aiEligible?: boolean } = {};
 
   if (input.name !== undefined) {
     patch.name = input.name.trim();
   }
   if (input.description !== undefined) {
     patch.description = input.description;
+  }
+  if (input.aiEligible !== undefined) {
+    patch.aiEligible = input.aiEligible;
   }
 
   if (Object.keys(patch).length === 0) {
@@ -101,12 +107,7 @@ export async function updateDocumentType(db: Database, input: UpdateDocumentType
   return documentType;
 }
 
-// Delete scoped to its org. documents.document_type_id is ON DELETE SET NULL, so assigned
-// documents are simply un-typed, never removed.
-export async function deleteDocumentType(
-  db: Database,
-  params: { organizationId: string; id: string },
-) {
+export async function deleteDocumentType(db: Database, params: DeleteDocumentTypeParams) {
   await db
     .delete(documentTypes)
     .where(

@@ -7,10 +7,6 @@ import type { OcrDefinition, Provider } from "../registry";
 import type { DocumentInput } from "../types";
 
 function documentContent({ documentUrl, mimeType }: DocumentInput) {
-  if (mimeType.startsWith("image/")) {
-    return { type: "image" as const, image: documentUrl };
-  }
-
   return {
     type: "file" as const,
     data: documentUrl,

@@ -10,6 +10,7 @@ import {
 } from "@omnipaper/ui/components/dialog";
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
+import { Switch } from "@omnipaper/ui/components/switch";
 import {
   Table,
   TableBody,
@@ -19,21 +20,22 @@ import {
   TableRow,
 } from "@omnipaper/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
-import { PlusIcon } from "lucide-react";
+import { CircleHelpIcon, PlusIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import {
   RowActions,
   SettingsTableToolbar,
   TableEmptyRow,
 } from "@/components/settings/settings-table";
+import { aiAssignQuery } from "@/features/ai-assign/queries/ai-assign";
 import {
   type OrgTag,
   orgTagsQuery,
   useDeleteTag,
+  useSetTagAiEligible,
   useUpsertTag,
 } from "@/features/tags/queries/tags";
 
-// New-tag colour starts on a random hue (matching the server default) instead of a flat grey.
 const TAG_COLORS = [
   "#ef4444",
   "#f97316",
@@ -50,10 +52,9 @@ function randomTagColor(): string {
   return TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)] ?? TAG_COLORS[0];
 }
 
-const COLUMN_COUNT = 4;
-
 export function TagsManager({ orgId }: { orgId: string }) {
   const { data, isPending, isError } = useQuery(orgTagsQuery({ orgId }));
+  const aiQuery = useQuery(aiAssignQuery({ orgId }));
   const deleteTag = useDeleteTag(orgId);
 
   const [search, setSearch] = useState("");
@@ -74,21 +75,23 @@ export function TagsManager({ orgId }: { orgId: string }) {
   const query = search.trim().toLowerCase();
   const filtered = query ? tags.filter((tag) => tag.name.toLowerCase().includes(query)) : tags;
 
+  const setAiEligible = useSetTagAiEligible(orgId);
+  const aiEnabled = aiQuery.data?.fields.tags.enabled ?? false;
+  const columnCount = aiEnabled ? 5 : 4;
+
   let body: ReactNode;
   if (isPending) {
-    body = <TableEmptyRow colSpan={COLUMN_COUNT}>Loading…</TableEmptyRow>;
+    body = <TableEmptyRow colSpan={columnCount}>Loading…</TableEmptyRow>;
   } else if (isError) {
     body = (
-      <TableEmptyRow colSpan={COLUMN_COUNT} className="text-destructive">
+      <TableEmptyRow colSpan={columnCount} className="text-destructive">
         Failed to load tags.
       </TableEmptyRow>
     );
   } else if (tags.length === 0) {
-    body = (
-      <TableEmptyRow colSpan={COLUMN_COUNT}>No tags yet. Create your first one.</TableEmptyRow>
-    );
+    body = <TableEmptyRow colSpan={columnCount}>No tags yet. Create your first one.</TableEmptyRow>;
   } else if (filtered.length === 0) {
-    body = <TableEmptyRow colSpan={COLUMN_COUNT}>No tags match “{search}”.</TableEmptyRow>;
+    body = <TableEmptyRow colSpan={columnCount}>No tags match “{search}”.</TableEmptyRow>;
   } else {
     body = filtered.map((tag) => (
       <TableRow key={tag.id}>
@@ -104,6 +107,15 @@ export function TagsManager({ orgId }: { orgId: string }) {
         <TableCell className="text-right text-muted-foreground tabular-nums">
           {tag.documentCount}
         </TableCell>
+        {aiEnabled ? (
+          <TableCell className="text-center">
+            <Switch
+              checked={tag.aiEligible}
+              onCheckedChange={(next) => setAiEligible.mutate({ id: tag.id, aiEligible: next })}
+              aria-label={`Allow AI to use ${tag.name}`}
+            />
+          </TableCell>
+        ) : null}
         <TableCell className="text-right">
           <RowActions
             onEdit={() => openEdit(tag)}
@@ -141,6 +153,19 @@ export function TagsManager({ orgId }: { orgId: string }) {
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="text-right">Documents</TableHead>
+              {aiEnabled ? (
+                <TableHead className="w-28 text-center">
+                  <span className="inline-flex items-center justify-center gap-1">
+                    Used by AI
+                    <span
+                      className="cursor-help text-muted-foreground"
+                      title="When off, AI won't assign this tag to documents."
+                    >
+                      <CircleHelpIcon className="size-3.5" aria-hidden="true" />
+                    </span>
+                  </span>
+                </TableHead>
+              ) : null}
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -159,8 +184,6 @@ export function TagsManager({ orgId }: { orgId: string }) {
   );
 }
 
-// Mounted only while the dialog is open, so its form state is fresh on every open (create vs. the
-// tag being edited) without a reset effect.
 function TagDialogBody({
   orgId,
   editing,

@@ -1,3 +1,4 @@
+import { expo } from "@better-auth/expo";
 import { invitation, member, user as userTable } from "@omnipaper/database/auth-schema";
 import { db } from "@omnipaper/database/client";
 import { createId } from "@omnipaper/database/id";
@@ -45,6 +46,8 @@ export const auth = betterAuth({
     enabled: true,
   },
   plugins: [
+    // Deep-link callbacks + manual cookie handling for the mobile app.
+    expo(),
     admin({
       defaultRole: "user",
       adminRoles: ["admin"],
@@ -118,6 +121,6 @@ export const auth = betterAuth({
   secret: env.AUTH_SECRET,
   // If set, only APP_URL is accepted as a trusted origin; if unset, trusted origin is determined per request using X-Forwarded-Host and trustedProxyHeaders.
   baseURL: env.APP_URL,
-  // Extra origins to trust beyond the derived/pinned one (e.g. the Vite dev frontend on :5173).
-  trustedOrigins: env.EXTRA_TRUSTED_ORIGINS,
+  // Mobile app scheme, plus extra origins beyond the derived/pinned one (e.g. the Vite dev frontend on :5173).
+  trustedOrigins: ["omnipaper://", ...env.EXTRA_TRUSTED_ORIGINS],
 });

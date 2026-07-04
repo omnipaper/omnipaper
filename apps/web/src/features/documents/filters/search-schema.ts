@@ -1,13 +1,7 @@
 import { filterStateSchema, sortStateSchema } from "@omnipaper/shared/document-filters";
 import type { DocumentSearch } from "./types";
 
-// The single TanStack Router `validateSearch` for the unified documents page. `view` selects the
-// layout (defaults to gallery at read time when absent); q/filters/sort carry the shared query.
-// Invalid params are dropped rather than throwing, keeping a hand-edited URL from breaking the page.
-
 function coerce(value: unknown): unknown {
-  // The router may hand us either a parsed object or a JSON string, depending on how the URL was
-  // produced; accept both so deep-links are robust.
   if (typeof value === "string") {
     try {
       return JSON.parse(value);
@@ -37,6 +31,10 @@ export function documentSearchSchema(raw: Record<string, unknown>): DocumentSear
   const sort = sortStateSchema.safeParse(coerce(raw.sort));
   if (sort.success) {
     out.sort = sort.data;
+  }
+
+  if (typeof raw.savedView === "string" && raw.savedView.length > 0) {
+    out.savedView = raw.savedView;
   }
 
   return out;

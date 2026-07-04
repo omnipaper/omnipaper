@@ -1,3 +1,4 @@
+import { SaveViewButton } from "@/features/saved-views/components/save-view-button";
 import { ActiveFilterChip } from "./active-filter-chip";
 import { AddFilterMenu } from "./add-filter-menu";
 import { DisplayPopover } from "./display-popover";
@@ -42,6 +43,7 @@ export function FilterBar({ orgId }: { orgId: string }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
+        <SaveViewButton orgId={orgId} />
         <AddFilterMenu
           fields={fields}
           filters={filters}

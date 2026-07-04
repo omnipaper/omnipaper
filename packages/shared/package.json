@@ -7,7 +7,13 @@
     "./redact": "./src/redact.ts",
     "./provider": "./src/provider.ts",
     "./formats": "./src/formats.ts",
-    "./document-filters": "./src/document-filters.ts"
+    "./document-filters": "./src/document-filters.ts",
+    "./saved-views": "./src/saved-views.ts",
+    "./ai-models": "./src/ai-models.ts",
+    "./workflows/triggers": "./src/workflows/triggers.ts",
+    "./workflows/actions": "./src/workflows/actions.ts",
+    "./workflows/ai-assign": "./src/workflows/ai-assign.ts",
+    "./workflows/schema": "./src/workflows/schema.ts"
   },
   "dependencies": {
     "zod": "catalog:"

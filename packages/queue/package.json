@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@omnipaper/env": "workspace:*",
-    "graphile-worker": "0.16.6",
+    "graphile-worker": "0.17.2",
     "zod": "catalog:"
   },
   "devDependencies": {

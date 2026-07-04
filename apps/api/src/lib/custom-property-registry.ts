@@ -1,14 +1,8 @@
 import type { customPropertyTypeEnum } from "@omnipaper/database/schema";
 import { z } from "zod";
 
-// One place that knows, per property type: how to validate an incoming value (inputSchema), how to
-// map it onto the EAV value columns (toDb), and how to rebuild the API value from a stored row
-// (fromDb). Adding a type later = one entry here; routes/queries stay type-agnostic.
-
 export type CustomPropertyType = (typeof customPropertyTypeEnum.enumValues)[number];
 
-// The typed value columns on document_custom_property_values. A type fills exactly one; `url`
-// reuses valueText. type is immutable per definition, so a property always uses the same column.
 export type ValueColumns = {
   valueText: string | null;
   valueNumber: number | null;
@@ -27,22 +21,16 @@ const EMPTY_VALUE_COLUMNS: ValueColumns = {
 
 export type SelectOptionDto = { id: string; label: string; color: string | null };
 
-// Context fromDb needs to resolve references — currently just the org's select options by id.
 export type FromDbContext = { options: Map<string, SelectOptionDto> };
 
 export type CustomPropertyTypeDefinition = {
   type: CustomPropertyType;
-  // True for types whose value points into custom_property_select_options.
   hasOptions: boolean;
-  // Shape-only validation of the raw request value. Option-ownership (does this id belong to THIS
-  // property?) needs the definition's options, so it's checked in the route, not here.
   inputSchema: z.ZodTypeAny;
   toDb: (value: unknown) => ValueColumns;
   fromDb: (row: ValueColumns, ctx: FromDbContext) => unknown;
 };
 
-// Authoring helper: lets each definition work with its real value type T, while the registry stores
-// the type-erased form the routes call generically.
 function define<T>(def: {
   type: CustomPropertyType;
   hasOptions?: boolean;
@@ -97,7 +85,6 @@ const booleanDef = define<boolean>({
 const selectDef = define<string>({
   type: "select",
   hasOptions: true,
-  // The value is an option id; the route verifies it belongs to this property's options.
   inputSchema: z.string().min(1),
   toDb: (value) => ({ ...EMPTY_VALUE_COLUMNS, selectOptionId: value }),
   fromDb: (row, ctx) => (row.selectOptionId ? (ctx.options.get(row.selectOptionId) ?? null) : null),
@@ -116,8 +103,34 @@ export function getPropertyTypeDefinition(type: CustomPropertyType): CustomPrope
   return customPropertyRegistry[type];
 }
 
-// Derive a stable, agent/MCP-facing key from a display name: "Invoice Amount" -> "invoice_amount".
-// Returns "" when the name has no alphanumerics — the route rejects that.
+export function coerceCustomValue(
+  type: CustomPropertyType,
+  options: { id: string; label: string }[],
+  raw: string,
+): ValueColumns | null {
+  const def = customPropertyRegistry[type];
+  if (type === "select") {
+    const option = options.find((o) => o.label.toLowerCase() === raw.trim().toLowerCase());
+    return option ? def.toDb(option.id) : null;
+  }
+  let value: unknown = raw.trim();
+  if (type === "number") {
+    const parsed = Number(raw);
+    if (Number.isNaN(parsed)) {
+      return null;
+    }
+    value = parsed;
+  } else if (type === "boolean") {
+    const lowered = raw.trim().toLowerCase();
+    if (lowered !== "true" && lowered !== "false") {
+      return null;
+    }
+    value = lowered === "true";
+  }
+  const result = def.inputSchema.safeParse(value);
+  return result.success ? def.toDb(result.data) : null;
+}
+
 export function propertyKeyFromName(name: string): string {
   return name
     .trim()

@@ -1,3 +1,6 @@
+import type { SavedViewState } from "@omnipaper/shared/saved-views";
+import type { AiSuggestionValue } from "@omnipaper/shared/workflows/ai-assign";
+import type { WorkflowDefinition } from "@omnipaper/shared/workflows/schema";
 import { type SQL, sql } from "drizzle-orm";
 import {
   boolean,
@@ -64,7 +67,28 @@ export const activityActorTypeEnum = pgEnum("activity_actor_type", ["user", "sys
 
 export const activityResourceTypeEnum = pgEnum("activity_resource_type", ["document"]);
 
-// First-class taxonomy because descriptions are used by users and future AI auto-assignment.
+export const workflowRunStatusEnum = pgEnum("workflow_run_status", [
+  "running",
+  "succeeded",
+  "failed",
+  "skipped",
+]);
+
+export const aiSuggestionFieldEnum = pgEnum("ai_suggestion_field", [
+  "documentType",
+  "storagePath",
+  "tags",
+  "documentDate",
+  "title",
+  "customProperty",
+]);
+
+export const aiSuggestionStatusEnum = pgEnum("ai_suggestion_status", [
+  "pending",
+  "accepted",
+  "dismissed",
+]);
+
 export const documentTypes = pgTable(
   "document_types",
   {
@@ -76,6 +100,7 @@ export const documentTypes = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
+    aiEligible: boolean("ai_eligible").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -88,7 +113,6 @@ export const documentTypes = pgTable(
   ],
 );
 
-// Flat slash-delimited paths; the folder tree is derived app-side.
 export const storagePaths = pgTable(
   "storage_paths",
   {
@@ -100,6 +124,7 @@ export const storagePaths = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     path: text("path").notNull(),
     description: text("description"),
+    aiEligible: boolean("ai_eligible").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -124,6 +149,7 @@ export const tags = pgTable(
     name: text("name").notNull(),
     color: text("color").notNull().default("#94a3b8"),
     description: text("description"),
+    aiEligible: boolean("ai_eligible").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -133,6 +159,29 @@ export const tags = pgTable(
   (t) => [
     uniqueIndex("tags_org_name_idx").on(t.organizationId, t.name),
     index("tags_organization_id_idx").on(t.organizationId),
+  ],
+);
+
+export const savedViews = pgTable(
+  "saved_views",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("view")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    state: jsonb("state").$type<SavedViewState>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("saved_views_org_name_idx").on(t.organizationId, t.name),
+    index("saved_views_organization_id_idx").on(t.organizationId),
   ],
 );
 
@@ -316,6 +365,90 @@ export const activityEvents = pgTable(
   ],
 );
 
+// triggerType is denormalised from the definition for indexed dispatch.
+export const workflows = pgTable(
+  "workflows",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("wf")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    enabled: boolean("enabled").notNull().default(false),
+    systemKey: text("system_key"),
+    triggerType: text("trigger_type").notNull(),
+    schemaVersion: integer("schema_version").notNull().default(1),
+    definition: jsonb("definition").$type<WorkflowDefinition>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    index("workflows_org_trigger_enabled_idx").on(t.organizationId, t.triggerType, t.enabled),
+    uniqueIndex("workflows_org_system_key_unique")
+      .on(t.organizationId, t.systemKey)
+      .where(sql`${t.systemKey} is not null`),
+  ],
+);
+
+export const workflowRuns = pgTable(
+  "workflow_runs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("wfr")),
+    workflowId: text("workflow_id")
+      .notNull()
+      .references(() => workflows.id, { onDelete: "cascade" }),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    triggerEventId: text("trigger_event_id").notNull(),
+    status: workflowRunStatusEnum("status").notNull(),
+    actionResults: jsonb("action_results").$type<unknown>(),
+    error: jsonb("error").$type<{ message: string } | null>(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("workflow_runs_dedup_idx").on(t.workflowId, t.triggerEventId),
+    index("workflow_runs_document_idx").on(t.documentId),
+  ],
+);
+
+export const aiSuggestions = pgTable(
+  "ai_suggestions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("sug")),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    field: aiSuggestionFieldEnum("field").notNull(),
+    customPropertyDefinitionId: text("custom_property_definition_id").references(
+      () => customPropertyDefinitions.id,
+      { onDelete: "cascade" },
+    ),
+    suggestedValue: jsonb("suggested_value").$type<AiSuggestionValue>().notNull(),
+    status: aiSuggestionStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("ai_suggestions_doc_field_idx")
+      .on(t.documentId, t.field)
+      .where(sql`${t.customPropertyDefinitionId} is null`),
+    uniqueIndex("ai_suggestions_doc_field_def_idx")
+      .on(t.documentId, t.field, t.customPropertyDefinitionId)
+      .where(sql`${t.customPropertyDefinitionId} is not null`),
+    index("ai_suggestions_doc_status_idx").on(t.documentId, t.status),
+  ],
+);
+
 export type DocumentType = typeof documentTypes.$inferSelect;
 export type NewDocumentType = typeof documentTypes.$inferInsert;
 
@@ -324,6 +457,9 @@ export type NewStoragePath = typeof storagePaths.$inferInsert;
 
 export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
+
+export type SavedView = typeof savedViews.$inferSelect;
+export type NewSavedView = typeof savedViews.$inferInsert;
 
 export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
@@ -344,3 +480,12 @@ export type Setting = typeof settings.$inferSelect;
 
 export type ActivityEventRow = typeof activityEvents.$inferSelect;
 export type NewActivityEvent = typeof activityEvents.$inferInsert;
+
+export type Workflow = typeof workflows.$inferSelect;
+export type NewWorkflow = typeof workflows.$inferInsert;
+
+export type WorkflowRun = typeof workflowRuns.$inferSelect;
+export type NewWorkflowRun = typeof workflowRuns.$inferInsert;
+
+export type AiSuggestion = typeof aiSuggestions.$inferSelect;
+export type NewAiSuggestion = typeof aiSuggestions.$inferInsert;

@@ -2,11 +2,33 @@ import { and, asc, count, eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { documents, storagePaths } from "../schema";
 
-// Data access for the `storage_paths` taxonomy. `path` is the unique, displayed value; the folder
-// tree is derived from these strings by the UI. Mirrors the tags/document-types queries.
-
 export type GetOrgStoragePathsParams = {
   organizationId: string;
+};
+
+export type GetOrgStoragePathParams = {
+  organizationId: string;
+  id: string;
+};
+
+export type CreateStoragePathInput = {
+  organizationId: string;
+  path: string;
+  description?: string;
+  aiEligible?: boolean;
+};
+
+export type UpdateStoragePathInput = {
+  organizationId: string;
+  id: string;
+  path?: string;
+  description?: string | null;
+  aiEligible?: boolean;
+};
+
+export type DeleteStoragePathParams = {
+  organizationId: string;
+  id: string;
 };
 
 export async function getOrgStoragePaths(db: Database, params: GetOrgStoragePathsParams) {
@@ -15,6 +37,7 @@ export async function getOrgStoragePaths(db: Database, params: GetOrgStoragePath
       id: storagePaths.id,
       path: storagePaths.path,
       description: storagePaths.description,
+      aiEligible: storagePaths.aiEligible,
       createdAt: storagePaths.createdAt,
       updatedAt: storagePaths.updatedAt,
       documentCount: count(documents.id),
@@ -25,11 +48,6 @@ export async function getOrgStoragePaths(db: Database, params: GetOrgStoragePath
     .groupBy(storagePaths.id)
     .orderBy(asc(storagePaths.path));
 }
-
-export type GetOrgStoragePathParams = {
-  organizationId: string;
-  id: string;
-};
 
 export async function getOrgStoragePath(db: Database, params: GetOrgStoragePathParams) {
   const [storagePath] = await db
@@ -43,12 +61,6 @@ export async function getOrgStoragePath(db: Database, params: GetOrgStoragePathP
   return storagePath;
 }
 
-export type CreateStoragePathInput = {
-  organizationId: string;
-  path: string;
-  description?: string;
-};
-
 export async function createStoragePath(db: Database, input: CreateStoragePathInput) {
   const [storagePath] = await db
     .insert(storagePaths)
@@ -56,6 +68,7 @@ export async function createStoragePath(db: Database, input: CreateStoragePathIn
       organizationId: input.organizationId,
       path: input.path.trim(),
       description: input.description,
+      aiEligible: input.aiEligible,
     })
     .returning();
 
@@ -66,21 +79,17 @@ export async function createStoragePath(db: Database, input: CreateStoragePathIn
   return storagePath;
 }
 
-export type UpdateStoragePathInput = {
-  organizationId: string;
-  id: string;
-  path?: string;
-  description?: string | null;
-};
-
 export async function updateStoragePath(db: Database, input: UpdateStoragePathInput) {
-  const patch: { path?: string; description?: string | null } = {};
+  const patch: { path?: string; description?: string | null; aiEligible?: boolean } = {};
 
   if (input.path !== undefined) {
     patch.path = input.path.trim();
   }
   if (input.description !== undefined) {
     patch.description = input.description;
+  }
+  if (input.aiEligible !== undefined) {
+    patch.aiEligible = input.aiEligible;
   }
 
   if (Object.keys(patch).length === 0) {
@@ -98,12 +107,7 @@ export async function updateStoragePath(db: Database, input: UpdateStoragePathIn
   return storagePath;
 }
 
-// Delete scoped to its org. documents.storage_path_id is ON DELETE SET NULL, so assigned
-// documents are simply un-filed, never removed.
-export async function deleteStoragePath(
-  db: Database,
-  params: { organizationId: string; id: string },
-) {
+export async function deleteStoragePath(db: Database, params: DeleteStoragePathParams) {
   await db
     .delete(storagePaths)
     .where(

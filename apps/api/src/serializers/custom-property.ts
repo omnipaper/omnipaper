@@ -11,7 +11,7 @@ import {
   customPropertyRegistry,
   type FromDbContext,
   type SelectOptionDto,
-} from "../custom-properties/registry";
+} from "../lib/custom-property-registry";
 
 export function toPropertyDefinitionDto(input: {
   definition: CustomPropertyDefinition;
@@ -32,8 +32,6 @@ export function toPropertyDefinitionDto(input: {
 type DefinitionEntries = Awaited<ReturnType<typeof getOrgPropertyDefinitions>>;
 type ValueRows = Awaited<ReturnType<typeof getDocumentPropertyValues>>;
 
-// Turn a document's stored value rows into API values, using the org's definitions for the type
-// (which registry shaper to use) and its options (to resolve a select's id to {id,label,color}).
 export function shapeDocumentProperties(definitions: DefinitionEntries, valueRows: ValueRows) {
   const options = new Map<string, SelectOptionDto>();
   const typeById = new Map<string, CustomPropertyType>();

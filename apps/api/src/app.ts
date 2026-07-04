@@ -2,27 +2,33 @@ import { env } from "@omnipaper/env";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
+import pkg from "../../../package.json";
+import { API_LEVEL, MIN_API_LEVEL } from "./api-level";
 import { auth } from "./auth";
 import type { Variables } from "./context";
 import { demoReadOnly, demoRoutes } from "./demo";
 import { requireAuth, requireOrganization } from "./middleware";
+import { aiAssignRoutes } from "./routes/ai-assign";
 import { customPropertiesRoutes } from "./routes/custom-properties";
 import { documentTypesRoutes } from "./routes/document-types";
 import { documentsRoutes } from "./routes/documents";
+import { savedViewsRoutes } from "./routes/saved-views";
 import { settingsRoutes } from "./routes/settings";
 import { storagePathsRoutes } from "./routes/storage-paths";
 import { tagsRoutes } from "./routes/tags";
+import { workflowsRoutes } from "./routes/workflows";
 
 export function createApp() {
-  // Org-scoped routes live under /orgs/:orgId. requireOrganization reads :orgId from the path
-  // and verifies membership, so the active org comes from the URL, not from session state.
   const orgRoutes = new Hono<{ Variables: Variables }>()
     .use("*", requireOrganization)
     .route("/documents", documentsRoutes)
     .route("/document-types", documentTypesRoutes)
     .route("/storage-paths", storagePathsRoutes)
+    .route("/saved-views", savedViewsRoutes)
     .route("/tags", tagsRoutes)
-    .route("/custom-properties", customPropertiesRoutes);
+    .route("/custom-properties", customPropertiesRoutes)
+    .route("/workflows", workflowsRoutes)
+    .route("/ai-assign", aiAssignRoutes);
 
   const apiRoutes = new Hono<{ Variables: Variables }>()
     .get("/me", (c) => c.json({ user: c.get("user") }))
@@ -62,7 +68,14 @@ export function createApp() {
       return c.json({ error: { code: "internal_error", message: "Internal server error" } }, 500);
     })
     .on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
-    .get("/health", (c) => c.json({ status: "ok" }))
+    .get("/health", (c) =>
+      c.json({
+        status: "ok",
+        version: pkg.version,
+        apiLevel: API_LEVEL,
+        minApiLevel: MIN_API_LEVEL,
+      }),
+    )
     .route("/api/demo", demoRoutes)
     .route("/api", apiRoutes);
 

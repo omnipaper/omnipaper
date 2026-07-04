@@ -5,6 +5,7 @@ export function toStoragePathDto(storagePath: StoragePath) {
     id: storagePath.id,
     path: storagePath.path,
     description: storagePath.description,
+    aiEligible: storagePath.aiEligible,
     createdAt: storagePath.createdAt,
     updatedAt: storagePath.updatedAt,
   };

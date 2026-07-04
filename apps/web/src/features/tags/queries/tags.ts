@@ -4,9 +4,6 @@ import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
 
-// Query-key factory + query/mutation factories for the tags domain. Hierarchical keys
-// (generic → specific) so reads and invalidations share one source and can't drift. Tags are
-// org-scoped. Mutations live beside the reads so each write owns its own invalidation.
 export const tagKeys = {
   root: ["tags"] as const,
   all: (orgId: string) => [...tagKeys.root, orgId] as const,
@@ -40,8 +37,6 @@ export type UpsertTagInput = {
   description: UpdateTagBody["description"];
 };
 
-// Create or update a tag from the manager dialog. A rename/recolor changes how the tag renders on
-// documents, so an update also refreshes the document views; a create doesn't touch any document.
 export function useUpsertTag(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -80,7 +75,38 @@ export function useUpsertTag(orgId: string) {
   });
 }
 
-// Delete a tag. Removes it from every document it was on, so refresh the document views too.
+export function useSetTagAiEligible(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, aiEligible }: { id: string; aiEligible: boolean }) => {
+      const res = await api.orgs[":orgId"].tags[":id"].$patch({
+        param: { orgId, id },
+        json: { aiEligible },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update tag");
+      }
+    },
+    onMutate: async ({ id, aiEligible }) => {
+      await queryClient.cancelQueries({ queryKey: tagKeys.lists(orgId) });
+      const previous = queryClient.getQueryData<{ tags: OrgTag[] }>(tagKeys.lists(orgId));
+      queryClient.setQueryData<{ tags: OrgTag[] }>(tagKeys.lists(orgId), (old) =>
+        old ? { ...old, tags: old.tags.map((t) => (t.id === id ? { ...t, aiEligible } : t)) } : old,
+      );
+      return { previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(tagKeys.lists(orgId), context.previous);
+      }
+      toast.error("Failed to update tag");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tagKeys.lists(orgId) });
+    },
+  });
+}
+
 export function useDeleteTag(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -99,8 +125,6 @@ export function useDeleteTag(orgId: string) {
   });
 }
 
-// Quick-create a tag by name only (the tag picker's inline "Create …"). The server assigns a
-// default colour. Returns the created tag so the caller can immediately attach it to a document.
 export function useCreateTag(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({

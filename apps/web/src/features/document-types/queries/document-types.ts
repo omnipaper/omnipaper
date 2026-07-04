@@ -33,14 +33,11 @@ type UpdateDocumentTypeBody = InferRequestType<
 >["json"];
 
 export type UpsertDocumentTypeInput = {
-  // Present → update that type; absent → create a new one.
   id?: string;
   name: NonNullable<UpdateDocumentTypeBody["name"]>;
   description: UpdateDocumentTypeBody["description"];
 };
 
-// Create or update a document type from the manager dialog. Renaming changes how the type renders on
-// documents, so an update also refreshes the document views; a create doesn't touch any document.
 export function useUpsertDocumentType(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -75,7 +72,49 @@ export function useUpsertDocumentType(orgId: string) {
   });
 }
 
-// Delete a document type. Un-types every document it was on, so refresh the document views too.
+export function useSetDocumentTypeAiEligible(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, aiEligible }: { id: string; aiEligible: boolean }) => {
+      const res = await api.orgs[":orgId"]["document-types"][":id"].$patch({
+        param: { orgId, id },
+        json: { aiEligible },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update document type");
+      }
+    },
+    onMutate: async ({ id, aiEligible }) => {
+      await queryClient.cancelQueries({ queryKey: documentTypeKeys.lists(orgId) });
+      const previous = queryClient.getQueryData<{ documentTypes: OrgDocumentType[] }>(
+        documentTypeKeys.lists(orgId),
+      );
+      queryClient.setQueryData<{ documentTypes: OrgDocumentType[] }>(
+        documentTypeKeys.lists(orgId),
+        (old) =>
+          old
+            ? {
+                ...old,
+                documentTypes: old.documentTypes.map((t) =>
+                  t.id === id ? { ...t, aiEligible } : t,
+                ),
+              }
+            : old,
+      );
+      return { previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(documentTypeKeys.lists(orgId), context.previous);
+      }
+      toast.error("Failed to update document type");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: documentTypeKeys.lists(orgId) });
+    },
+  });
+}
+
 export function useDeleteDocumentType(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -96,8 +135,6 @@ export function useDeleteDocumentType(orgId: string) {
   });
 }
 
-// Quick-create from the document metadata panel's "Create …" row. Returns the created type so the
-// caller can immediately assign it to the document (no success toast — the caller chains a patch).
 export function useCreateDocumentType(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({

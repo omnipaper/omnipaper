@@ -80,6 +80,12 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
     throw err;
   }
 
+  await enqueue("workflow-dispatch", {
+    documentId: id,
+    trigger: "document.created",
+    triggerEventId: createId("wfe"),
+  });
+
   const { definitionId } = await getOcrSettings();
 
   // Pick the lane that yields the document's text: OCR (PDF + images, external provider), native

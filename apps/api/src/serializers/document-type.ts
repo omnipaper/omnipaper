@@ -5,6 +5,7 @@ export function toDocumentTypeDto(documentType: DocumentType) {
     id: documentType.id,
     name: documentType.name,
     description: documentType.description,
+    aiEligible: documentType.aiEligible,
     createdAt: documentType.createdAt,
     updatedAt: documentType.updatedAt,
   };

@@ -13,8 +13,9 @@ import { customPropertyTypeEnum } from "@omnipaper/database/schema";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
-import { getPropertyTypeDefinition, propertyKeyFromName } from "../custom-properties/registry";
 import { errors } from "../errors";
+import { getPropertyTypeDefinition, propertyKeyFromName } from "../lib/custom-property-registry";
+import { removeCustomFieldFromWorkflows } from "../lib/system-ai-workflow";
 import { requireOrgPermission } from "../middleware";
 import { toPropertyDefinitionDto } from "../serializers/custom-property";
 
@@ -37,8 +38,7 @@ const updateDefinitionSchema = z.object({
   description: z.string().trim().max(500).nullable().optional(),
 });
 
-// Postgres 23505 from a unique index (org+key / org+name / definition+label). drizzle wraps the pg
-// error in DrizzleQueryError, so the code lives on `.cause` — that branch is load-bearing.
+// drizzle wraps the pg error, so the 23505 code can sit on `.cause` rather than `.code`.
 function isUniqueViolation(err: unknown): boolean {
   if (typeof err !== "object" || err === null) {
     return false;
@@ -73,7 +73,6 @@ export const customPropertiesRoutes = new Hono<{ Variables: Variables }>()
         throw errors.badRequest("invalid_name", "Name must contain letters or numbers");
       }
 
-      // Options only apply to types backed by a select list; drop them otherwise.
       const options = getPropertyTypeDefinition(values.type).hasOptions
         ? values.options
         : undefined;
@@ -150,6 +149,7 @@ export const customPropertiesRoutes = new Hono<{ Variables: Variables }>()
     }
 
     await deletePropertyDefinition(db, { organizationId, id });
+    await removeCustomFieldFromWorkflows(organizationId, id);
 
     return c.json({ ok: true });
   })

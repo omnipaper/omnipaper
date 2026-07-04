@@ -19,8 +19,12 @@ import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthAcceptInvitationIdRouteImport } from './routes/_auth/accept-invitation.$id'
 import { Route as DashboardOrgsOrgIdRouteRouteImport } from './routes/dashboard/orgs/$orgId/route'
 import { Route as DashboardOrgsOrgIdIndexRouteImport } from './routes/dashboard/orgs/$orgId/index'
+import { Route as DashboardOrgsOrgIdWorkflowsRouteRouteImport } from './routes/dashboard/orgs/$orgId/workflows/route'
+import { Route as DashboardOrgsOrgIdWorkflowsIndexRouteImport } from './routes/dashboard/orgs/$orgId/workflows/index'
 import { Route as DashboardOrgsOrgIdSettingsIndexRouteImport } from './routes/dashboard/orgs/$orgId/settings/index'
 import { Route as DashboardOrgsOrgIdDocumentsIndexRouteImport } from './routes/dashboard/orgs/$orgId/documents.index'
+import { Route as DashboardOrgsOrgIdWorkflowsNewRouteImport } from './routes/dashboard/orgs/$orgId/workflows/new'
+import { Route as DashboardOrgsOrgIdWorkflowsWorkflowIdRouteImport } from './routes/dashboard/orgs/$orgId/workflows/$workflowId'
 import { Route as DashboardOrgsOrgIdSettingsTagsRouteImport } from './routes/dashboard/orgs/$orgId/settings/tags'
 import { Route as DashboardOrgsOrgIdSettingsStoragePathsRouteImport } from './routes/dashboard/orgs/$orgId/settings/storage-paths'
 import { Route as DashboardOrgsOrgIdSettingsStorageRouteImport } from './routes/dashboard/orgs/$orgId/settings/storage'
@@ -30,6 +34,7 @@ import { Route as DashboardOrgsOrgIdSettingsMembersRouteImport } from './routes/
 import { Route as DashboardOrgsOrgIdSettingsGeneralRouteImport } from './routes/dashboard/orgs/$orgId/settings/general'
 import { Route as DashboardOrgsOrgIdSettingsDocumentTypesRouteImport } from './routes/dashboard/orgs/$orgId/settings/document-types'
 import { Route as DashboardOrgsOrgIdSettingsCustomPropertiesRouteImport } from './routes/dashboard/orgs/$orgId/settings/custom-properties'
+import { Route as DashboardOrgsOrgIdSettingsAiRouteImport } from './routes/dashboard/orgs/$orgId/settings/ai'
 import { Route as DashboardOrgsOrgIdDocumentsIdRouteImport } from './routes/dashboard/orgs/$orgId/documents.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -81,6 +86,18 @@ const DashboardOrgsOrgIdIndexRoute = DashboardOrgsOrgIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
 } as any)
+const DashboardOrgsOrgIdWorkflowsRouteRoute =
+  DashboardOrgsOrgIdWorkflowsRouteRouteImport.update({
+    id: '/workflows',
+    path: '/workflows',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
+const DashboardOrgsOrgIdWorkflowsIndexRoute =
+  DashboardOrgsOrgIdWorkflowsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DashboardOrgsOrgIdWorkflowsRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdSettingsIndexRoute =
   DashboardOrgsOrgIdSettingsIndexRouteImport.update({
     id: '/settings/',
@@ -92,6 +109,18 @@ const DashboardOrgsOrgIdDocumentsIndexRoute =
     id: '/documents/',
     path: '/documents/',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
+const DashboardOrgsOrgIdWorkflowsNewRoute =
+  DashboardOrgsOrgIdWorkflowsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => DashboardOrgsOrgIdWorkflowsRouteRoute,
+  } as any)
+const DashboardOrgsOrgIdWorkflowsWorkflowIdRoute =
+  DashboardOrgsOrgIdWorkflowsWorkflowIdRouteImport.update({
+    id: '/$workflowId',
+    path: '/$workflowId',
+    getParentRoute: () => DashboardOrgsOrgIdWorkflowsRouteRoute,
   } as any)
 const DashboardOrgsOrgIdSettingsTagsRoute =
   DashboardOrgsOrgIdSettingsTagsRouteImport.update({
@@ -147,6 +176,12 @@ const DashboardOrgsOrgIdSettingsCustomPropertiesRoute =
     path: '/settings/custom-properties',
     getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
   } as any)
+const DashboardOrgsOrgIdSettingsAiRoute =
+  DashboardOrgsOrgIdSettingsAiRouteImport.update({
+    id: '/settings/ai',
+    path: '/settings/ai',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdDocumentsIdRoute =
   DashboardOrgsOrgIdDocumentsIdRouteImport.update({
     id: '/documents/$id',
@@ -163,8 +198,10 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/orgs/$orgId': typeof DashboardOrgsOrgIdRouteRouteWithChildren
   '/accept-invitation/$id': typeof AuthAcceptInvitationIdRoute
+  '/dashboard/orgs/$orgId/workflows': typeof DashboardOrgsOrgIdWorkflowsRouteRouteWithChildren
   '/dashboard/orgs/$orgId/': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
@@ -174,8 +211,11 @@ export interface FileRoutesByFullPath {
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
   '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
+  '/dashboard/orgs/$orgId/workflows/$workflowId': typeof DashboardOrgsOrgIdWorkflowsWorkflowIdRoute
+  '/dashboard/orgs/$orgId/workflows/new': typeof DashboardOrgsOrgIdWorkflowsNewRoute
   '/dashboard/orgs/$orgId/documents/': typeof DashboardOrgsOrgIdDocumentsIndexRoute
   '/dashboard/orgs/$orgId/settings/': typeof DashboardOrgsOrgIdSettingsIndexRoute
+  '/dashboard/orgs/$orgId/workflows/': typeof DashboardOrgsOrgIdWorkflowsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -186,6 +226,7 @@ export interface FileRoutesByTo {
   '/accept-invitation/$id': typeof AuthAcceptInvitationIdRoute
   '/dashboard/orgs/$orgId': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
@@ -195,8 +236,11 @@ export interface FileRoutesByTo {
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
   '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
+  '/dashboard/orgs/$orgId/workflows/$workflowId': typeof DashboardOrgsOrgIdWorkflowsWorkflowIdRoute
+  '/dashboard/orgs/$orgId/workflows/new': typeof DashboardOrgsOrgIdWorkflowsNewRoute
   '/dashboard/orgs/$orgId/documents': typeof DashboardOrgsOrgIdDocumentsIndexRoute
   '/dashboard/orgs/$orgId/settings': typeof DashboardOrgsOrgIdSettingsIndexRoute
+  '/dashboard/orgs/$orgId/workflows': typeof DashboardOrgsOrgIdWorkflowsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -209,8 +253,10 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/orgs/$orgId': typeof DashboardOrgsOrgIdRouteRouteWithChildren
   '/_auth/accept-invitation/$id': typeof AuthAcceptInvitationIdRoute
+  '/dashboard/orgs/$orgId/workflows': typeof DashboardOrgsOrgIdWorkflowsRouteRouteWithChildren
   '/dashboard/orgs/$orgId/': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
@@ -220,8 +266,11 @@ export interface FileRoutesById {
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
   '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
+  '/dashboard/orgs/$orgId/workflows/$workflowId': typeof DashboardOrgsOrgIdWorkflowsWorkflowIdRoute
+  '/dashboard/orgs/$orgId/workflows/new': typeof DashboardOrgsOrgIdWorkflowsNewRoute
   '/dashboard/orgs/$orgId/documents/': typeof DashboardOrgsOrgIdDocumentsIndexRoute
   '/dashboard/orgs/$orgId/settings/': typeof DashboardOrgsOrgIdSettingsIndexRoute
+  '/dashboard/orgs/$orgId/workflows/': typeof DashboardOrgsOrgIdWorkflowsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -234,8 +283,10 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/orgs/$orgId'
     | '/accept-invitation/$id'
+    | '/dashboard/orgs/$orgId/workflows'
     | '/dashboard/orgs/$orgId/'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/settings/ai'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
@@ -245,8 +296,11 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/storage'
     | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
+    | '/dashboard/orgs/$orgId/workflows/$workflowId'
+    | '/dashboard/orgs/$orgId/workflows/new'
     | '/dashboard/orgs/$orgId/documents/'
     | '/dashboard/orgs/$orgId/settings/'
+    | '/dashboard/orgs/$orgId/workflows/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -257,6 +311,7 @@ export interface FileRouteTypes {
     | '/accept-invitation/$id'
     | '/dashboard/orgs/$orgId'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/settings/ai'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
@@ -266,8 +321,11 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/storage'
     | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
+    | '/dashboard/orgs/$orgId/workflows/$workflowId'
+    | '/dashboard/orgs/$orgId/workflows/new'
     | '/dashboard/orgs/$orgId/documents'
     | '/dashboard/orgs/$orgId/settings'
+    | '/dashboard/orgs/$orgId/workflows'
   id:
     | '__root__'
     | '/'
@@ -279,8 +337,10 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/orgs/$orgId'
     | '/_auth/accept-invitation/$id'
+    | '/dashboard/orgs/$orgId/workflows'
     | '/dashboard/orgs/$orgId/'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/settings/ai'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
     | '/dashboard/orgs/$orgId/settings/general'
@@ -290,8 +350,11 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/storage'
     | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
+    | '/dashboard/orgs/$orgId/workflows/$workflowId'
+    | '/dashboard/orgs/$orgId/workflows/new'
     | '/dashboard/orgs/$orgId/documents/'
     | '/dashboard/orgs/$orgId/settings/'
+    | '/dashboard/orgs/$orgId/workflows/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -372,6 +435,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdIndexRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
+    '/dashboard/orgs/$orgId/workflows': {
+      id: '/dashboard/orgs/$orgId/workflows'
+      path: '/workflows'
+      fullPath: '/dashboard/orgs/$orgId/workflows'
+      preLoaderRoute: typeof DashboardOrgsOrgIdWorkflowsRouteRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
+    '/dashboard/orgs/$orgId/workflows/': {
+      id: '/dashboard/orgs/$orgId/workflows/'
+      path: '/'
+      fullPath: '/dashboard/orgs/$orgId/workflows/'
+      preLoaderRoute: typeof DashboardOrgsOrgIdWorkflowsIndexRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdWorkflowsRouteRoute
+    }
     '/dashboard/orgs/$orgId/settings/': {
       id: '/dashboard/orgs/$orgId/settings/'
       path: '/settings'
@@ -385,6 +462,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/orgs/$orgId/documents/'
       preLoaderRoute: typeof DashboardOrgsOrgIdDocumentsIndexRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
+    '/dashboard/orgs/$orgId/workflows/new': {
+      id: '/dashboard/orgs/$orgId/workflows/new'
+      path: '/new'
+      fullPath: '/dashboard/orgs/$orgId/workflows/new'
+      preLoaderRoute: typeof DashboardOrgsOrgIdWorkflowsNewRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdWorkflowsRouteRoute
+    }
+    '/dashboard/orgs/$orgId/workflows/$workflowId': {
+      id: '/dashboard/orgs/$orgId/workflows/$workflowId'
+      path: '/$workflowId'
+      fullPath: '/dashboard/orgs/$orgId/workflows/$workflowId'
+      preLoaderRoute: typeof DashboardOrgsOrgIdWorkflowsWorkflowIdRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdWorkflowsRouteRoute
     }
     '/dashboard/orgs/$orgId/settings/tags': {
       id: '/dashboard/orgs/$orgId/settings/tags'
@@ -449,6 +540,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsCustomPropertiesRouteImport
       parentRoute: typeof DashboardOrgsOrgIdRouteRoute
     }
+    '/dashboard/orgs/$orgId/settings/ai': {
+      id: '/dashboard/orgs/$orgId/settings/ai'
+      path: '/settings/ai'
+      fullPath: '/dashboard/orgs/$orgId/settings/ai'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsAiRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
     '/dashboard/orgs/$orgId/documents/$id': {
       id: '/dashboard/orgs/$orgId/documents/$id'
       path: '/documents/$id'
@@ -459,9 +557,31 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DashboardOrgsOrgIdWorkflowsRouteRouteChildren {
+  DashboardOrgsOrgIdWorkflowsWorkflowIdRoute: typeof DashboardOrgsOrgIdWorkflowsWorkflowIdRoute
+  DashboardOrgsOrgIdWorkflowsNewRoute: typeof DashboardOrgsOrgIdWorkflowsNewRoute
+  DashboardOrgsOrgIdWorkflowsIndexRoute: typeof DashboardOrgsOrgIdWorkflowsIndexRoute
+}
+
+const DashboardOrgsOrgIdWorkflowsRouteRouteChildren: DashboardOrgsOrgIdWorkflowsRouteRouteChildren =
+  {
+    DashboardOrgsOrgIdWorkflowsWorkflowIdRoute:
+      DashboardOrgsOrgIdWorkflowsWorkflowIdRoute,
+    DashboardOrgsOrgIdWorkflowsNewRoute: DashboardOrgsOrgIdWorkflowsNewRoute,
+    DashboardOrgsOrgIdWorkflowsIndexRoute:
+      DashboardOrgsOrgIdWorkflowsIndexRoute,
+  }
+
+const DashboardOrgsOrgIdWorkflowsRouteRouteWithChildren =
+  DashboardOrgsOrgIdWorkflowsRouteRoute._addFileChildren(
+    DashboardOrgsOrgIdWorkflowsRouteRouteChildren,
+  )
+
 interface DashboardOrgsOrgIdRouteRouteChildren {
+  DashboardOrgsOrgIdWorkflowsRouteRoute: typeof DashboardOrgsOrgIdWorkflowsRouteRouteWithChildren
   DashboardOrgsOrgIdIndexRoute: typeof DashboardOrgsOrgIdIndexRoute
   DashboardOrgsOrgIdDocumentsIdRoute: typeof DashboardOrgsOrgIdDocumentsIdRoute
+  DashboardOrgsOrgIdSettingsAiRoute: typeof DashboardOrgsOrgIdSettingsAiRoute
   DashboardOrgsOrgIdSettingsCustomPropertiesRoute: typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   DashboardOrgsOrgIdSettingsDocumentTypesRoute: typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
   DashboardOrgsOrgIdSettingsGeneralRoute: typeof DashboardOrgsOrgIdSettingsGeneralRoute
@@ -477,8 +597,11 @@ interface DashboardOrgsOrgIdRouteRouteChildren {
 
 const DashboardOrgsOrgIdRouteRouteChildren: DashboardOrgsOrgIdRouteRouteChildren =
   {
+    DashboardOrgsOrgIdWorkflowsRouteRoute:
+      DashboardOrgsOrgIdWorkflowsRouteRouteWithChildren,
     DashboardOrgsOrgIdIndexRoute: DashboardOrgsOrgIdIndexRoute,
     DashboardOrgsOrgIdDocumentsIdRoute: DashboardOrgsOrgIdDocumentsIdRoute,
+    DashboardOrgsOrgIdSettingsAiRoute: DashboardOrgsOrgIdSettingsAiRoute,
     DashboardOrgsOrgIdSettingsCustomPropertiesRoute:
       DashboardOrgsOrgIdSettingsCustomPropertiesRoute,
     DashboardOrgsOrgIdSettingsDocumentTypesRoute:

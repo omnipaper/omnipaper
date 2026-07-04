@@ -1,10 +1,12 @@
 import { db } from "@omnipaper/database/client";
+import { createId } from "@omnipaper/database/id";
 import {
   completeDocumentOcr,
   getDocumentById,
   markDocumentOcrFailed,
   markDocumentOcrProcessing,
 } from "@omnipaper/database/queries/documents";
+import { enqueue } from "@omnipaper/queue/producer";
 import { defineTask } from "@omnipaper/queue/worker";
 import { getStorageDriver } from "../lib/storage";
 import { extractDocumentText } from "../lib/text-extract";
@@ -47,6 +49,19 @@ export const textExtractTask = defineTask("text-extract", async ({ documentId })
       title: doc.title,
       text,
     });
+
+    try {
+      await enqueue("workflow-dispatch", {
+        documentId,
+        trigger: "document.ocr_completed",
+        triggerEventId: createId("wfe"),
+      });
+    } catch (dispatchErr) {
+      console.error(
+        `[text-extract] workflow dispatch failed for document ${documentId}:`,
+        dispatchErr,
+      );
+    }
   } catch (err) {
     // Mirror ocr-extract: mark "failed" so the document leaves "processing" and the UI can offer a
     // re-run, and swallow rather than rethrow — a parse failure is deterministic (e.g. a corrupt
