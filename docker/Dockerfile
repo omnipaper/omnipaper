@@ -8,6 +8,7 @@ FROM base AS build
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
+COPY packages/ai/package.json packages/ai/
 COPY packages/database/package.json packages/database/
 COPY packages/env/package.json packages/env/
 COPY packages/ocr/package.json packages/ocr/
@@ -30,6 +31,7 @@ FROM base AS prod-deps
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
+COPY packages/ai/package.json packages/ai/
 COPY packages/database/package.json packages/database/
 COPY packages/env/package.json packages/env/
 COPY packages/ocr/package.json packages/ocr/
