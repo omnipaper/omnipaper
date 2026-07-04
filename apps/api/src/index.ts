@@ -36,8 +36,21 @@ if (services.includes("web")) {
   const app = createApp();
 
   if (isProduction) {
+    // Hashed assets are immutable; a missing one must 404, never fall back to index.html —
+    // a 200 HTML response under a .js URL gets cached by CDNs and bricks the app after deploys.
+    app.use(
+      "/assets/*",
+      serveStatic({
+        root: "./apps/web/dist",
+        onFound: (_path, c) => c.header("Cache-Control", "public, max-age=31536000, immutable"),
+      }),
+    );
+    app.get("/assets/*", (c) => c.notFound());
     app.use("/*", serveStatic({ root: "./apps/web/dist" }));
-    app.get("*", serveStatic({ path: "./apps/web/dist/index.html" }));
+    app.get("*", async (c, next) => {
+      c.header("Cache-Control", "no-cache");
+      return serveStatic({ path: "./apps/web/dist/index.html" })(c, next);
+    });
   }
 
   Bun.serve({ fetch: app.fetch, port: env.PORT });
