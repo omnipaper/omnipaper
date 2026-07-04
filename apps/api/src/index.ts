@@ -5,6 +5,7 @@ import { env } from "@omnipaper/env";
 import { startWorker } from "@omnipaper/queue/worker";
 import { serveStatic } from "hono/bun";
 import { createApp } from "./app";
+import { bootstrapDemoAdmin } from "./demo";
 import { ocrExtractTask } from "./tasks/ocr-extract";
 import { textExtractTask } from "./tasks/text-extract";
 import { thumbnailGenerateTask } from "./tasks/thumbnail-generate";
@@ -33,6 +34,8 @@ const runner = services.includes("worker")
   : null;
 
 if (services.includes("web")) {
+  await bootstrapDemoAdmin();
+
   const app = createApp();
 
   if (isProduction) {

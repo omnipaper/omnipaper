@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { bootstrapDemoSession } from "@/features/auth/demo-session";
+import { bootstrapDemoSession, syncDemoAccess } from "@/features/auth/demo-session";
 import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
 import { DEMO_MODE } from "@/lib/demo-mode";
 import { queryClient } from "@/lib/query-client";
@@ -19,6 +19,10 @@ export const Route = createFileRoute("/dashboard")({
 
     if (!session) {
       throw redirect({ to: "/sign-in" });
+    }
+
+    if (DEMO_MODE) {
+      await syncDemoAccess(session.user.email);
     }
   },
   component: DashboardLayout,

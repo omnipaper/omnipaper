@@ -62,6 +62,12 @@ export const auth = betterAuth({
         return;
       }
 
+      // The demo curator account is provisioned server-side at startup (bootstrapDemoAdmin),
+      // regardless of the instance's registration policy.
+      if (env.DEMO_MODE && env.DEMO_ADMIN_EMAIL && ctx.body.email === env.DEMO_ADMIN_EMAIL) {
+        return;
+      }
+
       // Open → let it through without touching the user table.
       if (await isRegistrationEnabled()) {
         return;

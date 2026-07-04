@@ -50,7 +50,7 @@ import { NavUser } from "@/features/organization/components/nav-user";
 import { OrgSwitcher } from "@/features/organization/components/org-switcher";
 import { fullOrganizationQuery, useOrgMember } from "@/features/organization/queries/organization";
 import { SavedViewsSidebar } from "@/features/saved-views/components/saved-views-sidebar";
-import { DEMO_MODE } from "@/lib/demo-mode";
+import { useDemoReadOnly } from "@/lib/demo-mode";
 import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId")({
@@ -74,6 +74,7 @@ function OrgLayout() {
   // unless the user is on the bare collection — otherwise both rows would highlight at once.
   const onSavedView = Boolean((search as { savedView?: string }).savedView);
   const { data: session } = useQuery(sessionQueryOptions);
+  const demoReadOnly = useDemoReadOnly();
   const isAdmin = isInstanceAdmin(session?.user?.role);
   const member = useOrgMember(orgId);
   const canManage = canManageOrg(member?.role);
@@ -91,7 +92,7 @@ function OrgLayout() {
 
   return (
     <SidebarProvider className="h-svh overflow-hidden">
-      {!DEMO_MODE && <GlobalDropArea onFilesDrop={upload} />}
+      {!demoReadOnly && <GlobalDropArea onFilesDrop={upload} />}
       <Sidebar>
         {inSettings ? (
           <>
@@ -241,7 +242,7 @@ function OrgLayout() {
               ) : null}
             </SidebarContent>
             <SidebarFooter>
-              {DEMO_MODE ? null : (
+              {demoReadOnly ? null : (
                 <Button variant="outline" size="sm" onClick={handleSignOut}>
                   Sign out
                 </Button>
@@ -295,7 +296,7 @@ function OrgLayout() {
                 <NavUser
                   user={session.user}
                   orgId={orgId}
-                  onSignOut={DEMO_MODE ? undefined : handleSignOut}
+                  onSignOut={demoReadOnly ? undefined : handleSignOut}
                 />
               ) : null}
             </SidebarFooter>

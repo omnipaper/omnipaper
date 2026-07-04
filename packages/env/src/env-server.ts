@@ -26,6 +26,8 @@ export const env = createEnv({
       .transform((v) => v === "true"),
     DEMO_USER_EMAIL: z.email().optional(),
     DEMO_USER_PASSWORD: z.string().optional(),
+    DEMO_ADMIN_EMAIL: z.email().optional(),
+    DEMO_ADMIN_PASSWORD: z.string().optional(),
     LANGFUSE_SECRET_KEY: z.string().optional(),
     LANGFUSE_PUBLIC_KEY: z.string().optional(),
     LANGFUSE_URL: z.string().optional(),
