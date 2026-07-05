@@ -18,6 +18,7 @@ import {
 import { Switch } from "@omnipaper/ui/components/switch";
 import { PlusIcon, SparklesIcon, TagIcon, XIcon, ZapIcon } from "lucide-react";
 import { type ReactNode, type SubmitEvent, useEffect, useState } from "react";
+import { toast } from "sonner";
 import type { PropertyDefinition } from "@/features/custom-properties/queries/custom-properties";
 import type { OrgTag } from "@/features/tags/queries/tags";
 import {
@@ -117,7 +118,7 @@ function FlowConnector() {
 
 function FlowNode({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border bg-card p-3">
+    <div className="flex items-start gap-3 rounded-lg border border-border/50 bg-card p-3 shadow-sm">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
         {icon}
       </span>
@@ -290,10 +291,11 @@ export function WorkflowBuilder({
       actions: builtActions,
     };
 
+    // Saving stays on the page — the user may keep tweaking; Back/Cancel are the way out.
     if (isEditing && workflow) {
       update.mutate(
         { id: workflow.id, body: { name: name.trim(), enabled, definition } },
-        { onSuccess: () => onDone?.() },
+        { onSuccess: () => toast.success("Workflow saved") },
       );
       return;
     }

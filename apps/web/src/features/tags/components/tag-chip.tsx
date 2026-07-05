@@ -1,3 +1,4 @@
+import { Badge } from "@omnipaper/ui/components/badge";
 import { cn } from "@omnipaper/ui/lib/utils";
 import { X } from "lucide-react";
 
@@ -14,12 +15,7 @@ type TagChipProps = {
 // user-picked colors never fight the text for contrast.
 export function TagChip({ name, color, onRemove, disabled, className }: TagChipProps) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-foreground",
-        className,
-      )}
-    >
+    <Badge variant="secondary" className={cn("h-auto py-0.5 font-normal text-xs", className)}>
       <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
       {name}
       {onRemove ? (
@@ -33,6 +29,6 @@ export function TagChip({ name, color, onRemove, disabled, className }: TagChipP
           <X className="size-3" />
         </button>
       ) : null}
-    </span>
+    </Badge>
   );
 }

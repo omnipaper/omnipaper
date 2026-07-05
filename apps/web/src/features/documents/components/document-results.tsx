@@ -1,7 +1,8 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
-import { FilesIcon, SearchXIcon } from "lucide-react";
+import { FilesIcon, Loader2Icon, SearchXIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { PageLoader } from "@/components/page-loader";
 import { DocumentCards } from "@/features/documents/components/document-cards";
 import { DocumentRows } from "@/features/documents/components/document-rows";
 import type { DocumentSearch } from "@/features/documents/filters/types";
@@ -40,7 +41,7 @@ export function DocumentResults({ orgId }: { orgId: string }) {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   if (isPending) {
-    return <p className="text-muted-foreground">Loading…</p>;
+    return <PageLoader />;
   }
   if (isError) {
     return <p className="text-destructive">Failed to load documents.</p>;
@@ -91,7 +92,9 @@ export function DocumentResults({ orgId }: { orgId: string }) {
       )}
       <div ref={sentinelRef} aria-hidden className="h-px" />
       {isFetchingNextPage ? (
-        <p className="mt-4 text-center text-muted-foreground text-sm">Loading more…</p>
+        <div className="py-6 flex justify-center">
+          <Loader2Icon className="size-5 animate-spin text-muted-foreground/50" />
+        </div>
       ) : null}
     </>
   );

@@ -1,7 +1,13 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
+
+export type DocumentSuggestion = InferResponseType<
+  (typeof api.orgs)[":orgId"]["documents"][":id"]["suggestions"]["$get"],
+  200
+>["suggestions"][number];
 
 const suggestionKeys = {
   forDocument: (orgId: string, documentId: string) =>

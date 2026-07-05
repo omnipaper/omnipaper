@@ -1,4 +1,5 @@
 import { Input } from "@omnipaper/ui/components/input";
+import { Label } from "@omnipaper/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -8,15 +9,18 @@ import {
 } from "@omnipaper/ui/components/select";
 import { Switch } from "@omnipaper/ui/components/switch";
 import { useQuery } from "@tanstack/react-query";
+import { NONE_LABEL } from "@/components/creatable-combobox";
 import {
-  type PropertyDefinition,
   orgPropertyDefinitionsQuery,
+  type PropertyDefinition,
 } from "@/features/custom-properties/queries/custom-properties";
+import { InlineSuggestion } from "@/features/documents/components/inline-suggestion";
 import {
   type DocumentDetail,
   useClearDocumentPropertyValue,
   useSetDocumentPropertyValue,
 } from "@/features/documents/queries/documents";
+import type { DocumentSuggestion } from "@/features/documents/queries/suggestions";
 
 // "None" can't be an empty string in a radix Select item, so use a sentinel that maps to clearing.
 const NONE_VALUE = "__none__";
@@ -61,10 +65,10 @@ function PropertyValueEditor({ definition, value, onSet, onClear }: EditorProps)
         }}
       >
         <SelectTrigger className="w-full" aria-label={definition.name}>
-          <SelectValue placeholder="—" />
+          <SelectValue placeholder={NONE_LABEL} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE_VALUE}>— None —</SelectItem>
+          <SelectItem value={NONE_VALUE}>{NONE_LABEL}</SelectItem>
           {definition.options.map((o) => (
             <SelectItem key={o.id} value={o.id}>
               {o.label}
@@ -149,12 +153,14 @@ type CustomPropertyFieldsProps = {
   orgId: string;
   documentId: string;
   values: DocumentPropertyValue[];
+  suggestions?: DocumentSuggestion[];
 };
 
 export function CustomPropertyFields({
   orgId,
   documentId,
   values = [],
+  suggestions = [],
 }: CustomPropertyFieldsProps) {
   const { data } = useQuery(orgPropertyDefinitionsQuery({ orgId }));
   const definitions = data?.definitions ?? [];
@@ -168,12 +174,31 @@ export function CustomPropertyFields({
     return null;
   }
 
+  function getSuggestionLabel(
+    definition: PropertyDefinition,
+    suggestion: DocumentSuggestion,
+  ): string {
+    const value = suggestion.suggestedValue;
+    if ("selectOptionId" in value) {
+      return definition.options.find((o) => o.id === value.selectOptionId)?.label ?? "?";
+    }
+    if ("newOptionLabel" in value) {
+      return `${value.newOptionLabel} (new option)`;
+    }
+    if ("value" in value) {
+      return value.value;
+    }
+    return "";
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      {definitions.map((definition) => (
-        <div key={definition.id} className="flex items-center gap-3">
-          <span className="w-40 shrink-0 text-muted-foreground text-sm">{definition.name}</span>
-          <div className="flex-1">
+    <div className="flex flex-col gap-4">
+      {definitions.map((definition) => {
+        const suggestion = suggestions.find((s) => s.customPropertyDefinitionId === definition.id);
+
+        return (
+          <div key={definition.id} className="flex flex-col gap-1.5">
+            <Label>{definition.name}</Label>
             <PropertyValueEditor
               definition={definition}
               value={valueByDefinition.get(definition.id)}
@@ -188,9 +213,17 @@ export function CustomPropertyFields({
               }}
               onClear={() => clearValue.mutate(definition.id)}
             />
+            {suggestion && (
+              <InlineSuggestion
+                orgId={orgId}
+                documentId={documentId}
+                suggestionId={suggestion.id}
+                label={getSuggestionLabel(definition, suggestion)}
+              />
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

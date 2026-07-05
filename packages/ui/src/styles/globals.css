@@ -119,6 +119,11 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* One shared look for every floating surface (Select, DropdownMenu, Popover) so they never drift. */
+@utility overlay-surface {
+  @apply rounded-lg border border-border bg-popover text-popover-foreground shadow-md;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

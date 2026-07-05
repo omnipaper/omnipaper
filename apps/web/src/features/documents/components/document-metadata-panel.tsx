@@ -1,32 +1,31 @@
 import { canManageOrg } from "@omnipaper/permissions";
-import { Button } from "@omnipaper/ui/components/button";
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
-import { CreatableCombobox } from "@/components/creatable-combobox";
-import { orgPropertyDefinitionsQuery } from "@/features/custom-properties/queries/custom-properties";
+import { CreatableCombobox, NONE_LABEL } from "@/components/creatable-combobox";
 import {
   orgDocumentTypesQuery,
   useCreateDocumentType,
 } from "@/features/document-types/queries/document-types";
+import { InlineSuggestion } from "@/features/documents/components/inline-suggestion";
+import { TagSuggestions } from "@/features/documents/components/tag-suggestions";
 import {
   type DocumentDetail,
   useUpdateDocumentMetadata,
 } from "@/features/documents/queries/documents";
-import {
-  documentSuggestionsQuery,
-  useAcceptSuggestion,
-  useDismissSuggestion,
-} from "@/features/documents/queries/suggestions";
+import { documentSuggestionsQuery } from "@/features/documents/queries/suggestions";
 import { useOrgMember } from "@/features/organization/queries/organization";
 import { isValidStoragePath } from "@/features/storage-paths/path-format";
 import {
   orgStoragePathsQuery,
   useCreateStoragePath,
 } from "@/features/storage-paths/queries/storage-paths";
-import { orgTagsQuery } from "@/features/tags/queries/tags";
+import { TagPicker } from "@/features/tags/components/tag-picker";
 
-type Props = Pick<DocumentDetail, "title" | "documentDate" | "documentType" | "storagePath"> & {
+type Props = Pick<
+  DocumentDetail,
+  "title" | "documentDate" | "documentType" | "storagePath" | "tags"
+> & {
   orgId: string;
   documentId: string;
 };
@@ -38,98 +37,47 @@ export function DocumentMetadataPanel({
   documentDate,
   documentType,
   storagePath,
+  tags,
 }: Props) {
   const member = useOrgMember(orgId);
   const canManageTaxonomy = canManageOrg(member?.role);
 
   const { data: typesData } = useQuery(orgDocumentTypesQuery({ orgId }));
   const { data: pathsData } = useQuery(orgStoragePathsQuery({ orgId }));
-  const { data: tagsData } = useQuery(orgTagsQuery({ orgId }));
   const types = typesData?.documentTypes ?? [];
   const paths = pathsData?.storagePaths ?? [];
-  const tags = tagsData?.tags ?? [];
-
-  const { data: propsData } = useQuery(orgPropertyDefinitionsQuery({ orgId }));
-  const properties = propsData?.definitions ?? [];
 
   const { data: suggestionsData } = useQuery(documentSuggestionsQuery({ orgId, documentId }));
   const suggestions = suggestionsData?.suggestions ?? [];
-  const accept = useAcceptSuggestion(orgId, documentId);
-  const dismiss = useDismissSuggestion(orgId, documentId);
 
   const patch = useUpdateDocumentMetadata(orgId, documentId);
 
   const createType = useCreateDocumentType(orgId);
   const createPath = useCreateStoragePath(orgId);
 
-  function suggestionLabel(suggestion: (typeof suggestions)[number]): string {
+  function getSuggestionLabel(suggestion: (typeof suggestions)[number]): string {
     const value = suggestion.suggestedValue;
     if (suggestion.field === "documentType" && "id" in value) {
-      return `Document type: ${types.find((t) => t.id === value.id)?.name ?? "unknown"}`;
+      return types.find((t) => t.id === value.id)?.name ?? "unknown";
     }
     if (suggestion.field === "storagePath" && "id" in value) {
-      return `Storage path: ${paths.find((p) => p.id === value.id)?.path ?? "unknown"}`;
+      return paths.find((p) => p.id === value.id)?.path ?? "unknown";
     }
     if ((suggestion.field === "title" || suggestion.field === "documentDate") && "value" in value) {
-      return `${suggestion.field === "title" ? "Title" : "Date"}: ${value.value}`;
-    }
-    if (suggestion.field === "tags" && "existingIds" in value) {
-      const names = [
-        ...value.existingIds.map((id) => tags.find((t) => t.id === id)?.name ?? id),
-        ...value.newNames,
-      ];
-      return `Tags: ${names.join(", ")}`;
-    }
-    if (suggestion.field === "customProperty") {
-      const prop = properties.find((p) => p.id === suggestion.customPropertyDefinitionId);
-      const display =
-        "selectOptionId" in value
-          ? (prop?.options.find((o) => o.id === value.selectOptionId)?.label ?? "?")
-          : "newOptionLabel" in value
-            ? `${value.newOptionLabel} (new option)`
-            : "value" in value
-              ? value.value
-              : "";
-      return `${prop?.name ?? "Property"}: ${display}`;
+      return value.value;
     }
     return suggestion.field;
   }
 
+  const titleSuggestion = suggestions.find((s) => s.field === "title");
+  const dateSuggestion = suggestions.find((s) => s.field === "documentDate");
+  const typeSuggestion = suggestions.find((s) => s.field === "documentType");
+  const pathSuggestion = suggestions.find((s) => s.field === "storagePath");
+  const tagsSuggestion = suggestions.find((s) => s.field === "tags");
+
   return (
     <div className="flex flex-col gap-4">
-      {suggestions.length > 0 ? (
-        <div className="flex flex-col gap-2 rounded-lg border border-primary/40 border-dashed p-3">
-          <span className="font-medium text-sm">AI suggestions</span>
-          {suggestions.map((suggestion) => (
-            <div key={suggestion.id} className="flex items-center justify-between gap-2">
-              <span className="min-w-0 truncate text-muted-foreground text-sm">
-                {suggestionLabel(suggestion)}
-              </span>
-              <div className="flex shrink-0 gap-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => accept.mutate(suggestion.id)}
-                  disabled={accept.isPending}
-                >
-                  Use
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => dismiss.mutate(suggestion.id)}
-                  disabled={dismiss.isPending}
-                  aria-label="Dismiss suggestion"
-                >
-                  ✕
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor="doc-title">Title</Label>
         <Input
           id="doc-title"
@@ -143,9 +91,17 @@ export function DocumentMetadataPanel({
             }
           }}
         />
+        {titleSuggestion && (
+          <InlineSuggestion
+            orgId={orgId}
+            documentId={documentId}
+            suggestionId={titleSuggestion.id}
+            label={getSuggestionLabel(titleSuggestion)}
+          />
+        )}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor="doc-date">Document date</Label>
         <Input
           id="doc-date"
@@ -160,9 +116,17 @@ export function DocumentMetadataPanel({
             }
           }}
         />
+        {dateSuggestion && (
+          <InlineSuggestion
+            orgId={orgId}
+            documentId={documentId}
+            suggestionId={dateSuggestion.id}
+            label={getSuggestionLabel(dateSuggestion)}
+          />
+        )}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor="doc-type">Document type</Label>
         <CreatableCombobox
           triggerId="doc-type"
@@ -178,7 +142,7 @@ export function DocumentMetadataPanel({
               },
             });
           }}
-          placeholder="None"
+          placeholder={NONE_LABEL}
           searchPlaceholder="Search or create type…"
           canCreate={canManageTaxonomy}
           onCreate={(name) =>
@@ -192,9 +156,17 @@ export function DocumentMetadataPanel({
           }
           pending={createType.isPending}
         />
+        {typeSuggestion && (
+          <InlineSuggestion
+            orgId={orgId}
+            documentId={documentId}
+            suggestionId={typeSuggestion.id}
+            label={getSuggestionLabel(typeSuggestion)}
+          />
+        )}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor="doc-path">Storage path</Label>
         <CreatableCombobox
           triggerId="doc-path"
@@ -210,7 +182,7 @@ export function DocumentMetadataPanel({
               },
             });
           }}
-          placeholder="None"
+          placeholder={NONE_LABEL}
           searchPlaceholder="Search or create path… (/Finance/2024)"
           canCreate={canManageTaxonomy}
           onCreate={(path) =>
@@ -225,6 +197,27 @@ export function DocumentMetadataPanel({
           validateCreate={isValidStoragePath}
           pending={createPath.isPending}
         />
+        {pathSuggestion && (
+          <InlineSuggestion
+            orgId={orgId}
+            documentId={documentId}
+            suggestionId={pathSuggestion.id}
+            label={getSuggestionLabel(pathSuggestion)}
+          />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Tags</Label>
+        <TagPicker orgId={orgId} documentId={documentId} tags={tags} />
+        {tagsSuggestion && (
+          <TagSuggestions
+            orgId={orgId}
+            documentId={documentId}
+            suggestion={tagsSuggestion}
+            tags={tags}
+          />
+        )}
       </div>
     </div>
   );

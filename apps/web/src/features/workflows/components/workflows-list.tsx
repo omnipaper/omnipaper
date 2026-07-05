@@ -1,17 +1,14 @@
 import { Button } from "@omnipaper/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { PlusIcon } from "lucide-react";
-import { orgTagsQuery } from "@/features/tags/queries/tags";
+import { PlusIcon, WorkflowIcon } from "lucide-react";
 import { WorkflowCard } from "@/features/workflows/components/workflow-card";
 import { orgWorkflowsQuery } from "@/features/workflows/queries/workflows";
 
 export function WorkflowsList({ orgId }: { orgId: string }) {
   const navigate = useNavigate();
   const workflowsQuery = useQuery(orgWorkflowsQuery({ orgId }));
-  const tagsQuery = useQuery(orgTagsQuery({ orgId }));
 
-  const tags = tagsQuery.data?.tags ?? [];
   const workflows = [...(workflowsQuery.data?.workflows ?? [])].sort(
     (a, b) => Number(b.systemKey !== null) - Number(a.systemKey !== null),
   );
@@ -30,7 +27,17 @@ export function WorkflowsList({ orgId }: { orgId: string }) {
       </div>
 
       {workflows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No workflows yet.</p>
+        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <WorkflowIcon className="size-6" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <p className="font-medium text-foreground">No workflows yet</p>
+            <p className="max-w-sm text-muted-foreground text-sm">
+              Create a workflow to automate adding tags and metadata to incoming documents.
+            </p>
+          </div>
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
           {workflows.map((workflow) => (
@@ -38,7 +45,6 @@ export function WorkflowsList({ orgId }: { orgId: string }) {
               key={workflow.id}
               orgId={orgId}
               workflow={workflow}
-              tags={tags}
               onEdit={(w) =>
                 navigate({
                   to: "/dashboard/orgs/$orgId/workflows/$workflowId",
