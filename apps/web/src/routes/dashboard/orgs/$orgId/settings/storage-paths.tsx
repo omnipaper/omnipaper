@@ -1,6 +1,5 @@
 import { canManageOrg } from "@omnipaper/permissions";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { AiAssignMaster } from "@/features/ai-assign/components/ai-assign-master";
 import { ensureOrgRole } from "@/features/organization/queries/organization";
 import { StoragePathsManager } from "@/features/storage-paths/components/storage-paths-manager";
 
@@ -20,15 +19,12 @@ function StoragePathsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-semibold text-2xl">Storage paths</h1>
-          <p className="text-muted-foreground text-sm">
-            Slash-delimited paths you file documents under (e.g. /Finance/2024). They drive the
-            folder view; a description helps you (and, later, automatic filing) pick the right one.
-          </p>
-        </div>
-        <AiAssignMaster orgId={orgId} field="storagePath" label="storage paths" />
+      <div>
+        <h1 className="font-semibold text-2xl">Storage paths</h1>
+        <p className="text-muted-foreground text-sm">
+          Paths for filing documents (e.g. /Finance/2024). Descriptions help you and AI pick the
+          right one.
+        </p>
       </div>
       <StoragePathsManager orgId={orgId} />
     </div>

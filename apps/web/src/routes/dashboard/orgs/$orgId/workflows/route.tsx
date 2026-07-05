@@ -10,5 +10,10 @@ export const Route = createFileRoute("/dashboard/orgs/$orgId/workflows")({
       throw redirect({ to: "/dashboard/orgs/$orgId", params: { orgId: params.orgId } });
     }
   },
-  component: () => <Outlet />,
+  // Same deal as the settings layout: padding/scroll swap atomically with the page content.
+  component: () => (
+    <div className="min-h-0 flex-1 overflow-y-auto p-6">
+      <Outlet />
+    </div>
+  ),
 });

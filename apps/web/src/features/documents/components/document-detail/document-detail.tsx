@@ -14,9 +14,10 @@ import { Button } from "@omnipaper/ui/components/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@omnipaper/ui/components/tabs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeftIcon, DownloadIcon, Trash2Icon } from "lucide-react";
+import { ArrowLeftIcon, DownloadIcon, FileWarningIcon, Trash2Icon } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { PageLoader } from "@/components/page-loader";
 import { ActivityTab } from "@/features/documents/components/document-detail/activity-tab";
 import { DetailsTab } from "@/features/documents/components/document-detail/details-tab";
 import { OcrTab } from "@/features/documents/components/document-detail/ocr-tab";
@@ -86,21 +87,39 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
   }
 
   if (isPending) {
-    return <p className="p-6 text-muted-foreground">Loading…</p>;
+    return <PageLoader />;
   }
 
   if (isError) {
     return (
-      <p className="p-6 text-destructive">
-        {notFound ? "Document not found." : "Failed to load document."}
-      </p>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+          <FileWarningIcon className="size-6" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <p className="font-medium text-foreground">
+            {notFound ? "Document not found" : "Failed to load document"}
+          </p>
+          <p className="max-w-xs text-muted-foreground text-sm">
+            {notFound
+              ? "This document may have been deleted or you don't have access to it."
+              : "There was a problem communicating with the server. Please try again later."}
+          </p>
+        </div>
+        <Button variant="outline" asChild className="mt-2">
+          <Link to="/dashboard/orgs/$orgId/documents" params={{ orgId }} search={backSearch}>
+            <ArrowLeftIcon className="mr-2 size-4" />
+            Back to documents
+          </Link>
+        </Button>
+      </div>
     );
   }
 
   const doc = data.document;
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
       {/* Left: info panel — header of actions + tabbed metadata. Owns its own scroll on lg. */}
       <div className="flex flex-col border-b lg:w-[400px] lg:shrink-0 lg:overflow-hidden lg:border-r lg:border-b-0">
         <div className="flex shrink-0 flex-col gap-3 border-b p-4">
@@ -167,7 +186,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
         </div>
 
         <Tabs defaultValue="details" className="flex flex-col gap-0 lg:min-h-0 lg:flex-1">
-          <TabsList className="mx-4 mt-3 grid grid-cols-3">
+          <TabsList className="mx-4 mt-3 grid w-auto grid-cols-3">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="ocr">OCR</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>

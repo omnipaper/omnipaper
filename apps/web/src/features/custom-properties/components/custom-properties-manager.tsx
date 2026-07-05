@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@omnipaper/ui/components/alert-dialog";
+import { Badge } from "@omnipaper/ui/components/badge";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Dialog,
@@ -37,14 +38,11 @@ import {
   TableRow,
 } from "@omnipaper/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
-import { PlusIcon, XIcon } from "lucide-react";
+import { Loader2Icon, PlusIcon, SearchIcon, XIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
-import {
-  RowActions,
-  SettingsTableToolbar,
-  TableEmptyRow,
-} from "@/components/settings/settings-table";
+import { RowActions, TableEmptyRow } from "@/components/settings/settings-table";
+import { AiAssignWorkflowLink } from "@/features/ai-assign/components/ai-assign-workflow-link";
 import { aiAssignQuery, useSetAiAssignField } from "@/features/ai-assign/queries/ai-assign";
 import {
   orgPropertyDefinitionsQuery,
@@ -103,7 +101,11 @@ export function CustomPropertiesManager({ orgId }: { orgId: string }) {
 
   let body: ReactNode;
   if (isPending) {
-    body = <TableEmptyRow colSpan={COLUMN_COUNT}>Loading…</TableEmptyRow>;
+    body = (
+      <TableEmptyRow colSpan={COLUMN_COUNT}>
+        <Loader2Icon className="mx-auto size-5 animate-spin text-muted-foreground/50" />
+      </TableEmptyRow>
+    );
   } else if (isError) {
     body = (
       <TableEmptyRow colSpan={COLUMN_COUNT} className="text-destructive">
@@ -124,9 +126,9 @@ export function CustomPropertiesManager({ orgId }: { orgId: string }) {
         <TableCell className="font-medium">{definition.name}</TableCell>
         <TableCell>
           <span className="inline-flex items-center gap-1.5">
-            <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground text-xs">
+            <Badge variant="secondary" className="font-normal">
               {TYPE_LABEL[definition.type] ?? definition.type}
-            </span>
+            </Badge>
             {definition.type === "select" ? (
               <span className="text-muted-foreground text-xs">
                 {definition.options.length} {definition.options.length === 1 ? "option" : "options"}
@@ -172,18 +174,27 @@ export function CustomPropertiesManager({ orgId }: { orgId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsTableToolbar
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Filter properties…"
-      >
-        <Button onClick={openCreate}>
-          <PlusIcon />
-          New property
-        </Button>
-      </SettingsTableToolbar>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full max-w-xs">
+          <SearchIcon className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 size-3.5 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Filter properties…"
+            aria-label="Filter properties"
+            className="pl-8"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <AiAssignWorkflowLink orgId={orgId} variant="button" />
+          <Button onClick={openCreate}>
+            <PlusIcon />
+            New property
+          </Button>
+        </div>
+      </div>
 
-      <div className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+      <div className="overflow-hidden rounded-lg bg-card border border-border/50 shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -351,10 +362,7 @@ function PropertyDialogBody({
                 <span className="text-muted-foreground text-xs">No options yet.</span>
               ) : (
                 displayOptions.map((option) => (
-                  <span
-                    key={option.key}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-foreground text-xs"
-                  >
+                  <Badge key={option.key} variant="secondary" className="font-normal">
                     <span
                       className="size-2 shrink-0 rounded-full"
                       style={{ backgroundColor: option.color }}
@@ -369,7 +377,7 @@ function PropertyDialogBody({
                     >
                       <XIcon className="size-3" />
                     </button>
-                  </span>
+                  </Badge>
                 ))
               )}
             </div>

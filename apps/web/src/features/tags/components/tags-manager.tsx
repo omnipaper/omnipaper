@@ -20,13 +20,10 @@ import {
   TableRow,
 } from "@omnipaper/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
-import { CircleHelpIcon, PlusIcon } from "lucide-react";
+import { CircleHelpIcon, Loader2Icon, PlusIcon, SearchIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import {
-  RowActions,
-  SettingsTableToolbar,
-  TableEmptyRow,
-} from "@/components/settings/settings-table";
+import { RowActions, TableEmptyRow } from "@/components/settings/settings-table";
+import { AiAssignMaster } from "@/features/ai-assign/components/ai-assign-master";
 import { aiAssignQuery } from "@/features/ai-assign/queries/ai-assign";
 import {
   type OrgTag,
@@ -81,7 +78,11 @@ export function TagsManager({ orgId }: { orgId: string }) {
 
   let body: ReactNode;
   if (isPending) {
-    body = <TableEmptyRow colSpan={columnCount}>Loading…</TableEmptyRow>;
+    body = (
+      <TableEmptyRow colSpan={columnCount}>
+        <Loader2Icon className="mx-auto size-5 animate-spin text-muted-foreground/50" />
+      </TableEmptyRow>
+    );
   } else if (isError) {
     body = (
       <TableEmptyRow colSpan={columnCount} className="text-destructive">
@@ -135,18 +136,27 @@ export function TagsManager({ orgId }: { orgId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsTableToolbar
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Filter tags…"
-      >
-        <Button onClick={openCreate}>
-          <PlusIcon />
-          New tag
-        </Button>
-      </SettingsTableToolbar>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full max-w-xs">
+          <SearchIcon className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 size-3.5 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Filter tags…"
+            aria-label="Filter tags"
+            className="pl-8"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <AiAssignMaster orgId={orgId} field="tags" label="tags" variant="button" />
+          <Button onClick={openCreate}>
+            <PlusIcon />
+            New tag
+          </Button>
+        </div>
+      </div>
 
-      <div className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+      <div className="overflow-hidden rounded-lg bg-card border border-border/50 shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">

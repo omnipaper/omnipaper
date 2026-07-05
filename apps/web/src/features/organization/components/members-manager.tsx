@@ -10,6 +10,7 @@ import {
   AlertDialogTitle,
 } from "@omnipaper/ui/components/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@omnipaper/ui/components/avatar";
+import { Badge } from "@omnipaper/ui/components/badge";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Dialog,
@@ -44,7 +45,7 @@ import {
   TableRow,
 } from "@omnipaper/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
-import { MailIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
+import { Loader2Icon, MailIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { SettingsTableToolbar, TableEmptyRow } from "@/components/settings/settings-table";
@@ -73,7 +74,9 @@ function initials(value: string): string {
 
 function StatusBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground text-xs">{children}</span>
+    <Badge variant="secondary" className="font-normal">
+      {children}
+    </Badge>
   );
 }
 
@@ -135,7 +138,11 @@ export function MembersManager({ orgId }: { orgId: string }) {
 
   let body: ReactNode;
   if (orgQuery.isPending) {
-    body = <TableEmptyRow colSpan={COLUMN_COUNT}>Loading…</TableEmptyRow>;
+    body = (
+      <TableEmptyRow colSpan={COLUMN_COUNT}>
+        <Loader2Icon className="mx-auto size-5 animate-spin text-muted-foreground/50" />
+      </TableEmptyRow>
+    );
   } else if (orgQuery.isError) {
     body = (
       <TableEmptyRow colSpan={COLUMN_COUNT} className="text-destructive">
@@ -282,7 +289,7 @@ export function MembersManager({ orgId }: { orgId: string }) {
         </Button>
       </SettingsTableToolbar>
 
-      <div className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+      <div className="overflow-hidden rounded-lg bg-card border border-border/50 shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">

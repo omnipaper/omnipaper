@@ -6,6 +6,9 @@ import { useState } from "react";
 
 export type ComboboxItem = { id: string; label: string };
 
+// One label for "no value selected" across every picker (combobox, select) so it never drifts.
+export const NONE_LABEL = "None";
+
 type Props = {
   items: ComboboxItem[];
   value: string | null;
@@ -45,7 +48,7 @@ export function CreatableCombobox({
   createLabel = (input) => `Create “${input}”`,
   pending = false,
   allowClear = true,
-  clearLabel = "— None —",
+  clearLabel = NONE_LABEL,
   itemClassName,
   triggerId,
   "aria-label": ariaLabel,
@@ -88,12 +91,12 @@ export function CreatableCombobox({
           type="button"
           id={triggerId}
           aria-label={ariaLabel}
-          className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
+          className="flex h-7 w-full items-center justify-between gap-1.5 rounded-md border border-input bg-input/20 dark:bg-input/30 px-2 py-1.5 text-xs/relaxed outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 hover:bg-input/50 dark:hover:bg-input/50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span className={cn("truncate", selected ? itemClassName : "text-muted-foreground")}>
             {selected ? selected.label : placeholder}
           </span>
-          <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
+          <ChevronsUpDownIcon className="pointer-events-none size-3.5 shrink-0 text-muted-foreground" />
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-48 p-0">
@@ -117,10 +120,14 @@ export function CreatableCombobox({
               type="button"
               onClick={() => pick(null)}
               disabled={pending}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-muted-foreground text-sm hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+              className="relative flex w-full min-h-7 items-center gap-2 rounded-md px-2 py-1 text-left text-xs/relaxed hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
             >
-              <span className="flex-1 truncate">{clearLabel}</span>
-              {value === null ? <CheckIcon className="size-3.5" /> : null}
+              <span className="flex-1 truncate text-muted-foreground">{clearLabel}</span>
+              {value === null ? (
+                <span className="pointer-events-none absolute right-2 flex items-center justify-center">
+                  <CheckIcon className="size-3.5" />
+                </span>
+              ) : null}
             </button>
           ) : null}
 
@@ -130,10 +137,14 @@ export function CreatableCombobox({
               type="button"
               onClick={() => pick(item.id)}
               disabled={pending}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+              className="relative flex w-full min-h-7 items-center gap-2 rounded-md px-2 py-1 text-left text-xs/relaxed hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
             >
               <span className={cn("flex-1 truncate", itemClassName)}>{item.label}</span>
-              {item.id === value ? <CheckIcon className="size-3.5 text-muted-foreground" /> : null}
+              {item.id === value ? (
+                <span className="pointer-events-none absolute right-2 flex items-center justify-center">
+                  <CheckIcon className="size-3.5" />
+                </span>
+              ) : null}
             </button>
           ))}
 
@@ -142,7 +153,7 @@ export function CreatableCombobox({
               type="button"
               onClick={create}
               disabled={pending}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+              className="relative flex w-full min-h-7 items-center gap-2 rounded-md px-2 py-1 text-left text-xs/relaxed hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
             >
               <PlusIcon className="size-3.5 shrink-0" />
               <span className="flex-1 truncate">{createLabel(query)}</span>
@@ -150,7 +161,7 @@ export function CreatableCombobox({
           ) : null}
 
           {filtered.length === 0 && !showCreate ? (
-            <p className="px-2 py-1.5 text-muted-foreground text-sm">{emptyLabel}</p>
+            <p className="px-2 py-1.5 text-muted-foreground text-xs">{emptyLabel}</p>
           ) : null}
         </div>
       </PopoverContent>

@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarSeparator,
   SidebarTrigger,
 } from "@omnipaper/ui/components/sidebar";
 import { useQuery } from "@tanstack/react-query";
@@ -82,9 +83,6 @@ function OrgLayout() {
   const inSettings = pathname.startsWith(settingsBase);
   // Workflows highlights on the whole section (list, /new, /$workflowId), not just the index.
   const inWorkflows = pathname.startsWith(`/dashboard/orgs/${orgId}/workflows`);
-  // The document detail is a full-height split view; it manages its own scroll/padding, so the
-  // content shell goes edge-to-edge for it instead of the default padded, scrollable container.
-  const isDocDetail = pathname.includes("/documents/");
 
   async function handleSignOut() {
     await signOut();
@@ -274,7 +272,9 @@ function OrgLayout() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+              <SidebarSeparator />
               <SavedViewsSidebar orgId={orgId} />
+              <SidebarSeparator />
               <RecentDocuments orgId={orgId} />
               {canManage ? (
                 <SidebarGroup className="mt-auto">
@@ -311,9 +311,7 @@ function OrgLayout() {
           <SidebarTrigger />
           <span className="font-medium text-sm">{inSettings ? "Settings" : "Dashboard"}</span>
         </header>
-        <div className={isDocDetail ? "min-h-0 flex-1" : "min-h-0 flex-1 overflow-y-auto p-6"}>
-          <Outlet />
-        </div>
+        <Outlet />
       </SidebarInset>
       <OnboardingChecklist orgId={orgId} />
     </SidebarProvider>

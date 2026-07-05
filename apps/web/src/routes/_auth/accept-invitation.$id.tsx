@@ -11,6 +11,7 @@ import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Loader2Icon } from "lucide-react";
 import { type SubmitEvent, useState } from "react";
 import { toast } from "sonner";
 import { authClient, signIn, signOut, signUp, useSession } from "@/features/auth/auth-client";
@@ -99,7 +100,7 @@ function AcceptInvitationPage() {
       <Card>
         <CardHeader>
           <CardTitle>Organization invitation</CardTitle>
-          <CardDescription>Loading…</CardDescription>
+          <CardDescription>Accepting invitation...</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -115,13 +116,18 @@ function AcceptInvitationPage() {
         <CardHeader>
           <CardTitle>Organization invitation</CardTitle>
           <CardDescription>
-            {invitationQuery.isPending
-              ? "Loading…"
-              : mismatch
-                ? `This invite is for ${invitedFor}. You're signed in as ${sessionData.user.email} — sign out to accept it.`
-                : invitationQuery.isError
-                  ? "This invitation is invalid or has expired."
-                  : `Join ${orgName} as ${invitationQuery.data?.role ?? "member"}.`}
+            {invitationQuery.isPending ? (
+              <span className="flex items-center gap-1.5">
+                <Loader2Icon className="size-3.5 animate-spin" />
+                Loading invitation...
+              </span>
+            ) : mismatch ? (
+              `This invite is for ${invitedFor}. You're signed in as ${sessionData.user.email} — sign out to accept it.`
+            ) : invitationQuery.isError ? (
+              "This invitation is invalid or has expired."
+            ) : (
+              `Join ${orgName} as ${invitationQuery.data?.role ?? "member"}.`
+            )}
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex gap-3">
