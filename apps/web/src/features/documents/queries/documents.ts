@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-query";
 import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
+import { removeRecent } from "@/features/documents/recent/recent-documents-store";
 import { api } from "@/lib/api";
 export type DocumentRow = InferResponseType<
   (typeof api.orgs)[":orgId"]["documents"]["$get"],
@@ -99,16 +100,22 @@ export function documentsListQuery({ orgId, query = "", filters, sort }: Documen
     },
   });
 }
+export class DocumentNotFoundError extends Error {}
+
 export function documentDetailQuery({ orgId, id }: DocumentRef) {
   return queryOptions({
     queryKey: documentKeys.detail({ orgId, id }),
     queryFn: async () => {
       const res = await api.orgs[":orgId"].documents[":id"].$get({ param: { orgId, id } });
+      if (res.status === 404) {
+        throw new DocumentNotFoundError("Document not found");
+      }
       if (!res.ok) {
-        throw new Error("Document not found");
+        throw new Error("Failed to load document");
       }
       return res.json();
     },
+    retry: (failureCount, error) => !(error instanceof DocumentNotFoundError) && failureCount < 3,
     refetchInterval: (query) => {
       const status = query.state.data?.document.ocrStatus;
       return status === "pending" || status === "processing" ? 3000 : false;
@@ -241,7 +248,8 @@ export function useDeleteDocument(orgId: string) {
         throw new Error("Delete failed");
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
+      removeRecent(orgId, id);
       queryClient.invalidateQueries({ queryKey: documentKeys.lists(orgId) });
       toast.success("Document deleted");
     },

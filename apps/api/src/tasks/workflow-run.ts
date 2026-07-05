@@ -136,10 +136,17 @@ export const workflowRunTask = defineTask(
       });
     }
 
+    const failed = results.filter((r) => r.status === "failed");
     await finishWorkflowRun(db, {
       id: run.id,
-      status: results.some((r) => r.status === "failed") ? "failed" : "succeeded",
+      status: failed.length > 0 ? "failed" : "succeeded",
       actionResults: results,
     });
+    if (failed.length > 0) {
+      const details = failed.map((r) => `${r.type}: ${r.detail ?? "unknown error"}`).join("; ");
+      console.error(
+        `[workflow-run] workflow "${workflow.name}" (${workflowId}) failed for document ${documentId}: ${details}`,
+      );
+    }
   },
 );

@@ -22,12 +22,13 @@ import { DetailsTab } from "@/features/documents/components/document-detail/deta
 import { OcrTab } from "@/features/documents/components/document-detail/ocr-tab";
 import { DocumentPreview } from "@/features/documents/components/document-preview";
 import {
+  DocumentNotFoundError,
   documentDetailQuery,
   documentDownloadQuery,
   documentKeys,
   useDeleteDocument,
 } from "@/features/documents/queries/documents";
-import { pushRecent } from "@/features/documents/recent/recent-documents-store";
+import { pushRecent, removeRecent } from "@/features/documents/recent/recent-documents-store";
 import { useOrgMember } from "@/features/organization/queries/organization";
 import { api } from "@/lib/api";
 import { fileTypeLabel } from "@/lib/format";
@@ -38,7 +39,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
   const member = useOrgMember(orgId);
   const canDelete = hasOrgPermission(member?.role, { documents: ["delete"] });
 
-  const { data, isPending, isError } = useQuery(documentDetailQuery({ orgId, id }));
+  const { data, isPending, isError, error } = useQuery(documentDetailQuery({ orgId, id }));
   const { data: previewData, isError: isPreviewError } = useQuery(
     documentDownloadQuery({ orgId, id }),
   );
@@ -60,6 +61,15 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
     pushRecent(orgId, { id, title: openTitle });
   }, [orgId, id, openTitle]);
 
+  // A confirmed 404 means the doc was deleted elsewhere (another browser tab, another user) — the
+  // session tab is a dead pointer, so close it. Transient failures keep the tab.
+  const notFound = isError && error instanceof DocumentNotFoundError;
+  useEffect(() => {
+    if (notFound) {
+      removeRecent(orgId, id);
+    }
+  }, [notFound, orgId, id]);
+
   async function handleDownload() {
     const res = await api.orgs[":orgId"].documents[":id"].download.$get({ param: { orgId, id } });
     if (!res.ok) {
@@ -75,7 +85,11 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
   }
 
   if (isError) {
-    return <p className="p-6 text-destructive">Document not found.</p>;
+    return (
+      <p className="p-6 text-destructive">
+        {notFound ? "Document not found." : "Failed to load document."}
+      </p>
+    );
   }
 
   const doc = data.document;
