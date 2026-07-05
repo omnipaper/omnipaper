@@ -2,16 +2,13 @@ import { Button } from "@omnipaper/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { PlusIcon, WorkflowIcon } from "lucide-react";
-import { orgTagsQuery } from "@/features/tags/queries/tags";
 import { WorkflowCard } from "@/features/workflows/components/workflow-card";
 import { orgWorkflowsQuery } from "@/features/workflows/queries/workflows";
 
 export function WorkflowsList({ orgId }: { orgId: string }) {
   const navigate = useNavigate();
   const workflowsQuery = useQuery(orgWorkflowsQuery({ orgId }));
-  const tagsQuery = useQuery(orgTagsQuery({ orgId }));
 
-  const tags = tagsQuery.data?.tags ?? [];
   const workflows = [...(workflowsQuery.data?.workflows ?? [])].sort(
     (a, b) => Number(b.systemKey !== null) - Number(a.systemKey !== null),
   );
@@ -48,7 +45,6 @@ export function WorkflowsList({ orgId }: { orgId: string }) {
               key={workflow.id}
               orgId={orgId}
               workflow={workflow}
-              tags={tags}
               onEdit={(w) =>
                 navigate({
                   to: "/dashboard/orgs/$orgId/workflows/$workflowId",
