@@ -21,6 +21,7 @@ import { ActivityTab } from "@/features/documents/components/document-detail/act
 import { DetailsTab } from "@/features/documents/components/document-detail/details-tab";
 import { OcrTab } from "@/features/documents/components/document-detail/ocr-tab";
 import { DocumentPreview } from "@/features/documents/components/document-preview";
+import { getLastListSearch } from "@/features/documents/filters/last-list-search";
 import {
   DocumentNotFoundError,
   documentDetailQuery,
@@ -50,6 +51,10 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
     queryClient.invalidateQueries({ queryKey: documentKeys.download({ orgId, id }) });
 
   const deleteDocument = useDeleteDocument(orgId);
+
+  // Both ways out of a document (Back, post-delete) return to the list exactly as the user left
+  // it — filters, sort, savedView — not the bare collection. Falls back to {} on a fresh tab.
+  const backSearch = getLastListSearch(orgId);
 
   // Record this doc as "open" once the detail actually loads — that's a confirmed open (not a 404,
   // and it catches direct-URL / back-forward navigation a click handler would miss). Keyed on the
@@ -101,7 +106,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
         <div className="flex shrink-0 flex-col gap-3 border-b p-4">
           <div className="flex items-center justify-between gap-2">
             <Button asChild variant="ghost" size="sm">
-              <Link to="/dashboard/orgs/$orgId/documents" params={{ orgId }}>
+              <Link to="/dashboard/orgs/$orgId/documents" params={{ orgId }} search={backSearch}>
                 <ArrowLeftIcon />
                 Back
               </Link>
@@ -140,6 +145,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                               navigate({
                                 to: "/dashboard/orgs/$orgId/documents",
                                 params: { orgId },
+                                search: backSearch,
                               }),
                           })
                         }

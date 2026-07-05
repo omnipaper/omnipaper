@@ -80,6 +80,8 @@ function OrgLayout() {
   const canManage = canManageOrg(member?.role);
   const settingsBase = `/dashboard/orgs/${orgId}/settings`;
   const inSettings = pathname.startsWith(settingsBase);
+  // Workflows highlights on the whole section (list, /new, /$workflowId), not just the index.
+  const inWorkflows = pathname.startsWith(`/dashboard/orgs/${orgId}/workflows`);
   // The document detail is a full-height split view; it manages its own scroll/padding, so the
   // content shell goes edge-to-edge for it instead of the default padded, scrollable container.
   const isDocDetail = pathname.includes("/documents/");
@@ -279,7 +281,7 @@ function OrgLayout() {
                   <SidebarGroupContent>
                     <SidebarMenu>
                       <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname.endsWith("/workflows")}>
+                        <SidebarMenuButton asChild isActive={inWorkflows}>
                           <Link to="/dashboard/orgs/$orgId/workflows" params={{ orgId }}>
                             <WorkflowIcon />
                             <span>Workflows</span>
