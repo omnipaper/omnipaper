@@ -1,0 +1,37 @@
+---
+title: Email ingestion
+description: Poll an IMAP mailbox and ingest matching attachments as documents automatically.
+icon: Mail
+---
+
+Pull documents from an IMAP mailbox into a workspace. Configure in **workspace settings → Email** (owner or admin).
+
+## Add a mailbox
+
+**Test connection** before saving.
+
+| Field | Notes |
+| --- | --- |
+| Label | Name for the account, unique per workspace. |
+| Host / Port | IMAP server and port. |
+| Security | **SSL** (default), **STARTTLS**, or **None**. |
+| Username / Password | Mailbox credentials. |
+| Folder | Mailbox to poll. Default: `INBOX`. |
+
+## Filters
+
+**Allowed senders:** email addresses or `@domain` entries. Empty = accept anyone (max 50).
+
+**Filename patterns:** comma separated globs, e.g. `*.pdf, *invoice*`. Empty = any attachment.
+
+Only PDF, JPEG, PNG, WebP, TXT, and DOCX are ingested.
+
+## Post action
+
+After processing: **Mark as seen** (default), **Delete**, or **None**.
+
+Polling runs every 10 minutes. Use **Poll now** for an immediate run. Disable the account to pause without deleting config.
+
+## Internal hosts
+
+Private/internal IMAP hosts are blocked by default. Instance admin can enable **Settings → Email → Allow internal hosts** if your mail server is on your LAN. Only enable on trusted single tenant instances.

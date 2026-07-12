@@ -17,11 +17,11 @@ Paste the values into `docker-compose.yml`:
 ```yaml title="docker-compose.yml"
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     restart: unless-stopped
     environment:
       POSTGRES_USER: omnipaper
-      POSTGRES_PASSWORD: change-me
+      POSTGRES_PASSWORD: pg-password-change-me
       POSTGRES_DB: omnipaper
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -34,8 +34,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Keep the password in sync with POSTGRES_PASSWORD above
-      DATABASE_URL: postgres://omnipaper:change-me@postgres:5432/omnipaper
+      DATABASE_URL: postgres://omnipaper:pg-password-change-me@postgres:5432/omnipaper
       # Paste a separate `openssl rand -base64 32` value into each
       AUTH_SECRET: replace-me
       ENCRYPTION_KEY: replace-me
@@ -47,10 +46,10 @@ volumes:
 ### Image tags
 
 - `0` — the latest pre-1.0 release (tracks the `0.x` line).
-- `0.1` — the latest patch within the `0.3` minor line.
-- `0.1.1` — a specific, pinned version.
+- `0.x` — the latest patch within the minor line.
+- `0.x.y` — a specific, pinned version.
 
-Pin a specific `0.x.x` version (as in the file above). The rolling `0` and `0.x` tags move
+Pin a specific `0.x.y` version (as in the file above). The rolling `0` and `0.x` tags move
 as new builds ship and may be unstable before 1.0.
 
 ## Start it
@@ -59,12 +58,12 @@ as new builds ship and may be unstable before 1.0.
 docker compose up -d
 ```
 
-On boot the app waits for Postgres, runs database migrations automatically, then starts.
-Open <code>http://localhost:3000</code> and create your first account.
+Open <code>http://localhost:3000</code> and create your first account. See [First run](/first-run)
+for what happens next.
 
 <Callout>
   Storage is not configured at deploy time. After your first login, connect an
-  S3-compatible bucket (AWS S3, Cloudflare R2, MinIO, …) from the app's settings — see
+  S3-compatible bucket (AWS S3, Cloudflare R2, MinIO, …) from the app's settings. See
   [Storage](/storage).
 </Callout>
 
@@ -74,9 +73,12 @@ Open <code>http://localhost:3000</code> and create your first account.
 | --- | --- | --- | --- |
 | `DATABASE_URL` | ✅ | — | PostgreSQL connection string. |
 | `AUTH_SECRET` | ✅ | — | Signs auth sessions and cookies. Use a random 32-byte value. |
-| `ENCRYPTION_KEY` | ✅ | — | Encrypts the credentials you store in the app (S3, OCR keys). If you change or lose it, those secrets can no longer be decrypted — keep it stable and backed up. Minimum 16 characters. |
+| `ENCRYPTION_KEY` | ✅ | — | See [Environment variables](/environment-variables). |
 | `APP_URL` | — | derived from request | Public URL of your instance. See [Custom domain](#custom-domain). |
 | `PORT` | — | `3000` | Port the app listens on inside the container. |
+
+See [Environment variables](/environment-variables) for the full reference.
+
 
 ## Custom domain
 
@@ -85,7 +87,7 @@ configuration**: when `APP_URL` is unset it derives its origin from the incoming
 Just make sure your proxy forwards `X-Forwarded-Host` and `X-Forwarded-Proto`.
 
 To pin the origin to a fixed value, add `APP_URL` to the **`app`** service's `environment`
-(the same block as the secrets — not `postgres`):
+
 
 ```yaml title="docker-compose.yml"
 services:

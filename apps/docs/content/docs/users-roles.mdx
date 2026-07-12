@@ -1,0 +1,36 @@
+---
+title: Users, roles & registration
+description: Instance admin, workspace roles, invitations, and the registration toggle.
+icon: Users
+---
+
+Two role layers: **instance admin** (deployment config) and **workspace roles** (documents). Self service sign up is off by default.
+
+## Instance admin
+
+First registered account. Controls instance wide settings: [Storage](/storage), [OCR](/ocr), [AI](/ai), email security, and [registration](#registration).
+
+## Workspace roles
+
+| Capability | Owner | Admin | Member |
+| --- | --- | --- | --- |
+| View documents | Yes | Yes | Yes |
+| Upload & edit documents | Yes | Yes | Yes |
+| Delete documents | Yes | Yes | No |
+| Manage tags, types, paths, custom properties | Yes | Yes | Read only |
+| Manage workflows | Yes | Yes | Read only |
+| Saved views | Yes | Yes | Own views |
+| Email ingestion accounts | Yes | Yes | No access |
+| Invite members & manage the workspace | Yes | Yes | No |
+
+Owner = workspace creator. Owner and admin have the same permissions today.
+
+## Inviting people
+
+**Workspace settings → Members** → invite by email. Pending invites always allow sign up, even when registration is off.
+
+## Registration
+
+Off by default. Instance admin enables it in **Settings → Registration**.
+
+Always allowed: first account, and anyone with a pending invitation.

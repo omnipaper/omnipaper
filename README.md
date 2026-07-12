@@ -1,16 +1,21 @@
-<div align="center">
-
-<img src="apps/web/public/apple-touch-icon.png" alt="omnipaper" width="96" />
-
-# omnipaper
-
-**A modern, document manager that's actually pleasant to self-host.**
-
-[Live demo](https://demo.omnipaper.app) · [Docs](https://docs.omnipaper.app) · [GitHub](https://github.com/omnipaper/omnipaper)
-
-_Pre-alpha, under active development. Expect breaking changes between releases._
-
-</div>
+<table>
+  <tr>
+    <td width="250" align="center" valign="top">
+      <img src="apps/web/public/apple-touch-icon.png" alt="omnipaper" width="220">
+    </td>
+    <td valign="top">
+      <h1>omnipaper</h1>
+      <p><strong>A modern document manager that's actually pleasant to self-host.</strong></p>
+      <p>
+        <a href="https://omnipaper.app">omnipaper.app</a> ·
+        <a href="https://demo.omnipaper.app">demo</a> ·
+        <a href="https://docs.omnipaper.app">docs</a> ·
+        <a href="https://github.com/omnipaper/omnipaper">github</a>
+      </p>
+      <p><sub>Pre-alpha — under active development. Breaking changes between releases.</sub></p>
+    </td>
+  </tr>
+</table>
 
 ---
 
@@ -18,7 +23,7 @@ _Pre-alpha, under active development. Expect breaking changes between releases._
 
 omnipaper is a modern, opinionated document management system. It's a UX-first alternative to paperless-ngx, built for families and your own cloud storage. Upload a file, and it gets organized, searchable, and easy to find again.
 
-Where paperless-ngx is capable but dense, omnipaper bets on a clean, responsive UI that works on a phone as well as a desktop
+omnipaper bets on a clean, responsive UI that works on a phone as well as a desktop
 
 ## Screenshot
 

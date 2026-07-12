@@ -1,85 +1,22 @@
 ---
 title: OCR
-description: Turn on text extraction so your scans and PDFs become searchable. Currently powered by Mistral OCR.
+description: Turn on text extraction so scans and PDFs become searchable. Powered by Mistral OCR.
 icon: ScanText
 ---
 
-omnipaper can read the text out of your documents — so a scanned PDF or a photo of a
-receipt becomes **searchable** and the text is available on the document's **OCR** tab.
+OCR makes scans and PDFs searchable. Set it up in **Settings → OCR** after first login.
 
-OCR is **opt-in**. It stays off until you connect a provider, and you turn it on the same
-way you connect storage: in the UI, *after* your first login, from **Settings → OCR**.
-There is no OCR env var — the API key is saved in the database, encrypted with your
-`ENCRYPTION_KEY`, and is never sent to the browser.
+Only **Mistral OCR** is available today.
 
-<Callout>
-  Today omnipaper supports a single OCR engine — **Mistral OCR**. The settings screen is
-  built as an engine picker because more providers are coming; for now there's just one to
-  choose.
-</Callout>
+## Setup
 
-## What gets OCR'd
+1. Create an API key in the [Mistral console](https://console.mistral.ai) under **API Keys**.
+2. In **Settings → OCR**, pick **Mistral OCR**, paste the key, **Test connection**, **Save**.
 
-OCR runs **automatically on upload** for the file types an OCR engine can read:
+Mistral bills per page. Monitor usage in your Mistral account.
 
-- **PDFs**
-- **Images** — JPEG, PNG, WebP
+## Supported files
 
-Plain-text and Word files (`.txt`, `.docx`) don't go through OCR at all — omnipaper reads
-their text directly, so they're searchable even with no OCR configured.
+OCR runs on upload for **PDFs** and **images** (JPEG, PNG, WebP). `.txt` and `.docx` are searchable without OCR.
 
-If OCR isn't configured when you upload a PDF or image, the document still uploads fine —
-its OCR just lands in a **failed** state, and you can run it later (see
-[Re-running](#re-running-and-editing)).
-
-## Get a Mistral API key
-
-OCR calls Mistral's hosted API, so you need a key from your own Mistral account:
-
-1. Sign in to the [Mistral console](https://console.mistral.ai) (*La Plateforme*).
-2. Open **API Keys** and create a new key.
-3. Copy it — you'll paste it into omnipaper next.
-
-<Callout type="warn">
-  This is a **paid, metered** API: Mistral bills your account per page processed. omnipaper
-  doesn't add any limits on top, so keep an eye on your Mistral usage.
-</Callout>
-
-## Configure it
-
-In **Settings → OCR**:
-
-1. **Engine** — pick **Mistral OCR**.
-2. **Mistral API Key** — paste the key from above.
-3. **Test connection** — does a real call to Mistral to confirm the key works.
-4. **Save**.
-
-That's it — new uploads will be processed automatically from now on.
-
-<Callout>
-  The key field shows a **masked** placeholder once a key is saved. Leave it as-is to keep
-  the stored key; clear the field and save to remove it. The real key is never returned to
-  the browser.
-</Callout>
-
-<Callout type="warn">
-  The API key is encrypted with `ENCRYPTION_KEY`. If that key changes, omnipaper can no
-  longer decrypt it and you'll have to re-enter the Mistral key.
-</Callout>
-
-## Re-running and editing
-
-Each document has an **OCR** tab showing its status — *pending*, *processing*, *completed*,
-or *failed* — alongside the extracted text.
-
-- **Edit the text.** The extracted text is editable; fix a misread or paste in your own and
-  **Save**. Your edits are kept and stay searchable.
-- **Re-run OCR.** Use the **Re-run OCR** button to extract again with the currently
-  configured engine — for example after you've just added the API key, switched engines, or
-  want a fresh pass. This **replaces** the current text, so any manual edits are lost.
-
-<Callout>
-  A failed extraction is **not** retried automatically — recovery is an explicit **Re-run
-  OCR**. This is deliberate: OCR is a paid call, so omnipaper won't silently burn through
-  your Mistral credits retrying a misconfigured key.
-</Callout>
+Without OCR configured, PDF and image uploads still work but stay in **failed** status until you set up the provider and re run.
