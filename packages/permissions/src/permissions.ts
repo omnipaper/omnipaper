@@ -15,6 +15,7 @@ export const statement = {
   storagePaths: ["read", "create", "update", "delete"],
   workflows: ["read", "create", "update", "delete"],
   savedViews: ["read", "create", "update", "delete"],
+  emailIngest: ["read", "create", "update", "delete"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -29,6 +30,7 @@ export const roles = {
     storagePaths: ["read", "create", "update", "delete"],
     workflows: ["read", "create", "update", "delete"],
     savedViews: ["read", "create", "update", "delete"],
+    emailIngest: ["read", "create", "update", "delete"],
   }),
   admin: ac.newRole({
     ...adminAc.statements,
@@ -39,6 +41,7 @@ export const roles = {
     storagePaths: ["read", "create", "update", "delete"],
     workflows: ["read", "create", "update", "delete"],
     savedViews: ["read", "create", "update", "delete"],
+    emailIngest: ["read", "create", "update", "delete"],
   }),
   member: ac.newRole({
     ...memberAc.statements,

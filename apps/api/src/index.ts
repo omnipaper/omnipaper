@@ -6,6 +6,8 @@ import { startWorker } from "@omnipaper/queue/worker";
 import { serveStatic } from "hono/bun";
 import { createApp } from "./app";
 import { bootstrapDemoAdmin } from "./demo";
+import { emailPollTask } from "./tasks/email-poll";
+import { emailPollDispatchTask } from "./tasks/email-poll-dispatch";
 import { ocrExtractTask } from "./tasks/ocr-extract";
 import { textExtractTask } from "./tasks/text-extract";
 import { thumbnailGenerateTask } from "./tasks/thumbnail-generate";
@@ -29,7 +31,12 @@ const runner = services.includes("worker")
         "thumbnail-generate": thumbnailGenerateTask,
         "workflow-dispatch": workflowDispatchTask,
         "workflow-run": workflowRunTask,
+        "email-poll": emailPollTask,
+        "email-poll-dispatch": emailPollDispatchTask,
       },
+      // Cron scheduling bypasses our JOB_SPECS, so maxAttempts must be set inline (?max=1) —
+      // a failed tick shouldn't retry, the next tick 10 minutes later covers it.
+      crontab: "*/10 * * * * email-poll-dispatch ?max=1",
     })
   : null;
 

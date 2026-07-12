@@ -210,7 +210,8 @@ export async function getDocumentByHash(
 export type CreateDocumentInput = {
   id: string;
   organizationId: string;
-  createdBy: string;
+  // null = system ingestion (e.g. email); the column is nullable and the event actor becomes "system".
+  createdBy: string | null;
   title: string;
   originalFilename?: string;
   storageKey: string;
@@ -239,7 +240,7 @@ export async function createDocument(db: Database, input: CreateDocumentInput) {
       organizationId: input.organizationId,
       resource: { type: "document", id: input.id, label: input.title },
       event: "document.created",
-      actor: { type: "user", id: input.createdBy },
+      actor: input.createdBy ? { type: "user", id: input.createdBy } : { type: "system" },
     });
   });
 }

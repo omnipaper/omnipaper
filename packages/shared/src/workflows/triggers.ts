@@ -7,13 +7,18 @@ export type TriggerDefinition = {
 export const TRIGGER_DEFINITIONS = {
   "document.created": {
     id: "document.created",
-    label: "When a document is added",
+    label: "Document is added",
     providesText: false,
   },
   "document.ocr_completed": {
     id: "document.ocr_completed",
-    label: "When a document is processed",
+    label: "Document is processed",
     providesText: true,
+  },
+  "email.ingested": {
+    id: "email.ingested",
+    label: "Document arrives via email",
+    providesText: false,
   },
 } as const satisfies Record<string, TriggerDefinition>;
 

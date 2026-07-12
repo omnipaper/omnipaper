@@ -49,6 +49,7 @@ import {
   describeAcceptedFormats,
   extensionForMimeType,
   isUploadAllowed,
+  MAX_UPLOAD_BYTES,
 } from "@omnipaper/shared/formats";
 import type { AiSuggestionValue } from "@omnipaper/shared/workflows/ai-assign";
 import { Zip, ZipPassThrough } from "fflate";
@@ -68,7 +69,6 @@ import { shapeDocumentProperties } from "../serializers/custom-property";
 import { toDocumentDetailDto, toDocumentListItemDto } from "../serializers/document";
 import { toTagRefDto } from "../serializers/tag";
 
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const listDocumentsQuerySchema = z.object({
   q: z.string().optional(),
   cursor: z.string().optional(),

@@ -8,6 +8,10 @@ const JOB_SPECS: Record<JobName, TaskSpec> = {
   "thumbnail-generate": { maxAttempts: 10 },
   "workflow-dispatch": { maxAttempts: 5 },
   "workflow-run": { maxAttempts: 3, queueName: "ai" },
+  // No retry for the dispatcher (the next cron tick is the retry); polls share one serial queue so
+  // the same mailbox is never polled concurrently.
+  "email-poll-dispatch": { maxAttempts: 1 },
+  "email-poll": { maxAttempts: 3, queueName: "email" },
 };
 
 let utilsPromise: Promise<WorkerUtils> | null = null;

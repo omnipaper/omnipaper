@@ -33,6 +33,7 @@ import {
   FolderTreeIcon,
   HardDriveIcon,
   KeyIcon,
+  MailIcon,
   SlidersHorizontalIcon,
   SparklesIcon,
   TagIcon,
@@ -186,6 +187,14 @@ function OrgLayout() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === `${settingsBase}/email`}>
+                          <Link to="/dashboard/orgs/$orgId/settings/email" params={{ orgId }}>
+                            <MailIcon />
+                            <span>Email intake</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
@@ -219,6 +228,20 @@ function OrgLayout() {
                           <Link to="/dashboard/orgs/$orgId/settings/ai" params={{ orgId }}>
                             <SparklesIcon />
                             <span>AI</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === `${settingsBase}/email-instance`}
+                        >
+                          <Link
+                            to="/dashboard/orgs/$orgId/settings/email-instance"
+                            params={{ orgId }}
+                          >
+                            <MailIcon />
+                            <span>Email</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

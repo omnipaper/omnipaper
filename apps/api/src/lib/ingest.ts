@@ -24,7 +24,8 @@ export type IngestDocumentInput = {
   db: Database;
   driver: StorageDriver;
   organizationId: string;
-  createdBy: string;
+  // null = system ingestion (email polling) — no session user behind the document.
+  createdBy: string | null;
   bytes: Uint8Array;
   filename: string;
   mimeType: string;

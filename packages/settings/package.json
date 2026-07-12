@@ -10,7 +10,9 @@
     "./ocr-settings": "./src/ocr-settings.ts",
     "./ai-settings": "./src/ai-settings.ts",
     "./provider-settings": "./src/provider-settings.ts",
-    "./secret": "./src/secret.ts"
+    "./secret": "./src/secret.ts",
+    "./email-settings": "./src/email-settings.ts",
+    "./crypto": "./src/crypto.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

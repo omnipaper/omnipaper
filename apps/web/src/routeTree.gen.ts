@@ -33,6 +33,8 @@ import { Route as DashboardOrgsOrgIdSettingsRegistrationRouteImport } from './ro
 import { Route as DashboardOrgsOrgIdSettingsOcrRouteImport } from './routes/dashboard/orgs/$orgId/settings/ocr'
 import { Route as DashboardOrgsOrgIdSettingsMembersRouteImport } from './routes/dashboard/orgs/$orgId/settings/members'
 import { Route as DashboardOrgsOrgIdSettingsGeneralRouteImport } from './routes/dashboard/orgs/$orgId/settings/general'
+import { Route as DashboardOrgsOrgIdSettingsEmailInstanceRouteImport } from './routes/dashboard/orgs/$orgId/settings/email-instance'
+import { Route as DashboardOrgsOrgIdSettingsEmailRouteImport } from './routes/dashboard/orgs/$orgId/settings/email'
 import { Route as DashboardOrgsOrgIdSettingsDocumentTypesRouteImport } from './routes/dashboard/orgs/$orgId/settings/document-types'
 import { Route as DashboardOrgsOrgIdSettingsCustomPropertiesRouteImport } from './routes/dashboard/orgs/$orgId/settings/custom-properties'
 import { Route as DashboardOrgsOrgIdSettingsAiRouteImport } from './routes/dashboard/orgs/$orgId/settings/ai'
@@ -171,6 +173,18 @@ const DashboardOrgsOrgIdSettingsGeneralRoute =
     path: '/general',
     getParentRoute: () => DashboardOrgsOrgIdSettingsRouteRoute,
   } as any)
+const DashboardOrgsOrgIdSettingsEmailInstanceRoute =
+  DashboardOrgsOrgIdSettingsEmailInstanceRouteImport.update({
+    id: '/email-instance',
+    path: '/email-instance',
+    getParentRoute: () => DashboardOrgsOrgIdSettingsRouteRoute,
+  } as any)
+const DashboardOrgsOrgIdSettingsEmailRoute =
+  DashboardOrgsOrgIdSettingsEmailRouteImport.update({
+    id: '/email',
+    path: '/email',
+    getParentRoute: () => DashboardOrgsOrgIdSettingsRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdSettingsDocumentTypesRoute =
   DashboardOrgsOrgIdSettingsDocumentTypesRouteImport.update({
     id: '/document-types',
@@ -212,6 +226,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
+  '/dashboard/orgs/$orgId/settings/email': typeof DashboardOrgsOrgIdSettingsEmailRoute
+  '/dashboard/orgs/$orgId/settings/email-instance': typeof DashboardOrgsOrgIdSettingsEmailInstanceRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
@@ -237,6 +253,8 @@ export interface FileRoutesByTo {
   '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
+  '/dashboard/orgs/$orgId/settings/email': typeof DashboardOrgsOrgIdSettingsEmailRoute
+  '/dashboard/orgs/$orgId/settings/email-instance': typeof DashboardOrgsOrgIdSettingsEmailInstanceRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
@@ -268,6 +286,8 @@ export interface FileRoutesById {
   '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
+  '/dashboard/orgs/$orgId/settings/email': typeof DashboardOrgsOrgIdSettingsEmailRoute
+  '/dashboard/orgs/$orgId/settings/email-instance': typeof DashboardOrgsOrgIdSettingsEmailInstanceRoute
   '/dashboard/orgs/$orgId/settings/general': typeof DashboardOrgsOrgIdSettingsGeneralRoute
   '/dashboard/orgs/$orgId/settings/members': typeof DashboardOrgsOrgIdSettingsMembersRoute
   '/dashboard/orgs/$orgId/settings/ocr': typeof DashboardOrgsOrgIdSettingsOcrRoute
@@ -299,6 +319,8 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/ai'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
+    | '/dashboard/orgs/$orgId/settings/email'
+    | '/dashboard/orgs/$orgId/settings/email-instance'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
     | '/dashboard/orgs/$orgId/settings/ocr'
@@ -324,6 +346,8 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/ai'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
+    | '/dashboard/orgs/$orgId/settings/email'
+    | '/dashboard/orgs/$orgId/settings/email-instance'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
     | '/dashboard/orgs/$orgId/settings/ocr'
@@ -354,6 +378,8 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/ai'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
+    | '/dashboard/orgs/$orgId/settings/email'
+    | '/dashboard/orgs/$orgId/settings/email-instance'
     | '/dashboard/orgs/$orgId/settings/general'
     | '/dashboard/orgs/$orgId/settings/members'
     | '/dashboard/orgs/$orgId/settings/ocr'
@@ -544,6 +570,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsGeneralRouteImport
       parentRoute: typeof DashboardOrgsOrgIdSettingsRouteRoute
     }
+    '/dashboard/orgs/$orgId/settings/email-instance': {
+      id: '/dashboard/orgs/$orgId/settings/email-instance'
+      path: '/email-instance'
+      fullPath: '/dashboard/orgs/$orgId/settings/email-instance'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsEmailInstanceRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdSettingsRouteRoute
+    }
+    '/dashboard/orgs/$orgId/settings/email': {
+      id: '/dashboard/orgs/$orgId/settings/email'
+      path: '/email'
+      fullPath: '/dashboard/orgs/$orgId/settings/email'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsEmailRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdSettingsRouteRoute
+    }
     '/dashboard/orgs/$orgId/settings/document-types': {
       id: '/dashboard/orgs/$orgId/settings/document-types'
       path: '/document-types'
@@ -579,6 +619,8 @@ interface DashboardOrgsOrgIdSettingsRouteRouteChildren {
   DashboardOrgsOrgIdSettingsAiRoute: typeof DashboardOrgsOrgIdSettingsAiRoute
   DashboardOrgsOrgIdSettingsCustomPropertiesRoute: typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   DashboardOrgsOrgIdSettingsDocumentTypesRoute: typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
+  DashboardOrgsOrgIdSettingsEmailRoute: typeof DashboardOrgsOrgIdSettingsEmailRoute
+  DashboardOrgsOrgIdSettingsEmailInstanceRoute: typeof DashboardOrgsOrgIdSettingsEmailInstanceRoute
   DashboardOrgsOrgIdSettingsGeneralRoute: typeof DashboardOrgsOrgIdSettingsGeneralRoute
   DashboardOrgsOrgIdSettingsMembersRoute: typeof DashboardOrgsOrgIdSettingsMembersRoute
   DashboardOrgsOrgIdSettingsOcrRoute: typeof DashboardOrgsOrgIdSettingsOcrRoute
@@ -596,6 +638,9 @@ const DashboardOrgsOrgIdSettingsRouteRouteChildren: DashboardOrgsOrgIdSettingsRo
       DashboardOrgsOrgIdSettingsCustomPropertiesRoute,
     DashboardOrgsOrgIdSettingsDocumentTypesRoute:
       DashboardOrgsOrgIdSettingsDocumentTypesRoute,
+    DashboardOrgsOrgIdSettingsEmailRoute: DashboardOrgsOrgIdSettingsEmailRoute,
+    DashboardOrgsOrgIdSettingsEmailInstanceRoute:
+      DashboardOrgsOrgIdSettingsEmailInstanceRoute,
     DashboardOrgsOrgIdSettingsGeneralRoute:
       DashboardOrgsOrgIdSettingsGeneralRoute,
     DashboardOrgsOrgIdSettingsMembersRoute:

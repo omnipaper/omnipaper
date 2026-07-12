@@ -14,6 +14,10 @@ import {
   setRegistrationSettings,
 } from "@omnipaper/settings/auth-settings";
 import {
+  getEmailIngestAllowInternalHosts,
+  setEmailIngestAllowInternalHosts,
+} from "@omnipaper/settings/email-settings";
+import {
   getOcrSettings,
   ocrSettingsSchema,
   setOcrSettings,
@@ -36,6 +40,7 @@ import { DEFAULT_STORAGE_ENGINE } from "@omnipaper/storage/registry";
 import { listStorageDefinitions } from "@omnipaper/storage/resolve";
 import { createS3Driver } from "@omnipaper/storage/s3";
 import { Hono } from "hono";
+import { z } from "zod";
 import type { Variables } from "../context";
 import { type BucketPrivacy, probeBucketPrivacy } from "../lib/bucket-privacy";
 import { probePreviewCors } from "../lib/preview-cors";
@@ -233,6 +238,13 @@ const adminSettings = new Hono<{ Variables: Variables }>()
       const message = error instanceof Error ? error.message : "Connection failed";
       return c.json({ ok: false, error: redactSecrets(message, key) });
     }
+  })
+  .get("/email", async (c) => {
+    return c.json({ allowInternalHosts: await getEmailIngestAllowInternalHosts() });
+  })
+  .put("/email", zValidator("json", z.object({ allowInternalHosts: z.boolean() })), async (c) => {
+    await setEmailIngestAllowInternalHosts(c.req.valid("json").allowInternalHosts);
+    return c.json({ ok: true });
   })
   .get("/registration", async (c) => {
     return c.json(await getRegistrationSettings());
