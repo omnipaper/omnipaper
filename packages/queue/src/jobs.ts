@@ -14,6 +14,10 @@ export const jobSchemas = {
     documentId: z.string().min(1),
     triggerEventId: z.string().min(1),
   }),
+  // Cron fan-out: dispatch finds enabled accounts and enqueues one email-poll per account,
+  // so one broken mailbox never blocks the others.
+  "email-poll-dispatch": z.object({}),
+  "email-poll": z.object({ accountId: z.string().min(1) }),
 } as const;
 
 export type JobName = keyof typeof jobSchemas;

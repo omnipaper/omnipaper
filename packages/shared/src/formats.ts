@@ -63,6 +63,9 @@ export function isUploadAllowed(input: { filename?: string; mimeType?: string })
   return input.mimeType ? ACCEPTED_MIME_TYPES.has(normalizeMimeType(input.mimeType)) : false;
 }
 
+// One ceiling for every ingest path (HTTP upload, email attachments).
+export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+
 export function describeAcceptedFormats(): string {
   return UPLOAD_FORMATS.map((format) => format.label).join(", ");
 }

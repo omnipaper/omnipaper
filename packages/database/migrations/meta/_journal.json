@@ -15,6 +15,13 @@
       "when": 1782854413148,
       "tag": "0001_flimsy_gressill",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783373368025,
+      "tag": "0002_small_wolverine",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ import { aiAssignRoutes } from "./routes/ai-assign";
 import { customPropertiesRoutes } from "./routes/custom-properties";
 import { documentTypesRoutes } from "./routes/document-types";
 import { documentsRoutes } from "./routes/documents";
+import { emailIngestRoutes } from "./routes/email-ingest";
 import { savedViewsRoutes } from "./routes/saved-views";
 import { settingsRoutes } from "./routes/settings";
 import { storagePathsRoutes } from "./routes/storage-paths";
@@ -28,7 +29,8 @@ export function createApp() {
     .route("/tags", tagsRoutes)
     .route("/custom-properties", customPropertiesRoutes)
     .route("/workflows", workflowsRoutes)
-    .route("/ai-assign", aiAssignRoutes);
+    .route("/ai-assign", aiAssignRoutes)
+    .route("/email-ingest", emailIngestRoutes);
 
   const apiRoutes = new Hono<{ Variables: Variables }>()
     .get("/me", (c) => c.json({ user: c.get("user") }))

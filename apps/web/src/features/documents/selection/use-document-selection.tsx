@@ -13,13 +13,10 @@ import type { DocumentSearch } from "@/features/documents/filters/types";
 
 type SelectionValue = {
   selectedIds: Set<string>;
-  // "All documents matching the current filter" mode: the explicit set is ignored and the export
-  // sends the filter instead (so we never have to enumerate thousands of ids). Mirrors Paperless.
   allSelected: boolean;
   count: number;
   hasSelection: boolean;
   isSelected: (id: string) => boolean;
-  // orderedIds = the currently-loaded list in display order, for shift-range and all-selected seeding.
   toggle: (id: string, orderedIds: string[], shiftKey: boolean) => void;
   selectAllMatching: () => void;
   clear: () => void;
@@ -39,7 +36,6 @@ export function DocumentSelectionProvider({ children }: { children: ReactNode })
     anchorRef.current = null;
   }, []);
 
-  // Selection is ephemeral and tied to the current result set — clear it whenever the query changes.
   const queryKey = JSON.stringify({
     q: search.q ?? "",
     filters: search.filters ?? null,
@@ -49,7 +45,6 @@ export function DocumentSelectionProvider({ children }: { children: ReactNode })
     reset();
   }, [queryKey, reset]);
 
-  // Escape clears the selection (Paperless parity).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -70,7 +65,6 @@ export function DocumentSelectionProvider({ children }: { children: ReactNode })
       toggle(id, orderedIds, shiftKey) {
         setAllSelected(false);
         setSelectedIds((prev) => {
-          // Leaving "all matching" mode: seed with the loaded set so unchecking one keeps the rest.
           const base = allSelected ? new Set(orderedIds) : new Set(prev);
           if (shiftKey && anchorRef.current) {
             const from = orderedIds.indexOf(anchorRef.current);

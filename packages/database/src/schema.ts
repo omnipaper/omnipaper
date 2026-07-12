@@ -89,6 +89,20 @@ export const aiSuggestionStatusEnum = pgEnum("ai_suggestion_status", [
   "dismissed",
 ]);
 
+export const emailIngestSecurityEnum = pgEnum("email_ingest_security", ["ssl", "starttls", "none"]);
+
+export const emailIngestPostActionEnum = pgEnum("email_ingest_post_action", [
+  "mark_seen",
+  "delete",
+  "none",
+]);
+
+export const emailIngestProcessedStatusEnum = pgEnum("email_ingest_processed_status", [
+  "ingested",
+  "skipped",
+  "failed",
+]);
+
 export const documentTypes = pgTable(
   "document_types",
   {
@@ -331,6 +345,69 @@ export const documentCustomPropertyValues = pgTable(
   ],
 );
 
+export const emailIngestAccounts = pgTable(
+  "email_ingest_accounts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("mail")),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    label: text("label").notNull(),
+    host: text("host").notNull(),
+    port: integer("port").notNull(),
+    security: emailIngestSecurityEnum("security").notNull().default("ssl"),
+    username: text("username").notNull(),
+    // AES-256-GCM ciphertext (settings crypto)
+    passwordEncrypted: text("password_encrypted").notNull(),
+    folder: text("folder").notNull().default("INBOX"),
+    // Full addresses or "@domain" entries, matched lowercase-exact against From; empty = allow all.
+    allowedSenders: jsonb("allowed_senders").$type<string[]>().notNull().default([]),
+    filenameGlob: text("filename_glob"),
+    postAction: emailIngestPostActionEnum("post_action").notNull().default("mark_seen"),
+    enabled: boolean("enabled").notNull().default(true),
+    lastPolledAt: timestamp("last_polled_at", { withTimezone: true }),
+    lastStatus: text("last_status"),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("email_ingest_accounts_org_label_idx").on(t.organizationId, t.label),
+    index("email_ingest_accounts_organization_id_idx").on(t.organizationId),
+  ],
+);
+
+// Dedup + audit trail keyed on Message-ID (stable across folders/UIDVALIDITY, unlike IMAP UIDs).
+// The org-level SHA-256 unique index in documents is the final duplicate backstop either way.
+export const emailIngestProcessed = pgTable(
+  "email_ingest_processed",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("mailmsg")),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => emailIngestAccounts.id, { onDelete: "cascade" }),
+    messageId: text("message_id").notNull(),
+    fromAddress: text("from_address"),
+    subject: text("subject"),
+    status: emailIngestProcessedStatusEnum("status").notNull(),
+    error: text("error"),
+    documentIds: jsonb("document_ids").$type<string[]>().notNull().default([]),
+    processedAt: timestamp("processed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("email_ingest_processed_account_message_idx").on(t.accountId, t.messageId),
+    index("email_ingest_processed_account_processed_at_idx").on(t.accountId, t.processedAt),
+  ],
+);
+
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
@@ -475,6 +552,12 @@ export type NewCustomPropertySelectOption = typeof customPropertySelectOptions.$
 
 export type DocumentCustomPropertyValue = typeof documentCustomPropertyValues.$inferSelect;
 export type NewDocumentCustomPropertyValue = typeof documentCustomPropertyValues.$inferInsert;
+
+export type EmailIngestAccount = typeof emailIngestAccounts.$inferSelect;
+export type NewEmailIngestAccount = typeof emailIngestAccounts.$inferInsert;
+
+export type EmailIngestProcessedRow = typeof emailIngestProcessed.$inferSelect;
+export type NewEmailIngestProcessed = typeof emailIngestProcessed.$inferInsert;
 
 export type Setting = typeof settings.$inferSelect;
 
