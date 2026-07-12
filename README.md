@@ -23,7 +23,7 @@
 
 omnipaper is a modern, opinionated document management system. It's a UX-first alternative to paperless-ngx, built for families and your own cloud storage. Upload a file, and it gets organized, searchable, and easy to find again.
 
-Where paperless-ngx is capable but dense, omnipaper bets on a clean, responsive UI that works on a phone as well as a desktop
+omnipaper bets on a clean, responsive UI that works on a phone as well as a desktop
 
 ## Screenshot
 
