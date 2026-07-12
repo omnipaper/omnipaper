@@ -1,14 +1,21 @@
-> **Pre-alpha** — under active development. Expect breaking changes between releases.
-
-<img src="apps/web/public/apple-touch-icon.png" alt="" width="72" align="left" />
-
-# omnipaper
-
-**A modern document manager that's actually pleasant to self-host.**
-
-[`website`](https://omnipaper.app) &nbsp; [`demo`](https://demo.omnipaper.app) &nbsp; [`docs`](https://docs.omnipaper.app) &nbsp; [`github`](https://github.com/omnipaper/omnipaper)
-
-<br clear="left" />
+<table>
+  <tr>
+    <td width="80" align="center" valign="top">
+      <img src="apps/web/public/apple-touch-icon.png" alt="omnipaper" width="56">
+    </td>
+    <td valign="top">
+      <h1>omnipaper</h1>
+      <p><strong>A modern document manager that's actually pleasant to self-host.</strong></p>
+      <p>
+        <a href="https://omnipaper.app">omnipaper.app</a> ·
+        <a href="https://demo.omnipaper.app">demo</a> ·
+        <a href="https://docs.omnipaper.app">docs</a> ·
+        <a href="https://github.com/omnipaper/omnipaper">github</a>
+      </p>
+      <p><sub>Pre-alpha — under active development. Breaking changes between releases.</sub></p>
+    </td>
+  </tr>
+</table>
 
 ---
 
