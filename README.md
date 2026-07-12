@@ -1,7 +1,7 @@
 <table>
   <tr>
-    <td width="300" align="center" valign="top">
-      <img src="apps/web/public/apple-touch-icon.png" alt="omnipaper" width="56">
+    <td width="250" align="center" valign="top">
+      <img src="apps/web/public/apple-touch-icon.png" alt="omnipaper" width="220">
     </td>
     <td valign="top">
       <h1>omnipaper</h1>
