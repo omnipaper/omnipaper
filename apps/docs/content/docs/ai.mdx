@@ -1,0 +1,25 @@
+---
+title: AI providers & assignment
+description: Add an LLM provider key, pick a model, and configure automatic metadata.
+icon: Bot
+---
+
+Optional. Fills document metadata (title, date, type, path, tags, custom properties) after text is extracted.
+
+## Setup
+
+1. Add a provider key in **Settings → Providers** (OpenAI, Anthropic, Google, or Mistral). Same Mistral key works for OCR too.
+2. In **Settings → AI**, pick provider and model (**Recommended** or a specific model id), **Test connection**, **Save**.
+
+Provider APIs are paid and metered.
+
+## Assignment rules
+
+Per workspace (owner or admin). Enable each field you want filled: document type, storage path, tags, title, document date, or custom properties.
+
+| Mode | What it does |
+| --- | --- |
+| **Suggest** | Proposes a value; you accept or dismiss. |
+| **Apply** | Writes the value directly. |
+
+Tags can **allow new** so the model creates tags outside your existing list. Start with **Suggest**, switch to **Apply** when you trust the results.

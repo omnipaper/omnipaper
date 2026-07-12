@@ -1,0 +1,24 @@
+---
+title: Environment variables
+description: The full reference for every environment variable the app reads at boot.
+icon: Settings2
+---
+
+Environment variables cover deploy time wiring and secrets. Everything else (storage, OCR, AI, email)
+is configured in the UI. See [Installation](/installation) for the minimal set.
+
+## Required
+
+| Variable | Description |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string. |
+| `AUTH_SECRET` | Signs auth sessions and cookies. Use a random 32 byte value (`openssl rand -base64 32`). |
+| `ENCRYPTION_KEY` | Encrypts credentials you store in the app (S3, OCR, AI, email passwords). Minimum 16 characters. Generate with `openssl rand -base64 32`. Keep it stable and backed up: if you change or lose it, stored secrets can no longer be decrypted and must be re entered in Settings. |
+
+## Networking
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `APP_URL` | derived from request | Public URL of your instance. See [Installation](/installation#custom-domain). |
+| `EXTRA_TRUSTED_ORIGINS` | — | Comma separated extra origins for CORS and auth. |
+| `PORT` | `3000` | Port the app listens on inside the container. |

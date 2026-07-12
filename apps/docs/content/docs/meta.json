@@ -1,3 +1,16 @@
 {
-  "pages": ["index", "installation", "storage", "ocr"]
+  "pages": [
+    "index",
+    "---Get started---",
+    "installation",
+    "first-run",
+    "---Configuration---",
+    "storage",
+    "ocr",
+    "ai",
+    "email-ingest",
+    "users-roles",
+    "---Operations---",
+    "environment-variables"
+  ]
 }
