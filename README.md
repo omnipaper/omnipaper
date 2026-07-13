@@ -1,6 +1,6 @@
 <table>
   <tr>
-    <td width="250" align="center" valign="top">
+    <td width="260" align="center" valign="top">
       <img src="apps/web/public/apple-touch-icon.png" alt="omnipaper" width="220">
     </td>
     <td valign="top">
