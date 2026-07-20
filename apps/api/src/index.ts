@@ -14,8 +14,28 @@ import { thumbnailGenerateTask } from "./tasks/thumbnail-generate";
 import { workflowDispatchTask } from "./tasks/workflow-dispatch";
 import { workflowRunTask } from "./tasks/workflow-run";
 
-const services = env.SERVICES.split(",").map((service) => service.trim());
 const isProduction = process.env.NODE_ENV === "production";
+
+let server: ReturnType<typeof Bun.serve> | null = null;
+let runner: Awaited<ReturnType<typeof startWorker>> | null = null;
+let draining = false;
+
+// Keep this above the setup below, and above the `await runner.promise` that parks a worker-only
+// process forever
+const shutdown = async (signal: string) => {
+  if (draining) return;
+  draining = true;
+
+  console.log(`${signal} received, draining`);
+  // Neither stop() cancels work in flight: the server refuses new connections and lets open
+  // requests finish, the runner stops taking jobs and waits out the ones it holds.
+  await Promise.allSettled([server?.stop(), runner?.stop()]);
+
+  process.exit(0);
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 await waitForDatabase();
 
@@ -23,24 +43,24 @@ if (isProduction) {
   await migrate();
 }
 
-const runner = services.includes("worker")
-  ? await startWorker({
-      taskList: {
-        "ocr-extract": ocrExtractTask,
-        "text-extract": textExtractTask,
-        "thumbnail-generate": thumbnailGenerateTask,
-        "workflow-dispatch": workflowDispatchTask,
-        "workflow-run": workflowRunTask,
-        "email-poll": emailPollTask,
-        "email-poll-dispatch": emailPollDispatchTask,
-      },
-      // Cron scheduling bypasses our JOB_SPECS, so maxAttempts must be set inline (?max=1) —
-      // a failed tick shouldn't retry, the next tick 10 minutes later covers it.
-      crontab: "*/10 * * * * email-poll-dispatch ?max=1",
-    })
-  : null;
+if (env.SERVICES.includes("worker")) {
+  runner = await startWorker({
+    taskList: {
+      "ocr-extract": ocrExtractTask,
+      "text-extract": textExtractTask,
+      "thumbnail-generate": thumbnailGenerateTask,
+      "workflow-dispatch": workflowDispatchTask,
+      "workflow-run": workflowRunTask,
+      "email-poll": emailPollTask,
+      "email-poll-dispatch": emailPollDispatchTask,
+    },
+    // Cron scheduling bypasses our JOB_SPECS, so maxAttempts must be set inline (?max=1) —
+    // a failed tick shouldn't retry, the next tick 10 minutes later covers it.
+    crontab: "*/10 * * * * email-poll-dispatch ?max=1",
+  });
+}
 
-if (services.includes("web")) {
+if (env.SERVICES.includes("web")) {
   await bootstrapDemoAdmin();
 
   const app = createApp();
@@ -63,7 +83,9 @@ if (services.includes("web")) {
     });
   }
 
-  Bun.serve({ fetch: app.fetch, port: env.PORT });
-} else if (runner) {
+  server = Bun.serve({ fetch: app.fetch, port: env.PORT });
+}
+
+if (!server && runner) {
   await runner.promise;
 }

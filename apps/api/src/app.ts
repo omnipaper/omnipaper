@@ -2,8 +2,6 @@ import { env } from "@omnipaper/env";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
-import pkg from "../../../package.json";
-import { API_LEVEL, MIN_API_LEVEL } from "./api-level";
 import { auth } from "./auth";
 import type { Variables } from "./context";
 import { demoReadOnly, demoRoutes } from "./demo";
@@ -13,6 +11,7 @@ import { customPropertiesRoutes } from "./routes/custom-properties";
 import { documentTypesRoutes } from "./routes/document-types";
 import { documentsRoutes } from "./routes/documents";
 import { emailIngestRoutes } from "./routes/email-ingest";
+import { healthRoutes } from "./routes/health";
 import { savedViewsRoutes } from "./routes/saved-views";
 import { settingsRoutes } from "./routes/settings";
 import { storagePathsRoutes } from "./routes/storage-paths";
@@ -40,6 +39,9 @@ export function createApp() {
     .route("/orgs/:orgId", orgRoutes);
 
   const app = new Hono<{ Variables: Variables }>()
+    // Must stay ahead of the "*" middleware below: Hono only runs middleware registered before a
+    // matching handler, so this keeps probes off the session lookup.
+    .route("/health", healthRoutes)
     .use(
       "*",
       cors({
@@ -70,14 +72,6 @@ export function createApp() {
       return c.json({ error: { code: "internal_error", message: "Internal server error" } }, 500);
     })
     .on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
-    .get("/health", (c) =>
-      c.json({
-        status: "ok",
-        version: pkg.version,
-        apiLevel: API_LEVEL,
-        minApiLevel: MIN_API_LEVEL,
-      }),
-    )
     .route("/api/demo", demoRoutes)
     .route("/api", apiRoutes);
 

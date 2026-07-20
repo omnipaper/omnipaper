@@ -19,7 +19,16 @@ export const env = createEnv({
           .filter(Boolean),
       ),
     PORT: z.coerce.number().default(3000),
-    SERVICES: z.string().default("web,worker"),
+    SERVICES: z
+      .string()
+      .default("web,worker")
+      .transform((v) =>
+        v
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      )
+      .pipe(z.array(z.enum(["web", "worker"])).nonempty()),
     DEMO_MODE: z
       .string()
       .default("false")

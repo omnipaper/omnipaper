@@ -22,5 +22,9 @@ export function startWorker(options: {
     concurrency: options.concurrency ?? 4,
     taskList: options.taskList,
     crontab: options.crontab,
+    // Left on, graphile drains its pools and then re-raises the signal at itself to die with a
+    // 128+n code — racing whatever handler the caller installed for the same signal. The caller
+    // owns shutdown (it has an HTTP server to drain too) and calls runner.stop() itself.
+    noHandleSignals: true,
   });
 }
