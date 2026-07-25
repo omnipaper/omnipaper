@@ -30,8 +30,6 @@ export const requestLogger = createMiddleware(async (c, next) => {
   });
 });
 
-// Resolves the session for every request and puts it on the context; everything downstream reads
-// `user`/`session` from there rather than hitting better-auth again.
 export const loadSession = createMiddleware<{ Variables: Variables }>(async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
