@@ -14,12 +14,10 @@ import {
 export function AiAssignMaster({
   orgId,
   field,
-  label,
   variant = "switch",
 }: {
   orgId: string;
   field: AiAssignField;
-  label: string;
   variant?: "switch" | "button";
 }) {
   const { data } = useQuery(aiAssignQuery({ orgId }));
@@ -46,7 +44,7 @@ export function AiAssignMaster({
           )}
         >
           {enabled ? <CheckIcon /> : <SparklesIcon />}
-          Let AI assign {label}
+          AI assign
           <Badge
             variant={enabled ? "secondary" : "outline"}
             className={cn(
@@ -79,9 +77,9 @@ export function AiAssignMaster({
       <Switch
         checked={enabled}
         onCheckedChange={(on) => set.mutate({ field, enabled: on })}
-        aria-label={`Let AI assign ${label}`}
+        aria-label="AI assign"
       />
-      <span className="text-muted-foreground">Let AI assign {label}</span>
+      <span className="text-muted-foreground">AI assign</span>
       {enabled && data ? (
         <Link
           to="/dashboard/orgs/$orgId/workflows/$workflowId"

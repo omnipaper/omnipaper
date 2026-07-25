@@ -152,7 +152,7 @@ export function CustomPropertiesManager({ orgId }: { orgId: string }) {
                 enabled: next,
               })
             }
-            aria-label={`Let AI fill ${definition.name}`}
+            aria-label="AI assign"
           />
         </TableCell>
         <TableCell className="text-right">

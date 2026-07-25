@@ -131,7 +131,6 @@ export function DocumentTypesManager({ orgId }: { orgId: string }) {
           <AiAssignMaster
             orgId={orgId}
             field="documentType"
-            label="document types"
             variant="button"
           />
           <Button onClick={openCreate}>
