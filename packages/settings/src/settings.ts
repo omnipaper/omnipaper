@@ -1,11 +1,13 @@
 import { db } from "@omnipaper/database/client";
-import { settings } from "@omnipaper/database/schema";
-import { eq } from "drizzle-orm";
+import {
+  deleteSettingRow,
+  getSettingRow,
+  upsertSettingRow,
+} from "@omnipaper/database/queries/settings";
 import { decryptSecret, encryptSecret } from "./crypto";
 
 export async function getSetting(key: string): Promise<string | null> {
-  const rows = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
-  const row = rows[0];
+  const row = await getSettingRow(db, { key });
 
   if (!row) {
     return null;
@@ -22,15 +24,9 @@ export async function setSetting(args: {
   const { key, value, secret = false } = args;
   const stored = secret ? encryptSecret(value) : value;
 
-  await db
-    .insert(settings)
-    .values({ key, value: stored, encrypted: secret })
-    .onConflictDoUpdate({
-      target: settings.key,
-      set: { value: stored, encrypted: secret },
-    });
+  await upsertSettingRow(db, { key, value: stored, encrypted: secret });
 }
 
 export async function deleteSetting(key: string): Promise<void> {
-  await db.delete(settings).where(eq(settings.key, key));
+  await deleteSettingRow(db, { key });
 }

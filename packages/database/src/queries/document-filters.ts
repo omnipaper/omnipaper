@@ -6,6 +6,7 @@ import {
   and,
   asc,
   desc,
+  eq,
   gte,
   inArray,
   isNull,
@@ -14,6 +15,7 @@ import {
   type SQL,
   sql,
 } from "drizzle-orm";
+import type { Database } from "../client";
 import {
   type customPropertyTypeEnum,
   documentCustomPropertyValues,
@@ -161,4 +163,30 @@ export function buildDocumentOrderBy(sort?: SortState): SQL[] | undefined {
   // Tiebreak on id so rows keep a stable order across pages when the sort column has duplicates.
   const dir = sort.dir === "asc" ? asc : desc;
   return [dir(column), dir(documents.id)];
+}
+
+export type DocumentMatchesFilterParams = {
+  documentId: string;
+  organizationId: string;
+  filter?: FilterState;
+};
+
+export async function documentMatchesFilter(db: Database, params: DocumentMatchesFilterParams) {
+  if (!params.filter) {
+    return true;
+  }
+
+  const [row] = await db
+    .select({ ok: sql`1` })
+    .from(documents)
+    .where(
+      and(
+        eq(documents.id, params.documentId),
+        eq(documents.organizationId, params.organizationId),
+        ...buildDocumentWhere(params.filter),
+      ),
+    )
+    .limit(1);
+
+  return Boolean(row);
 }
