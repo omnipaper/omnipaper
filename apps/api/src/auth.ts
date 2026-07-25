@@ -11,6 +11,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization } from "better-auth/plugins";
+import { authLogger } from "./logger";
 
 const ID_PREFIXES: Record<string, string> = {
   user: "usr",
@@ -41,6 +42,19 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
+  },
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 60,
+    },
+  },
+  logger: {
+    disableColors: true,
+    level: env.LOG_LEVEL,
+    log: (level, message, ...args) => {
+      authLogger[level]({ args: args.length > 0 ? args : undefined }, message);
+    },
   },
   plugins: [
     // Deep-link callbacks + manual cookie handling for the mobile app.

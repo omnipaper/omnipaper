@@ -98,7 +98,7 @@ export function StoragePathsManager({ orgId }: { orgId: string }) {
               onCheckedChange={(next) =>
                 setAiEligible.mutate({ id: storagePath.id, aiEligible: next })
               }
-              aria-label={`Allow AI to use ${storagePath.path}`}
+              aria-label="AI assign"
             />
           </TableCell>
         ) : null}
@@ -136,7 +136,6 @@ export function StoragePathsManager({ orgId }: { orgId: string }) {
           <AiAssignMaster
             orgId={orgId}
             field="storagePath"
-            label="storage paths"
             variant="button"
           />
           <Button onClick={openCreate}>

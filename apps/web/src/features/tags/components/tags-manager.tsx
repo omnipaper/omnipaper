@@ -113,7 +113,7 @@ export function TagsManager({ orgId }: { orgId: string }) {
             <Switch
               checked={tag.aiEligible}
               onCheckedChange={(next) => setAiEligible.mutate({ id: tag.id, aiEligible: next })}
-              aria-label={`Allow AI to use ${tag.name}`}
+              aria-label="AI assign"
             />
           </TableCell>
         ) : null}
@@ -148,7 +148,7 @@ export function TagsManager({ orgId }: { orgId: string }) {
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <AiAssignMaster orgId={orgId} field="tags" label="tags" variant="button" />
+          <AiAssignMaster orgId={orgId} field="tags" variant="button" />
           <Button onClick={openCreate}>
             <PlusIcon />
             New tag
