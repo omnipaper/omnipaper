@@ -9,6 +9,7 @@ import {
 import { defineTask } from "@omnipaper/queue/worker";
 import { PNG } from "pngjs";
 import { getStorageDriver } from "../lib/storage";
+import { taskLogger } from "../logger";
 
 const THUMBNAIL_WIDTH = 500;
 
@@ -57,7 +58,7 @@ export const thumbnailGenerateTask = defineTask("thumbnail-generate", async ({ d
     // icon. Swallow rather than rethrow: a render failure is deterministic (e.g. a corrupt PDF), so
     // graphile-worker's default 25 retries would just churn. Re-run is a future explicit action.
     await markDocumentThumbnailFailed(db, { id: documentId });
-    console.error(`[thumbnail-generate] failed for document ${documentId}:`, err);
+    taskLogger.error({ err, documentId }, "thumbnail render failed");
   }
 });
 

@@ -3,6 +3,7 @@ import { env } from "@omnipaper/env";
 import { migrate as runMigrations } from "drizzle-orm/node-postgres/migrator";
 import { Client } from "pg";
 import { db } from "./client";
+import { logger } from "./logger";
 import { waitForDatabase } from "./wait";
 
 const MIGRATION_LOCK_ID = 4_242_424_242;
@@ -30,7 +31,7 @@ if (import.meta.main) {
   await waitForDatabase();
   await migrate();
 
-  console.log("Migrations applied");
+  logger.info("migrations applied");
   // Idle pool connections hold the event loop for idleTimeoutMillis (10s) past the last query, and
   // this runs on a deploy's critical path — a pre-upgrade hook blocks the rollout until it exits.
   process.exit(0);

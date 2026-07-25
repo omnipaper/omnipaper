@@ -13,6 +13,7 @@ import { defineTask } from "@omnipaper/queue/worker";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
 import { getProviderKeys } from "@omnipaper/settings/provider-settings";
 import { getStorageDriver } from "../lib/storage";
+import { taskLogger } from "../logger";
 
 export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }, helpers) => {
   const doc = await getDocumentById(db, { id: documentId });
@@ -68,10 +69,7 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }, h
         triggerEventId: createId("wfe"),
       });
     } catch (dispatchErr) {
-      console.error(
-        `[ocr-extract] workflow dispatch failed for document ${documentId}:`,
-        dispatchErr,
-      );
+      taskLogger.error({ err: dispatchErr, documentId }, "workflow dispatch failed");
     }
   } catch (err) {
     // Transient provider errors (429 rate limit, 5xx, network) are retryable: rethrow so
@@ -89,6 +87,6 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }, h
     // document leaves "processing" and the UI can offer an explicit re-run. We swallow so
     // graphile-worker doesn't keep retrying. The runner already redacts secrets from its errors.
     await markDocumentOcrFailed(db, { id: documentId });
-    console.error(`[ocr-extract] failed for document ${documentId}:`, err);
+    taskLogger.error({ err, documentId }, "ocr extraction failed");
   }
 });
