@@ -5,7 +5,8 @@ import { HTTPException } from "hono/http-exception";
 import { auth } from "./auth";
 import type { Variables } from "./context";
 import { demoReadOnly, demoRoutes } from "./demo";
-import { loadSession, requireAuth, requireOrganization } from "./middleware";
+import { httpLogger } from "./logger";
+import { loadSession, requestLogger, requireAuth, requireOrganization } from "./middleware";
 import { aiAssignRoutes } from "./routes/ai-assign";
 import { customPropertiesRoutes } from "./routes/custom-properties";
 import { documentTypesRoutes } from "./routes/document-types";
@@ -42,6 +43,7 @@ export function createApp() {
     // Must stay ahead of the "*" middleware below: Hono only runs middleware registered before a
     // matching handler, so this keeps probes off the session lookup.
     .route("/health", healthRoutes)
+    .use("/api/*", requestLogger)
     .use(
       "*",
       cors({
@@ -60,7 +62,7 @@ export function createApp() {
         return err.getResponse();
       }
 
-      console.error(err);
+      httpLogger.error({ err, method: c.req.method, path: c.req.path }, "unhandled error");
 
       return c.json({ error: { code: "internal_error", message: "Internal server error" } }, 500);
     })

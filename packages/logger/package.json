@@ -1,21 +1,18 @@
 {
-  "name": "@omnipaper/queue",
+  "name": "@omnipaper/logger",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
-    "./jobs": "./src/jobs.ts",
-    "./producer": "./src/producer.ts",
-    "./worker": "./src/worker.ts"
+    ".": "./src/logger.ts",
+    "./context": "./src/context.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@omnipaper/env": "workspace:*",
-    "@omnipaper/logger": "workspace:*",
-    "graphile-worker": "0.17.2",
-    "zod": "catalog:"
+    "pino": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

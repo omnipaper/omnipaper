@@ -19,6 +19,7 @@ export const env = createEnv({
           .filter(Boolean),
       ),
     PORT: z.coerce.number().default(3000),
+    LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug"]).default("info"),
     SERVICES: z
       .string()
       .default("web,worker")

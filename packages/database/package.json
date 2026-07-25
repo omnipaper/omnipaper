@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@omnipaper/env": "workspace:*",
+    "@omnipaper/logger": "workspace:*",
     "@omnipaper/shared": "workspace:*",
     "drizzle-orm": "catalog:",
     "nanoid": "5.1.16",

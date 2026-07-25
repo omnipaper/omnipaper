@@ -10,6 +10,7 @@ import { enqueue } from "@omnipaper/queue/producer";
 import { defineTask } from "@omnipaper/queue/worker";
 import { getStorageDriver } from "../lib/storage";
 import { extractDocumentText } from "../lib/text-extract";
+import { taskLogger } from "../logger";
 
 // Pull text out of types we can read natively (txt, docx) — no external OCR provider, no signed URL.
 // Enqueued from ingestDocument() when the type isn't OCR-supported but is text-extractable. Reuses
@@ -57,16 +58,13 @@ export const textExtractTask = defineTask("text-extract", async ({ documentId })
         triggerEventId: createId("wfe"),
       });
     } catch (dispatchErr) {
-      console.error(
-        `[text-extract] workflow dispatch failed for document ${documentId}:`,
-        dispatchErr,
-      );
+      taskLogger.error({ err: dispatchErr, documentId }, "workflow dispatch failed");
     }
   } catch (err) {
     // Mirror ocr-extract: mark "failed" so the document leaves "processing" and the UI can offer a
     // re-run, and swallow rather than rethrow — a parse failure is deterministic (e.g. a corrupt
     // docx), so graphile-worker's default retries would just churn.
     await markDocumentOcrFailed(db, { id: documentId });
-    console.error(`[text-extract] failed for document ${documentId}:`, err);
+    taskLogger.error({ err, documentId }, "text extraction failed");
   }
 });

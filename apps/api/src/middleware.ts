@@ -1,10 +1,34 @@
 import { db } from "@omnipaper/database/client";
+import { createId } from "@omnipaper/database/id";
 import { getMembership } from "@omnipaper/database/queries/members";
+import { withLogContext } from "@omnipaper/logger/context";
 import { hasOrgPermission, isInstanceAdmin, type OrgPermissions } from "@omnipaper/permissions";
 import { createMiddleware } from "hono/factory";
 import { auth } from "./auth";
 import type { Variables } from "./context";
 import { errors } from "./errors";
+import { httpLogger } from "./logger";
+
+export const requestLogger = createMiddleware(async (c, next) => {
+  const requestId = c.req.header("x-request-id") ?? createId("req");
+  const startedAt = performance.now();
+
+  await withLogContext({ requestId }, async () => {
+    await next();
+
+    c.res.headers.set("x-request-id", requestId);
+
+    httpLogger.info(
+      {
+        method: c.req.method,
+        path: c.req.path,
+        status: c.res.status,
+        durationMs: Math.round(performance.now() - startedAt),
+      },
+      "request completed",
+    );
+  });
+});
 
 // Resolves the session for every request and puts it on the context; everything downstream reads
 // `user`/`session` from there rather than hitting better-auth again.

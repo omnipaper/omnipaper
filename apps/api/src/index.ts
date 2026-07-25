@@ -6,6 +6,7 @@ import { startWorker } from "@omnipaper/queue/worker";
 import { serveStatic } from "hono/bun";
 import { createApp } from "./app";
 import { bootstrapDemoAdmin } from "./demo";
+import { serverLogger } from "./logger";
 import { emailPollTask } from "./tasks/email-poll";
 import { emailPollDispatchTask } from "./tasks/email-poll-dispatch";
 import { ocrExtractTask } from "./tasks/ocr-extract";
@@ -26,7 +27,7 @@ const shutdown = async (signal: string) => {
   if (draining) return;
   draining = true;
 
-  console.log(`${signal} received, draining`);
+  serverLogger.info({ signal }, "signal received, draining");
   // Neither stop() cancels work in flight: the server refuses new connections and lets open
   // requests finish, the runner stops taking jobs and waits out the ones it holds.
   await Promise.allSettled([server?.stop(), runner?.stop()]);
