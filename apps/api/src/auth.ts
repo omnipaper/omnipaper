@@ -1,7 +1,9 @@
 import { expo } from "@better-auth/expo";
-import { invitation, member, user as userTable } from "@omnipaper/database/auth-schema";
 import { db } from "@omnipaper/database/client";
 import { createId } from "@omnipaper/database/id";
+import { getPendingInvitation } from "@omnipaper/database/queries/invitations";
+import { getFirstMembership } from "@omnipaper/database/queries/members";
+import { countUsers } from "@omnipaper/database/queries/users";
 import { env } from "@omnipaper/env";
 import { ac, roles } from "@omnipaper/permissions";
 import { isRegistrationEnabled } from "@omnipaper/settings/auth-settings";
@@ -9,7 +11,6 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization } from "better-auth/plugins";
-import { and, count, eq, gt } from "drizzle-orm";
 
 const ID_PREFIXES: Record<string, string> = {
   user: "usr",
@@ -22,13 +23,9 @@ const ID_PREFIXES: Record<string, string> = {
 };
 
 async function getInitialOrganizationId(userId: string): Promise<string | undefined> {
-  const [row] = await db
-    .select({ organizationId: member.organizationId })
-    .from(member)
-    .where(eq(member.userId, userId))
-    .limit(1);
+  const membership = await getFirstMembership(db, { userId });
 
-  return row?.organizationId;
+  return membership?.organizationId;
 }
 
 export const auth = betterAuth({
@@ -74,23 +71,12 @@ export const auth = betterAuth({
       }
 
       // Closed, but allow the bootstrap of the first-ever account.
-      const [row] = await db.select({ value: count() }).from(userTable);
-      if ((row?.value ?? 0) === 0) {
+      if ((await countUsers(db)) === 0) {
         return;
       }
 
       // Allow sign-up when there's a valid pending invitation for this email.
-      const [pendingInvitation] = await db
-        .select({ id: invitation.id })
-        .from(invitation)
-        .where(
-          and(
-            eq(invitation.email, ctx.body.email),
-            eq(invitation.status, "pending"),
-            gt(invitation.expiresAt, new Date()),
-          ),
-        )
-        .limit(1);
+      const pendingInvitation = await getPendingInvitation(db, { email: ctx.body.email });
 
       if (pendingInvitation) {
         return;
@@ -106,8 +92,7 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (userData) => {
-          const [row] = await db.select({ value: count() }).from(userTable);
-          const isFirstUser = (row?.value ?? 0) === 0;
+          const isFirstUser = (await countUsers(db)) === 0;
 
           return { data: { ...userData, role: isFirstUser ? "admin" : "user" } };
         },

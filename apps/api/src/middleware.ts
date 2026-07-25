@@ -1,10 +1,10 @@
-import { member } from "@omnipaper/database/auth-schema";
 import { db } from "@omnipaper/database/client";
 import { createId } from "@omnipaper/database/id";
+import { getMembership } from "@omnipaper/database/queries/members";
 import { withLogContext } from "@omnipaper/logger/context";
 import { hasOrgPermission, isInstanceAdmin, type OrgPermissions } from "@omnipaper/permissions";
-import { and, eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
+import { auth } from "./auth";
 import type { Variables } from "./context";
 import { errors } from "./errors";
 import { httpLogger } from "./logger";
@@ -28,6 +28,17 @@ export const requestLogger = createMiddleware(async (c, next) => {
       "request completed",
     );
   });
+});
+
+// Resolves the session for every request and puts it on the context; everything downstream reads
+// `user`/`session` from there rather than hitting better-auth again.
+export const loadSession = createMiddleware<{ Variables: Variables }>(async (c, next) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+
+  c.set("user", session?.user ?? null);
+  c.set("session", session?.session ?? null);
+
+  await next();
 });
 
 export const requireAdmin = createMiddleware<{ Variables: Variables }>(async (c, next) => {
@@ -65,11 +76,7 @@ export const requireOrganization = createMiddleware<{ Variables: Variables }>(as
     throw errors.badRequest("no_organization", "Missing organization id in path");
   }
 
-  const [membership] = await db
-    .select({ role: member.role })
-    .from(member)
-    .where(and(eq(member.organizationId, organizationId), eq(member.userId, user.id)))
-    .limit(1);
+  const membership = await getMembership(db, { organizationId, userId: user.id });
 
   if (!membership) {
     throw errors.forbidden();
