@@ -1,8 +1,11 @@
-import { member, user as userTable } from "@omnipaper/database/auth-schema";
 import { db } from "@omnipaper/database/client";
-import { createId } from "@omnipaper/database/id";
+import {
+  getFirstMembership,
+  getMembership,
+  insertMember,
+} from "@omnipaper/database/queries/members";
+import { getUserIdByEmail, setUserRole } from "@omnipaper/database/queries/users";
 import { env } from "@omnipaper/env";
-import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { auth } from "./auth";
@@ -63,16 +66,6 @@ export const demoRoutes = new Hono<{ Variables: Variables }>()
     return c.json({ writable: isDemoAdmin(c.get("user")) });
   });
 
-async function findUserId(email: string): Promise<string | null> {
-  const [row] = await db
-    .select({ id: userTable.id })
-    .from(userTable)
-    .where(eq(userTable.email, email))
-    .limit(1);
-
-  return row?.id ?? null;
-}
-
 // Idempotent startup provisioning of the demo curator: a real account (instance admin) that
 // demoReadOnly exempts, added to the demo org so demo content can be edited live through the UI.
 export async function bootstrapDemoAdmin(): Promise<void> {
@@ -86,7 +79,7 @@ export async function bootstrapDemoAdmin(): Promise<void> {
   }
 
   try {
-    let adminId = await findUserId(env.DEMO_ADMIN_EMAIL);
+    let adminId = await getUserIdByEmail(db, { email: env.DEMO_ADMIN_EMAIL });
 
     if (!adminId) {
       await auth.api.signUpEmail({
@@ -96,39 +89,33 @@ export async function bootstrapDemoAdmin(): Promise<void> {
           name: "Demo Admin",
         },
       });
-      adminId = await findUserId(env.DEMO_ADMIN_EMAIL);
+      adminId = await getUserIdByEmail(db, { email: env.DEMO_ADMIN_EMAIL });
     }
 
     if (!adminId) {
       return;
     }
 
-    await db.update(userTable).set({ role: "admin" }).where(eq(userTable.id, adminId));
+    await setUserRole(db, { id: adminId, role: "admin" });
 
-    const demoUserId = await findUserId(env.DEMO_USER_EMAIL);
+    const demoUserId = await getUserIdByEmail(db, { email: env.DEMO_USER_EMAIL });
     if (!demoUserId) {
       return;
     }
 
-    const [demoOrg] = await db
-      .select({ organizationId: member.organizationId })
-      .from(member)
-      .where(eq(member.userId, demoUserId))
-      .limit(1);
+    const demoOrg = await getFirstMembership(db, { userId: demoUserId });
 
     if (!demoOrg) {
       return;
     }
 
-    const [membership] = await db
-      .select({ id: member.id })
-      .from(member)
-      .where(and(eq(member.organizationId, demoOrg.organizationId), eq(member.userId, adminId)))
-      .limit(1);
+    const membership = await getMembership(db, {
+      organizationId: demoOrg.organizationId,
+      userId: adminId,
+    });
 
     if (!membership) {
-      await db.insert(member).values({
-        id: createId("mem"),
+      await insertMember(db, {
         organizationId: demoOrg.organizationId,
         userId: adminId,
         role: "owner",

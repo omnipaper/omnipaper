@@ -1,6 +1,6 @@
 import { recordEvent } from "@omnipaper/database/activity";
 import { db } from "@omnipaper/database/client";
-import { buildDocumentWhere } from "@omnipaper/database/queries/document-filters";
+import { documentMatchesFilter } from "@omnipaper/database/queries/document-filters";
 import { getDocumentById } from "@omnipaper/database/queries/documents";
 import { addDocumentTag, getOrgTag, removeDocumentTag } from "@omnipaper/database/queries/tags";
 import {
@@ -8,11 +8,8 @@ import {
   getWorkflowById,
   insertWorkflowRun,
 } from "@omnipaper/database/queries/workflows";
-import { documents } from "@omnipaper/database/schema";
 import { defineTask } from "@omnipaper/queue/worker";
-import type { FilterState } from "@omnipaper/shared/document-filters";
 import { type WorkflowAction, workflowDefinitionSchema } from "@omnipaper/shared/workflows/schema";
-import { and, eq, sql } from "drizzle-orm";
 import { runAiAssignMetadata } from "../lib/ai-assign";
 
 type ActionResult = {
@@ -21,26 +18,6 @@ type ActionResult = {
   status: "ok" | "failed";
   detail?: string;
 };
-
-async function passesFilter(documentId: string, organizationId: string, filter?: FilterState) {
-  if (!filter) {
-    return true;
-  }
-
-  const [row] = await db
-    .select({ ok: sql`1` })
-    .from(documents)
-    .where(
-      and(
-        eq(documents.id, documentId),
-        eq(documents.organizationId, organizationId),
-        ...buildDocumentWhere(filter),
-      ),
-    )
-    .limit(1);
-
-  return Boolean(row);
-}
 
 async function runAction(
   action: WorkflowAction,
@@ -104,7 +81,13 @@ export const workflowRunTask = defineTask(
 
     const definition = workflowDefinitionSchema.parse(workflow.definition);
 
-    if (!(await passesFilter(documentId, doc.organizationId, definition.filter))) {
+    const matches = await documentMatchesFilter(db, {
+      documentId,
+      organizationId: doc.organizationId,
+      filter: definition.filter,
+    });
+
+    if (!matches) {
       await finishWorkflowRun(db, { id: run.id, status: "skipped" });
       return;
     }

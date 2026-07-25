@@ -25,7 +25,6 @@
     "@omnipaper/shared": "workspace:*",
     "@omnipaper/storage": "workspace:*",
     "better-auth": "catalog:",
-    "drizzle-orm": "catalog:",
     "fflate": "0.8.3",
     "hono": "catalog:",
     "imapflow": "1.4.3",

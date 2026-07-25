@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import { auth } from "./auth";
 import type { Variables } from "./context";
 import { demoReadOnly, demoRoutes } from "./demo";
-import { requireAuth, requireOrganization } from "./middleware";
+import { loadSession, requireAuth, requireOrganization } from "./middleware";
 import { aiAssignRoutes } from "./routes/ai-assign";
 import { customPropertiesRoutes } from "./routes/custom-properties";
 import { documentTypesRoutes } from "./routes/document-types";
@@ -53,14 +53,7 @@ export function createApp() {
         credentials: true,
       }),
     )
-    .use("*", async (c, next) => {
-      const session = await auth.api.getSession({ headers: c.req.raw.headers });
-
-      c.set("user", session?.user ?? null);
-      c.set("session", session?.session ?? null);
-
-      await next();
-    })
+    .use("*", loadSession)
     .use("*", demoReadOnly)
     .onError((err, c) => {
       if (err instanceof HTTPException) {
