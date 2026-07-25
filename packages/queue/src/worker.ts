@@ -1,6 +1,8 @@
 import { env } from "@omnipaper/env";
+import { withLogContext } from "@omnipaper/logger/context";
 import { type JobHelpers, type Runner, run, type Task, type TaskList } from "graphile-worker";
 import { type JobName, type JobPayload, jobSchemas } from "./jobs";
+import { graphileLogger } from "./logger";
 
 export function defineTask<TName extends JobName>(
   name: TName,
@@ -8,7 +10,11 @@ export function defineTask<TName extends JobName>(
 ): Task {
   return async (rawPayload, helpers) => {
     const payload = jobSchemas[name].parse(rawPayload) as JobPayload<TName>;
-    await handler(payload, helpers);
+
+    await withLogContext(
+      { jobName: name, jobId: helpers.job.id, attempt: helpers.job.attempts },
+      () => handler(payload, helpers),
+    );
   };
 }
 
@@ -22,6 +28,7 @@ export function startWorker(options: {
     concurrency: options.concurrency ?? 4,
     taskList: options.taskList,
     crontab: options.crontab,
+    logger: graphileLogger,
     // Left on, graphile drains its pools and then re-raises the signal at itself to die with a
     // 128+n code — racing whatever handler the caller installed for the same signal. The caller
     // owns shutdown (it has an HTTP server to drain too) and calls runner.stop() itself.

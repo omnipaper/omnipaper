@@ -1,4 +1,5 @@
 import { generateText, isStepCount } from "ai";
+import { logger } from "./logger";
 import { resolveModel } from "./model";
 import { readDocumentOcrTool } from "./tools/read-document-ocr";
 import { submitDocumentMetadataTool } from "./tools/submit-document-metadata";
@@ -108,7 +109,7 @@ export async function classifyDocument(input: ClassifyInput): Promise<ClassifyRe
   });
 
   if (!submit.isDone()) {
-    console.warn("[classify] classify-document produced no valid submission");
+    logger.warn("classify-document produced no valid submission");
   }
 
   return submit.getResult();

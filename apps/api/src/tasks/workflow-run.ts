@@ -14,6 +14,7 @@ import type { FilterState } from "@omnipaper/shared/document-filters";
 import { type WorkflowAction, workflowDefinitionSchema } from "@omnipaper/shared/workflows/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { runAiAssignMetadata } from "../lib/ai-assign";
+import { taskLogger } from "../logger";
 
 type ActionResult = {
   actionId: string;
@@ -144,8 +145,9 @@ export const workflowRunTask = defineTask(
     });
     if (failed.length > 0) {
       const details = failed.map((r) => `${r.type}: ${r.detail ?? "unknown error"}`).join("; ");
-      console.error(
-        `[workflow-run] workflow "${workflow.name}" (${workflowId}) failed for document ${documentId}: ${details}`,
+      taskLogger.error(
+        { workflowId, workflowName: workflow.name, documentId, details },
+        "workflow actions failed",
       );
     }
   },

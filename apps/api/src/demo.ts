@@ -8,6 +8,7 @@ import { createMiddleware } from "hono/factory";
 import { auth } from "./auth";
 import type { Variables } from "./context";
 import { errors } from "./errors";
+import { demoLogger } from "./logger";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -81,7 +82,9 @@ export async function bootstrapDemoAdmin(): Promise<void> {
   }
 
   if (env.DEMO_ADMIN_EMAIL === env.DEMO_USER_EMAIL) {
-    console.error("DEMO_ADMIN_EMAIL must differ from DEMO_USER_EMAIL; skipping curator bootstrap");
+    demoLogger.warn(
+      "DEMO_ADMIN_EMAIL must differ from DEMO_USER_EMAIL; skipping curator bootstrap",
+    );
     return;
   }
 
@@ -135,6 +138,6 @@ export async function bootstrapDemoAdmin(): Promise<void> {
       });
     }
   } catch (error) {
-    console.error("Demo curator bootstrap failed", error);
+    demoLogger.error({ err: error }, "demo curator bootstrap failed");
   }
 }
