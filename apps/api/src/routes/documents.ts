@@ -47,12 +47,10 @@ import {
 } from "@omnipaper/shared/document-filters";
 import {
   describeAcceptedFormats,
-  extensionForMimeType,
   isUploadAllowed,
   MAX_UPLOAD_BYTES,
 } from "@omnipaper/shared/formats";
 import type { AiSuggestionValue } from "@omnipaper/shared/workflows/ai-assign";
-import { Zip, ZipPassThrough } from "fflate";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
@@ -62,6 +60,7 @@ import {
   customPropertyRegistry,
   type ValueColumns,
 } from "../lib/custom-property-registry";
+import { createDocumentsZipStream } from "../lib/export";
 import { ingestDocument } from "../lib/ingest";
 import { getStorageDriver } from "../lib/storage";
 import { requireOrgPermission } from "../middleware";
@@ -134,27 +133,6 @@ const exportDocumentsSchema = z.union([
     sort: sortStateSchema.optional(),
   }),
 ]);
-function exportFileName(
-  doc: { id: string; title: string; originalFilename: string | null; mimeType: string },
-  used: Set<string>,
-): string {
-  const raw = (doc.originalFilename ?? doc.title ?? doc.id).replace(/[\\/:*?"<>|]/g, "_").trim();
-  const safe = raw || doc.id;
-  const hasExt = safe.lastIndexOf(".") > 0;
-  let name = hasExt ? safe : safe + (extensionForMimeType(doc.mimeType) ?? "");
-  if (used.has(name)) {
-    const dot = name.lastIndexOf(".");
-    const stem = dot > 0 ? name.slice(0, dot) : name;
-    const ext = dot > 0 ? name.slice(dot) : "";
-    let i = 2;
-    while (used.has(`${stem} (${i})${ext}`)) {
-      i++;
-    }
-    name = `${stem} (${i})${ext}`;
-  }
-  used.add(name);
-  return name;
-}
 async function applySuggestionValue(
   organizationId: string,
   documentId: string,
@@ -333,38 +311,7 @@ export const documentsRoutes = new Hono<{
     if (docs.length === 0) {
       throw errors.badRequest("no_documents", "No documents to export");
     }
-    const used = new Set<string>();
-    const stream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        const zip = new Zip((err, chunk, final) => {
-          if (err) {
-            controller.error(err);
-            return;
-          }
-          controller.enqueue(chunk);
-          if (final) {
-            controller.close();
-          }
-        });
-        (async () => {
-          try {
-            for (const doc of docs) {
-              const obj = await driver.getObject({ key: doc.storageKey });
-              if (!obj) {
-                continue;
-              }
-              const entry = new ZipPassThrough(exportFileName(doc, used));
-              zip.add(entry);
-              entry.push(new Uint8Array(obj.body), true);
-            }
-            zip.end();
-          } catch (e) {
-            controller.error(e as Error);
-          }
-        })();
-      },
-    });
-    return new Response(stream, {
+    return new Response(createDocumentsZipStream({ driver, docs }), {
       headers: {
         "Content-Type": "application/zip",
         "Content-Disposition": 'attachment; filename="documents.zip"',

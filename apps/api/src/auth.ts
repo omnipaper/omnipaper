@@ -114,7 +114,6 @@ export const auth = betterAuth({
     },
     session: {
       create: {
-        // Put the user's org onto the session so requests have an active-org context.
         before: async (session) => {
           const activeOrganizationId = await getInitialOrganizationId(session.userId);
 
@@ -124,8 +123,22 @@ export const auth = betterAuth({
     },
   },
   secret: env.AUTH_SECRET,
-  // If set, only APP_URL is accepted as a trusted origin; if unset, trusted origin is determined per request using X-Forwarded-Host and trustedProxyHeaders.
+  // Canonical address for links and redirects only — it deliberately does not restrict where
+  // sign-in may come from, so a self-hoster who sets it can still reach the instance by LAN IP.
   baseURL: env.APP_URL,
-  // Mobile app scheme, plus extra origins beyond the derived/pinned one (e.g. the Vite dev frontend on :5173).
-  trustedOrigins: ["omnipaper://", ...env.EXTRA_TRUSTED_ORIGINS],
+  // Computed per request so any hostname the instance actually answers on is accepted. This still
+  // blocks CSRF: a cross-site request carries the attacker's Origin but our Host, which they cannot
+  // forge, so the two never match. Cross-origin frontends (the Vite dev server, the mobile app)
+  // can't be derived this way and stay explicit.
+  trustedOrigins: (request) => {
+    const host = request?.headers.get("x-forwarded-host") ?? request?.headers.get("host");
+    const proto = request?.headers.get("x-forwarded-proto") ?? "http";
+
+    return [
+      "omnipaper://",
+      ...env.EXTRA_TRUSTED_ORIGINS,
+      env.APP_URL,
+      host ? `${proto}://${host}` : null,
+    ];
+  },
 });
