@@ -19,6 +19,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { PageLoader } from "@/components/page-loader";
 import { ActivityTab } from "@/features/documents/components/document-detail/activity-tab";
+import { DetailNav } from "@/features/documents/components/document-detail/detail-nav";
 import { DetailsTab } from "@/features/documents/components/document-detail/details-tab";
 import { OcrTab } from "@/features/documents/components/document-detail/ocr-tab";
 import { DocumentPreview } from "@/features/documents/components/document-preview";
@@ -124,12 +125,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
       <div className="flex flex-col border-b lg:w-[400px] lg:shrink-0 lg:overflow-hidden lg:border-r lg:border-b-0">
         <div className="flex shrink-0 flex-col gap-3 border-b p-4">
           <div className="flex items-center justify-between gap-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/dashboard/orgs/$orgId/documents" params={{ orgId }} search={backSearch}>
-                <ArrowLeftIcon />
-                Back
-              </Link>
-            </Button>
+            <DetailNav orgId={orgId} id={id} />
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleDownload}>
                 <DownloadIcon />
