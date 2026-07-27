@@ -13,6 +13,8 @@ import { enqueue } from "@omnipaper/queue/producer";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
 import { normalizeMimeType } from "@omnipaper/shared/formats";
 import type { StorageDriver } from "@omnipaper/storage/driver";
+import { PasswordProtectedPdfError } from "../errors";
+import { isPasswordProtectedPdf } from "./pdfium";
 import { isTextExtractable } from "./text-extract";
 
 export type IngestResult = {
@@ -36,13 +38,14 @@ export type IngestDocumentInput = {
 
 export async function ingestDocument(input: IngestDocumentInput): Promise<IngestResult> {
   const { db, driver, organizationId, createdBy, bytes, filename } = input;
-  // Canonicalise the MIME up front: every downstream decision (storage content-type, lane triage,
-  // OCR support) keys off the bare type, never the browser's ";charset=…"-tagged variant.
   const mimeType = normalizeMimeType(input.mimeType);
+
+  if (mimeType === "application/pdf" && (await isPasswordProtectedPdf(bytes))) {
+    throw new PasswordProtectedPdfError();
+  }
 
   const sha256 = createHash("sha256").update(bytes).digest("hex");
 
-  // Already in this org? Return it and never write the duplicate's bytes to storage.
   const existing = await getDocumentByHash(db, { organizationId, sha256 });
   if (existing) {
     return { status: "duplicate", document: { id: existing.id, title: existing.title } };

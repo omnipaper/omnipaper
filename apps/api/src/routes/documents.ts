@@ -54,7 +54,7 @@ import type { AiSuggestionValue } from "@omnipaper/shared/workflows/ai-assign";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
-import { errors } from "../errors";
+import { errors, PasswordProtectedPdfError } from "../errors";
 import {
   coerceCustomValue,
   customPropertyRegistry,
@@ -236,16 +236,27 @@ export const documentsRoutes = new Hono<{
       );
     }
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const result = await ingestDocument({
-      db,
-      driver,
-      organizationId,
-      createdBy: user.id,
-      bytes,
-      filename: file.name,
-      mimeType: file.type || "application/octet-stream",
-    });
-    return c.json(result);
+    try {
+      const result = await ingestDocument({
+        db,
+        driver,
+        organizationId,
+        createdBy: user.id,
+        bytes,
+        filename: file.name,
+        mimeType: file.type || "application/octet-stream",
+      });
+      return c.json(result);
+    } catch (err) {
+      if (err instanceof PasswordProtectedPdfError) {
+        throw errors.badRequest(
+          "pdf_password_protected",
+          "This PDF is password protected. Remove the password and upload it again.",
+        );
+      }
+
+      throw err;
+    }
   })
   .get("/", zValidator("query", listDocumentsQuerySchema), async (c) => {
     const organizationId = c.get("organizationId");

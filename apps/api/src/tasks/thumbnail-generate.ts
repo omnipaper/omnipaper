@@ -1,4 +1,3 @@
-import { PDFiumLibrary } from "@hyzyla/pdfium";
 import { db } from "@omnipaper/database/client";
 import {
   getDocumentById,
@@ -8,6 +7,7 @@ import {
 } from "@omnipaper/database/queries/documents";
 import { defineTask } from "@omnipaper/queue/worker";
 import { PNG } from "pngjs";
+import { getPdfiumLibrary } from "../lib/pdfium";
 import { getStorageDriver } from "../lib/storage";
 import { taskLogger } from "../logger";
 
@@ -61,21 +61,6 @@ export const thumbnailGenerateTask = defineTask("thumbnail-generate", async ({ d
     taskLogger.error({ err, documentId }, "thumbnail render failed");
   }
 });
-
-// PDFium's WASM heap is allocated once and reused for every job. The old code ran PDFiumLibrary.init()
-// per render, and each init builds a fresh Emscripten module with its own ~18MB WebAssembly.Memory.
-// library.destroy() only runs pdfium's C-level teardown (_FPDF_DestroyLibrary) — it cannot release
-// that WASM heap, and WASM memory never shrinks, so every processed PDF abandoned a heap the GC
-// reclaimed slowly and RSS climbed monotonically until restart. One shared library fixes it: pdfium
-// is designed to init once and load many documents, and graphile-worker concurrency is async on a
-// single JS thread (renders never truly overlap), so concurrent jobs just load and destroy their own
-// document handles against the one bounded heap.
-let pdfiumLibraryPromise: Promise<PDFiumLibrary> | null = null;
-
-function getPdfiumLibrary(): Promise<PDFiumLibrary> {
-  pdfiumLibraryPromise ??= PDFiumLibrary.init();
-  return pdfiumLibraryPromise;
-}
 
 async function renderFirstPagePng(pdfBytes: Uint8Array): Promise<Uint8Array> {
   const library = await getPdfiumLibrary();

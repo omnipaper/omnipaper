@@ -15,7 +15,8 @@ import { getEmailIngestAllowInternalHosts } from "@omnipaper/settings/email-sett
 import { isUploadAllowed, MAX_UPLOAD_BYTES } from "@omnipaper/shared/formats";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
-import { ingestDocument } from "./ingest";
+import { PasswordProtectedPdfError } from "../errors";
+import { type IngestResult, ingestDocument } from "./ingest";
 import { getStorageDriver } from "./storage";
 
 export type ImapConnectionParams = {
@@ -159,9 +160,6 @@ export function matchesFilenameGlob(filename: string, glob: string | null): bool
 
 export type PollSummary = { messages: number; documents: number };
 
-// The whole email feature funnels here: pull UNSEEN mails, keep allowed senders, ingest allowed
-// attachments through ingestDocument() (dedup/OCR/thumbnails/workflows all happen there), record
-// every mail in email_ingest_processed, then apply the account's post action.
 export async function pollEmailIngestAccount(accountId: string): Promise<PollSummary | null> {
   const account = await getEmailIngestAccountById(db, { id: accountId });
 
@@ -284,6 +282,8 @@ async function processMessage(
 
     const parsed = await simpleParser(source);
     const documentIds: string[] = [];
+    const duplicates: { id: string; filename: string }[] = [];
+    const rejected: string[] = [];
 
     for (const attachment of parsed.attachments) {
       // Inline parts (signature logos, cid-embedded images) are noise, not documents.
@@ -311,27 +311,55 @@ async function processMessage(
         throw new Error("Storage is not configured");
       }
 
-      const result = await ingestDocument({
-        db,
-        driver,
-        organizationId: account.organizationId,
-        createdBy: null,
-        bytes: new Uint8Array(attachment.content),
-        filename,
-        mimeType: attachment.contentType,
-        documentDate: parsed.date ? parsed.date.toISOString().slice(0, 10) : undefined,
-      });
+      let result: IngestResult;
 
-      if (result.status === "created") {
-        documentIds.push(result.document.id);
-        // Second dispatch alongside the generic document.created from ingestDocument, so
-        // workflows can target email arrivals specifically.
-        await enqueue("workflow-dispatch", {
-          documentId: result.document.id,
-          trigger: "email.ingested",
-          triggerEventId: createId("wfe"),
+      try {
+        result = await ingestDocument({
+          db,
+          driver,
+          organizationId: account.organizationId,
+          createdBy: null,
+          bytes: new Uint8Array(attachment.content),
+          filename,
+          mimeType: attachment.contentType,
+          documentDate: parsed.date ? parsed.date.toISOString().slice(0, 10) : undefined,
         });
+      } catch (err) {
+        if (err instanceof PasswordProtectedPdfError) {
+          rejected.push(filename);
+          continue;
+        }
+
+        throw err;
       }
+
+      if (result.status === "duplicate") {
+        duplicates.push({ id: result.document.id, filename });
+        continue;
+      }
+
+      documentIds.push(result.document.id);
+      // Second dispatch alongside the generic document.created from ingestDocument, so
+      // workflows can target email arrivals specifically.
+      await enqueue("workflow-dispatch", {
+        documentId: result.document.id,
+        trigger: "email.ingested",
+        triggerEventId: createId("wfe"),
+      });
+    }
+
+    const notes: string[] = [];
+
+    if (rejected.length > 0) {
+      notes.push(`Password-protected, skipped: ${rejected.join(", ")}`);
+    }
+    if (duplicates.length > 0) {
+      notes.push(
+        `Already in the library: ${duplicates.map((duplicate) => duplicate.filename).join(", ")}`,
+      );
+    }
+    if (documentIds.length === 0 && notes.length === 0) {
+      notes.push("No eligible attachments");
     }
 
     await recordProcessedMessage(db, {
@@ -340,8 +368,9 @@ async function processMessage(
       fromAddress,
       subject: envelope.subject,
       status: documentIds.length > 0 ? "ingested" : "skipped",
-      error: documentIds.length > 0 ? null : "No eligible attachments",
-      documentIds,
+      error: notes.length > 0 ? notes.join("; ") : null,
+      // Duplicates come along so the log can link to the document that already holds those bytes.
+      documentIds: [...documentIds, ...duplicates.map((duplicate) => duplicate.id)],
     });
     await applyPostAction(client, uid, account.postAction);
 
