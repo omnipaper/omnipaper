@@ -69,6 +69,18 @@ function StatusCell({ account }: { account: EmailIngestAccount }) {
 
   const polled = formatRelativeDay(account.lastPolledAt);
 
+  // A partial poll carries lastError too, so it has to win before the error branch.
+  if (account.lastStatus?.startsWith("partial")) {
+    return (
+      <span
+        className="text-amber-700 dark:text-amber-400"
+        title={account.lastError ?? account.lastStatus}
+      >
+        Partial ({polled})
+      </span>
+    );
+  }
+
   if (account.lastError) {
     return (
       <span className="text-destructive" title={account.lastError}>

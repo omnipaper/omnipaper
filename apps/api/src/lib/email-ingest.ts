@@ -14,8 +14,9 @@ import { decryptSecret } from "@omnipaper/settings/crypto";
 import { getEmailIngestAllowInternalHosts } from "@omnipaper/settings/email-settings";
 import { isUploadAllowed, MAX_UPLOAD_BYTES } from "@omnipaper/shared/formats";
 import { ImapFlow } from "imapflow";
-import { simpleParser } from "mailparser";
+import { type Attachment, simpleParser } from "mailparser";
 import { PasswordProtectedPdfError } from "../errors";
+import { emailIngestLogger } from "../logger";
 import { type IngestResult, ingestDocument } from "./ingest";
 import { getStorageDriver } from "./storage";
 
@@ -158,7 +159,24 @@ export function matchesFilenameGlob(filename: string, glob: string | null): bool
     });
 }
 
-export type PollSummary = { messages: number; documents: number };
+// Apple Mail (and some scanner apps) send genuine attachments as `inline` with a filename, so the
+// disposition alone can't be trusted. Noise is what the body references: parts mailparser flagged
+// as `related`, or inline parts carrying a Content-ID (cid-embedded signature logos).
+export function isDocumentAttachment(attachment: Attachment): boolean {
+  if (attachment.related) {
+    return false;
+  }
+
+  if (attachment.contentDisposition === "attachment") {
+    return true;
+  }
+
+  // Inline: keep it only when it looks like a file the sender attached rather than something the
+  // body renders — a Content-ID means the HTML references it.
+  return Boolean(attachment.filename) && !attachment.cid;
+}
+
+export type PollSummary = { messages: number; documents: number; failed: number };
 
 export async function pollEmailIngestAccount(accountId: string): Promise<PollSummary | null> {
   const account = await getEmailIngestAccountById(db, { id: accountId });
@@ -170,6 +188,7 @@ export async function pollEmailIngestAccount(accountId: string): Promise<PollSum
   const driver = await getStorageDriver();
 
   if (!driver) {
+    emailIngestLogger.warn({ accountId: account.id }, "email poll skipped, storage not configured");
     await setEmailIngestAccountPollResult(db, {
       id: account.id,
       status: "error",
@@ -181,6 +200,7 @@ export async function pollEmailIngestAccount(accountId: string): Promise<PollSum
   try {
     await assertImapHostAllowed(account.host);
   } catch (err) {
+    emailIngestLogger.warn({ err, accountId: account.id, host: account.host }, "imap host blocked");
     await setEmailIngestAccountPollResult(db, {
       id: account.id,
       status: "error",
@@ -197,7 +217,7 @@ export async function pollEmailIngestAccount(accountId: string): Promise<PollSum
     password: decryptSecret(account.passwordEncrypted),
   });
 
-  const summary: PollSummary = { messages: 0, documents: 0 };
+  const summary: PollSummary = { messages: 0, documents: 0, failed: 0 };
 
   try {
     await client.connect();
@@ -207,23 +227,54 @@ export async function pollEmailIngestAccount(accountId: string): Promise<PollSum
       const uids = (await client.search({ seen: false }, { uid: true })) || [];
 
       for (const uid of uids) {
-        summary.documents += await processMessage(client, account, uid);
+        const outcome = await processMessage(client, account, uid);
+
+        // Neither is work this poll did: the mail was gone, or an earlier poll already handled it.
+        if (outcome.kind === "vanished" || outcome.kind === "already-processed") {
+          continue;
+        }
+
         summary.messages += 1;
+
+        if (outcome.kind === "processed") {
+          summary.documents += outcome.documents;
+        } else if (outcome.kind === "failed") {
+          summary.failed += 1;
+        }
       }
     } finally {
       lock.release();
     }
 
     await client.logout();
+
+    if (summary.failed > 0) {
+      emailIngestLogger.warn({ accountId: account.id, ...summary }, "email poll had failures");
+    } else {
+      emailIngestLogger.debug({ accountId: account.id, ...summary }, "email poll finished");
+    }
+
+    // A per-message failure must not read as a clean poll — the account row is the only place an
+    // admin looks before digging into the processed log.
     await setEmailIngestAccountPollResult(db, {
       id: account.id,
-      status: `ok (${summary.messages} messages, ${summary.documents} documents)`,
-      error: null,
+      status:
+        summary.failed > 0
+          ? `partial (${summary.messages} messages, ${summary.documents} documents, ${summary.failed} failed)`
+          : `ok (${summary.messages} messages, ${summary.documents} documents)`,
+      error:
+        summary.failed > 0
+          ? `${summary.failed} of ${summary.messages} messages failed to ingest. See the processed log for details.`
+          : null,
     });
 
     return summary;
   } catch (err) {
     client.close();
+    emailIngestLogger.error(
+      { err, accountId: account.id, host: account.host },
+      "email poll failed",
+    );
     await setEmailIngestAccountPollResult(db, {
       id: account.id,
       status: "error",
@@ -234,19 +285,27 @@ export async function pollEmailIngestAccount(accountId: string): Promise<PollSum
   }
 }
 
-// Returns the number of documents ingested from this message.
+// Every exit is named so the caller can tell "nothing to do" apart from "tried and failed" — a bare
+// document count collapses the two into 0 and makes a broken poll look clean.
+type MessageOutcome =
+  | { kind: "vanished" }
+  | { kind: "already-processed" }
+  | { kind: "skipped" }
+  | { kind: "processed"; documents: number }
+  | { kind: "failed" };
+
 async function processMessage(
   client: ImapFlow,
   account: EmailIngestAccount,
   uid: number,
-): Promise<number> {
+): Promise<MessageOutcome> {
   // Envelope first (cheap); the full source is only downloaded for messages that pass the checks.
   const meta = await client.fetchOne(String(uid), { envelope: true }, { uid: true });
   // fetchOne returns `false` (not undefined) when the message vanished between search and fetch.
   const envelope = meta ? meta.envelope : undefined;
 
   if (!envelope) {
-    return 0;
+    return { kind: "vanished" };
   }
   // Message-ID survives folder moves and UIDVALIDITY resets; UIDs don't. Fall back for the rare
   // mail without one.
@@ -254,7 +313,7 @@ async function processMessage(
   const fromAddress = envelope.from?.[0]?.address ?? "";
 
   if (await hasProcessedMessage(db, { accountId: account.id, messageId })) {
-    return 0;
+    return { kind: "already-processed" };
   }
 
   if (!isSenderAllowed(fromAddress, account.allowedSenders)) {
@@ -269,7 +328,7 @@ async function processMessage(
     // Mark skipped mail seen (never delete it) so the next poll doesn't re-inspect it.
     await applyPostAction(client, uid, account.postAction === "none" ? "none" : "mark_seen");
 
-    return 0;
+    return { kind: "skipped" };
   }
 
   try {
@@ -286,8 +345,7 @@ async function processMessage(
     const rejected: string[] = [];
 
     for (const attachment of parsed.attachments) {
-      // Inline parts (signature logos, cid-embedded images) are noise, not documents.
-      if (attachment.contentDisposition !== "attachment" || attachment.related) {
+      if (!isDocumentAttachment(attachment)) {
         continue;
       }
 
@@ -374,8 +432,14 @@ async function processMessage(
     });
     await applyPostAction(client, uid, account.postAction);
 
-    return documentIds.length;
+    return { kind: "processed", documents: documentIds.length };
   } catch (err) {
+    // Swallowed on purpose so one bad mail doesn't abort the poll, so this is the only place the
+    // stack trace ever surfaces.
+    emailIngestLogger.warn(
+      { err, accountId: account.id, uid, messageId, fromAddress },
+      "email message ingest failed",
+    );
     await recordProcessedMessage(db, {
       accountId: account.id,
       messageId,
@@ -385,7 +449,7 @@ async function processMessage(
       error: errorMessage(err),
     });
 
-    return 0;
+    return { kind: "failed" };
   }
 }
 
