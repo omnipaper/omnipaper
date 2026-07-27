@@ -20,10 +20,12 @@ import { getOrgDocumentType } from "@omnipaper/database/queries/document-types";
 import {
   DEFAULT_PAGE_SIZE,
   deleteDocument,
+  deleteDocuments,
   getDocumentActivity,
   getDocuments,
   getDocumentsForExport,
   getOrgDocument,
+  getOrgDocumentStorageKeys,
   markDocumentOcrPending,
   updateDocument,
   updateDocumentOcrText,
@@ -123,6 +125,11 @@ const updateDocumentSchema = z.object({
 });
 const updateOcrTextSchema = z.object({
   ocrText: z.string().max(1000000),
+});
+// Explicit ids only: deletion here is permanent (row plus stored objects, no trash), so the
+// "all matching" shape that /export accepts is deliberately not offered.
+const deleteDocumentsSchema = z.object({
+  documents: z.array(z.string().min(1)).min(1),
 });
 const exportDocumentsSchema = z.union([
   z.object({ documents: z.array(z.string().min(1)).min(1) }),
@@ -329,6 +336,35 @@ export const documentsRoutes = new Hono<{
       },
     });
   })
+  .post(
+    "/delete",
+    requireOrgPermission({ documents: ["delete"] }),
+    zValidator("json", deleteDocumentsSchema),
+    async (c) => {
+      const organizationId = c.get("organizationId");
+      const { documents: ids } = c.req.valid("json");
+      const docs = await getOrgDocumentStorageKeys(db, { organizationId, ids });
+
+      if (docs.length === 0) {
+        throw errors.notFound("No documents found");
+      }
+
+      const driver = await getStorageDriver();
+
+      // Objects first, rows second: a failed object delete leaves the row pointing at it so the
+      // document is still listed and can be retried, whereas the reverse orphans bytes silently.
+      if (driver) {
+        for (const doc of docs) {
+          await driver.deleteObject({ key: doc.storageKey });
+          await driver.deleteObject({ key: `${doc.storageKey}.thumb.png` });
+        }
+      }
+
+      await deleteDocuments(db, { organizationId, ids: docs.map((doc) => doc.id) });
+
+      return c.json({ deleted: docs.length });
+    },
+  )
   .get("/:id", async (c) => {
     const organizationId = c.get("organizationId");
     const doc = await getOrgDocument(db, { organizationId, id: c.req.param("id") });

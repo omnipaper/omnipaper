@@ -1,7 +1,19 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@omnipaper/ui/components/alert-dialog";
 import { Button } from "@omnipaper/ui/components/button";
 import { useSearch } from "@tanstack/react-router";
-import { DownloadIcon, Loader2Icon, XIcon } from "lucide-react";
+import { DownloadIcon, Loader2Icon, Trash2Icon, XIcon } from "lucide-react";
 import type { DocumentSearch } from "@/features/documents/filters/types";
+import { useDeleteDocuments } from "./use-delete-documents";
 import { useDocumentSelection } from "./use-document-selection";
 import { useExportDocuments } from "./use-export-documents";
 
@@ -10,6 +22,7 @@ export function SelectionBar({ orgId }: { orgId: string }) {
     useDocumentSelection();
   const search = useSearch({ strict: false }) as DocumentSearch;
   const exportDocs = useExportDocuments(orgId);
+  const deleteDocs = useDeleteDocuments(orgId);
 
   if (!hasSelection) {
     return null;
@@ -42,6 +55,37 @@ export function SelectionBar({ orgId }: { orgId: string }) {
         {exportDocs.isPending ? <Loader2Icon className="animate-spin" /> : <DownloadIcon />}
         Download
       </Button>
+      {/* Hidden while "all matching" is active: that selection has no client-side count, and this
+          deletion is permanent, so there would be nothing meaningful to confirm against. */}
+      {!allSelected ? (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button size="sm" variant="destructive" disabled={deleteDocs.isPending}>
+              {deleteDocs.isPending ? <Loader2Icon className="animate-spin" /> : <Trash2Icon />}
+              Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {count === 1 ? "Delete this document?" : `Delete ${count} documents?`}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This permanently removes {count === 1 ? "it" : "them"} and the extracted text. This
+                can’t be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteDocs.mutate([...selectedIds], { onSuccess: clear })}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
       <Button size="sm" variant="ghost" onClick={clear}>
         <XIcon />
         Clear

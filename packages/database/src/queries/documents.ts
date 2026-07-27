@@ -304,6 +304,45 @@ export async function deleteDocument(
 ) {
   await db.delete(documents).where(eq(documents.id, params.id));
 }
+
+export type GetOrgDocumentStorageKeysParams = {
+  organizationId: string;
+  ids: string[];
+};
+
+// Scoped to the org so ids from another tenant silently drop out rather than being acted on.
+export async function getOrgDocumentStorageKeys(
+  db: Database,
+  params: GetOrgDocumentStorageKeysParams,
+) {
+  if (params.ids.length === 0) {
+    return [];
+  }
+
+  return db
+    .select({ id: documents.id, storageKey: documents.storageKey })
+    .from(documents)
+    .where(
+      and(eq(documents.organizationId, params.organizationId), inArray(documents.id, params.ids)),
+    );
+}
+
+export type DeleteDocumentsParams = {
+  organizationId: string;
+  ids: string[];
+};
+
+export async function deleteDocuments(db: Database, params: DeleteDocumentsParams) {
+  if (params.ids.length === 0) {
+    return;
+  }
+
+  await db
+    .delete(documents)
+    .where(
+      and(eq(documents.organizationId, params.organizationId), inArray(documents.id, params.ids)),
+    );
+}
 export async function markDocumentOcrProcessing(
   db: Database,
   params: {
