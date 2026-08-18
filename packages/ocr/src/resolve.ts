@@ -44,7 +44,6 @@ export function supportsMime(id: string, mimeType: string): boolean {
   return definition.mimeTypes.some((pattern) => matchesMime(pattern, mimeType));
 }
 
-/** Fixed-model definitions ignore user input; editable lanes use it, falling back to the default. */
 export function resolveModel(definition: OcrDefinition, userModel?: string): string {
   if (!definition.modelEditable) {
     return definition.defaultModel;
