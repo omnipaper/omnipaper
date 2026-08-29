@@ -1,8 +1,9 @@
 import { canManageOrg } from "@omnipaper/permissions";
+import { isValidStoragePath } from "@omnipaper/shared/storage-paths";
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
-import { CreatableCombobox, NONE_LABEL } from "@/components/creatable-combobox";
+import { CreatableCombobox } from "@/components/creatable-combobox";
 import {
   orgDocumentTypesQuery,
   useCreateDocumentType,
@@ -15,12 +16,12 @@ import {
 } from "@/features/documents/queries/documents";
 import { documentSuggestionsQuery } from "@/features/documents/queries/suggestions";
 import { useOrgMember } from "@/features/organization/queries/organization";
-import { isValidStoragePath } from "@/features/storage-paths/path-format";
 import {
   orgStoragePathsQuery,
   useCreateStoragePath,
 } from "@/features/storage-paths/queries/storage-paths";
 import { TagPicker } from "@/features/tags/components/tag-picker";
+import { EMPTY_LABEL } from "@/lib/format";
 
 type Props = Pick<
   DocumentDetail,
@@ -142,7 +143,7 @@ export function DocumentMetadataPanel({
               },
             });
           }}
-          placeholder={NONE_LABEL}
+          placeholder={EMPTY_LABEL}
           searchPlaceholder="Search or create type…"
           canCreate={canManageTaxonomy}
           onCreate={(name) =>
@@ -182,7 +183,7 @@ export function DocumentMetadataPanel({
               },
             });
           }}
-          placeholder={NONE_LABEL}
+          placeholder={EMPTY_LABEL}
           searchPlaceholder="Search or create path… (/Finance/2024)"
           canCreate={canManageTaxonomy}
           onCreate={(path) =>

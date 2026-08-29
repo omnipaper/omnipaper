@@ -24,6 +24,8 @@ import { DetailsTab } from "@/features/documents/components/document-detail/deta
 import { OcrTab } from "@/features/documents/components/document-detail/ocr-tab";
 import { DocumentPreview } from "@/features/documents/components/document-preview";
 import { getLastListSearch } from "@/features/documents/filters/last-list-search";
+import { removeFromNavigationSet } from "@/features/documents/navigation/navigation-set";
+import { useDocumentNavigation } from "@/features/documents/navigation/use-document-navigation";
 import {
   DocumentNotFoundError,
   documentDetailQuery,
@@ -41,6 +43,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
   const queryClient = useQueryClient();
   const member = useOrgMember(orgId);
   const canDelete = hasOrgPermission(member?.role, { documents: ["delete"] });
+  const navigation = useDocumentNavigation({ orgId, id });
 
   const { data, isPending, isError, error } = useQuery(documentDetailQuery({ orgId, id }));
   const { data: previewData, isError: isPreviewError } = useQuery(
@@ -63,10 +66,11 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
   // title so it fires once per open, NOT on every OCR refetch (the detail re-polls every 3s while
   // processing); revisiting an already-open doc is a no-op in the store anyway.
   const openTitle = data?.document.title;
+  const openMimeType = data?.document.mimeType;
   useEffect(() => {
     if (openTitle === undefined) return;
-    pushRecent(orgId, { id, title: openTitle });
-  }, [orgId, id, openTitle]);
+    pushRecent(orgId, { id, title: openTitle, mimeType: openMimeType });
+  }, [orgId, id, openTitle, openMimeType]);
 
   // A confirmed 404 means the doc was deleted elsewhere (another browser tab, another user) — the
   // session tab is a dead pointer, so close it. Transient failures keep the tab.
@@ -109,7 +113,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
         </div>
         <Button variant="outline" asChild className="mt-2">
           <Link to="/dashboard/orgs/$orgId/documents" params={{ orgId }} search={backSearch}>
-            <ArrowLeftIcon className="mr-2 size-4" />
+            <ArrowLeftIcon />
             Back to documents
           </Link>
         </Button>
@@ -120,12 +124,15 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
   const doc = data.document;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+    <div
+      data-fullbleed
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden"
+    >
       {/* Left: info panel — header of actions + tabbed metadata. Owns its own scroll on lg. */}
       <div className="flex flex-col border-b lg:w-[400px] lg:shrink-0 lg:overflow-hidden lg:border-r lg:border-b-0">
         <div className="flex shrink-0 flex-col gap-3 border-b p-4">
           <div className="flex items-center justify-between gap-2">
-            <DetailNav orgId={orgId} id={id} />
+            <DetailNav orgId={orgId} navigation={navigation} />
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleDownload}>
                 <DownloadIcon />
@@ -156,12 +163,27 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                       <AlertDialogAction
                         onClick={() =>
                           deleteDocument.mutate(id, {
-                            onSuccess: () =>
+                            // Inside an "Open" queue a deleted document drops out and you land on
+                            // the next one (Home once the queue is exhausted).
+                            onSuccess: () => {
+                              if (navigation.known) {
+                                removeFromNavigationSet(orgId, id);
+                                if (navigation.nextId) {
+                                  navigate({
+                                    to: "/dashboard/orgs/$orgId/documents/$id",
+                                    params: { orgId, id: navigation.nextId },
+                                  });
+                                } else {
+                                  navigate({ to: "/dashboard/orgs/$orgId", params: { orgId } });
+                                }
+                                return;
+                              }
                               navigate({
                                 to: "/dashboard/orgs/$orgId/documents",
                                 params: { orgId },
                                 search: backSearch,
-                              }),
+                              });
+                            },
                           })
                         }
                       >

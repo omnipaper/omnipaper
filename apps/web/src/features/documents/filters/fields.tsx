@@ -18,6 +18,7 @@ import {
 import { orgDocumentTypesQuery } from "@/features/document-types/queries/document-types";
 import { orgStoragePathsQuery } from "@/features/storage-paths/queries/storage-paths";
 import { orgTagsQuery } from "@/features/tags/queries/tags";
+import { EMPTY_LABEL } from "@/lib/format";
 import type { FilterFieldDef, FilterOption, SortState } from "./types";
 
 // Two groups only: built-in fields share one unlabeled group, custom properties get their own.
@@ -29,7 +30,7 @@ const BOOLEAN_OPTIONS: FilterOption[] = [
   { value: "false", label: "False" },
 ];
 function noneOption(): FilterOption {
-  return { value: FILTER_NONE, label: "None" };
+  return { value: FILTER_NONE, label: EMPTY_LABEL };
 }
 function deriveCustomPropertyFields(definitions: PropertyDefinition[]): FilterFieldDef[] {
   const fields: FilterFieldDef[] = [];

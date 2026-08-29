@@ -1,3 +1,4 @@
+import { isValidStoragePath } from "@omnipaper/shared/storage-paths";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Dialog,
@@ -25,7 +26,6 @@ import { type ReactNode, useState } from "react";
 import { RowActions, TableEmptyRow } from "@/components/settings/settings-table";
 import { AiAssignMaster } from "@/features/ai-assign/components/ai-assign-master";
 import { aiAssignQuery } from "@/features/ai-assign/queries/ai-assign";
-import { STORAGE_PATH_PATTERN as PATH_PATTERN } from "@/features/storage-paths/path-format";
 import {
   type OrgStoragePath,
   orgStoragePathsQuery,
@@ -133,11 +133,7 @@ export function StoragePathsManager({ orgId }: { orgId: string }) {
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <AiAssignMaster
-            orgId={orgId}
-            field="storagePath"
-            variant="button"
-          />
+          <AiAssignMaster orgId={orgId} field="storagePath" variant="button" />
           <Button onClick={openCreate}>
             <PlusIcon />
             New storage path
@@ -199,7 +195,7 @@ function StoragePathDialogBody({
   const [description, setDescription] = useState(editing?.description ?? "");
 
   const trimmedPath = path.trim();
-  const pathValid = PATH_PATTERN.test(trimmedPath);
+  const pathValid = isValidStoragePath(trimmedPath);
   const showPathError = trimmedPath.length > 0 && !pathValid;
 
   const upsert = useUpsertStoragePath(orgId);

@@ -12,11 +12,13 @@ import { cn } from "@omnipaper/ui/lib/utils";
 import {
   ArrowDownWideNarrowIcon,
   ArrowUpNarrowWideIcon,
+  CheckIcon,
   LayoutGridIcon,
   ListIcon,
   SlidersHorizontalIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { pillControl } from "@/lib/pill";
 import { DISPLAY_PROPERTIES, useDisplayProperties } from "./display-properties";
 import { DEFAULT_ORDER, ORDERING_FIELDS } from "./fields";
 import type { DocumentView } from "./types";
@@ -26,8 +28,6 @@ const VIEW_MODES: { mode: DocumentView; label: string; icon: typeof ListIcon }[]
   { mode: "gallery", label: "Gallery", icon: LayoutGridIcon },
 ];
 
-const GLASS =
-  "dark relative w-64 animate-none! border-0 bg-popover/70 p-3 text-popover-foreground shadow-md ring-1 ring-foreground/10 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150";
 export function DisplayPopover({
   sort,
   onSortChange,
@@ -49,12 +49,12 @@ export function DisplayPopover({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className={cn(pillControl, "rounded-full px-3")}>
           <SlidersHorizontalIcon />
           Display
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className={GLASS}>
+      <PopoverContent align="end" className="w-72 p-3">
         <div className="flex flex-col gap-3">
           <Row label="Layout">
             <div className="flex items-center gap-0.5 rounded-md border border-foreground/10 p-0.5">
@@ -66,7 +66,7 @@ export function DisplayPopover({
                   aria-pressed={view === mode}
                   onClick={() => onViewChange(mode)}
                   className={cn(
-                    "flex size-6 items-center justify-center rounded-[5px] transition-colors",
+                    "flex size-7 items-center justify-center rounded-md transition-colors",
                     view === mode
                       ? "bg-foreground/10 text-foreground"
                       : "text-muted-foreground hover:text-foreground",
@@ -87,7 +87,7 @@ export function DisplayPopover({
                 }
                 aria-label={orderDir === "asc" ? "Ascending" : "Descending"}
                 title={orderDir === "asc" ? "Ascending" : "Descending"}
-                className="flex size-6 shrink-0 items-center justify-center rounded-md border border-foreground/10 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                className="flex size-7 shrink-0 items-center justify-center rounded-md border border-foreground/10 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
               >
                 {orderDir === "asc" ? (
                   <ArrowUpNarrowWideIcon className="size-3.5" />
@@ -99,7 +99,7 @@ export function DisplayPopover({
                 value={orderField}
                 onValueChange={(field) => onSortChange({ field, dir: orderDir })}
               >
-                <SelectTrigger size="sm" className="w-32">
+                <SelectTrigger size="sm" className="w-36">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -117,20 +117,27 @@ export function DisplayPopover({
 
           <div>
             <p className="mb-2 text-muted-foreground text-xs">Display properties</p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-col gap-0.5">
               {DISPLAY_PROPERTIES.map((property) => (
                 <button
                   key={property.key}
                   type="button"
                   onClick={() => toggle(property.key)}
                   className={cn(
-                    "rounded-md border px-2 py-1 text-xs transition-colors",
+                    "flex min-h-7 items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm transition-colors",
                     isOn(property.key)
-                      ? "border-foreground/20 bg-foreground/10 text-foreground"
-                      : "border-foreground/10 text-muted-foreground hover:text-foreground",
+                      ? "bg-foreground/10 text-foreground"
+                      : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
                   )}
                 >
+                  <property.icon className="size-4 shrink-0" />
                   {property.label}
+                  <CheckIcon
+                    className={cn(
+                      "ml-auto size-4 shrink-0",
+                      isOn(property.key) ? "opacity-100" : "opacity-0",
+                    )}
+                  />
                 </button>
               ))}
             </div>
@@ -143,7 +150,7 @@ export function DisplayPopover({
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-muted-foreground text-sm">{label}</span>
       {children}
     </div>
   );

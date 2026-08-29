@@ -38,6 +38,7 @@ import { Route as DashboardOrgsOrgIdSettingsEmailRouteImport } from './routes/da
 import { Route as DashboardOrgsOrgIdSettingsDocumentTypesRouteImport } from './routes/dashboard/orgs/$orgId/settings/document-types'
 import { Route as DashboardOrgsOrgIdSettingsCustomPropertiesRouteImport } from './routes/dashboard/orgs/$orgId/settings/custom-properties'
 import { Route as DashboardOrgsOrgIdSettingsAiRouteImport } from './routes/dashboard/orgs/$orgId/settings/ai'
+import { Route as DashboardOrgsOrgIdDocumentsFileviewRouteImport } from './routes/dashboard/orgs/$orgId/documents.fileview'
 import { Route as DashboardOrgsOrgIdDocumentsIdRouteImport } from './routes/dashboard/orgs/$orgId/documents.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -203,6 +204,12 @@ const DashboardOrgsOrgIdSettingsAiRoute =
     path: '/ai',
     getParentRoute: () => DashboardOrgsOrgIdSettingsRouteRoute,
   } as any)
+const DashboardOrgsOrgIdDocumentsFileviewRoute =
+  DashboardOrgsOrgIdDocumentsFileviewRouteImport.update({
+    id: '/documents/fileview',
+    path: '/documents/fileview',
+    getParentRoute: () => DashboardOrgsOrgIdRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdDocumentsIdRoute =
   DashboardOrgsOrgIdDocumentsIdRouteImport.update({
     id: '/documents/$id',
@@ -223,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/orgs/$orgId/workflows': typeof DashboardOrgsOrgIdWorkflowsRouteRouteWithChildren
   '/dashboard/orgs/$orgId/': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/documents/fileview': typeof DashboardOrgsOrgIdDocumentsFileviewRoute
   '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
@@ -250,6 +258,7 @@ export interface FileRoutesByTo {
   '/accept-invitation/$id': typeof AuthAcceptInvitationIdRoute
   '/dashboard/orgs/$orgId': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/documents/fileview': typeof DashboardOrgsOrgIdDocumentsFileviewRoute
   '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
@@ -283,6 +292,7 @@ export interface FileRoutesById {
   '/dashboard/orgs/$orgId/workflows': typeof DashboardOrgsOrgIdWorkflowsRouteRouteWithChildren
   '/dashboard/orgs/$orgId/': typeof DashboardOrgsOrgIdIndexRoute
   '/dashboard/orgs/$orgId/documents/$id': typeof DashboardOrgsOrgIdDocumentsIdRoute
+  '/dashboard/orgs/$orgId/documents/fileview': typeof DashboardOrgsOrgIdDocumentsFileviewRoute
   '/dashboard/orgs/$orgId/settings/ai': typeof DashboardOrgsOrgIdSettingsAiRoute
   '/dashboard/orgs/$orgId/settings/custom-properties': typeof DashboardOrgsOrgIdSettingsCustomPropertiesRoute
   '/dashboard/orgs/$orgId/settings/document-types': typeof DashboardOrgsOrgIdSettingsDocumentTypesRoute
@@ -316,6 +326,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/workflows'
     | '/dashboard/orgs/$orgId/'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/documents/fileview'
     | '/dashboard/orgs/$orgId/settings/ai'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
@@ -343,6 +354,7 @@ export interface FileRouteTypes {
     | '/accept-invitation/$id'
     | '/dashboard/orgs/$orgId'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/documents/fileview'
     | '/dashboard/orgs/$orgId/settings/ai'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
@@ -375,6 +387,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/workflows'
     | '/dashboard/orgs/$orgId/'
     | '/dashboard/orgs/$orgId/documents/$id'
+    | '/dashboard/orgs/$orgId/documents/fileview'
     | '/dashboard/orgs/$orgId/settings/ai'
     | '/dashboard/orgs/$orgId/settings/custom-properties'
     | '/dashboard/orgs/$orgId/settings/document-types'
@@ -605,6 +618,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsAiRouteImport
       parentRoute: typeof DashboardOrgsOrgIdSettingsRouteRoute
     }
+    '/dashboard/orgs/$orgId/documents/fileview': {
+      id: '/dashboard/orgs/$orgId/documents/fileview'
+      path: '/documents/fileview'
+      fullPath: '/dashboard/orgs/$orgId/documents/fileview'
+      preLoaderRoute: typeof DashboardOrgsOrgIdDocumentsFileviewRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdRouteRoute
+    }
     '/dashboard/orgs/$orgId/documents/$id': {
       id: '/dashboard/orgs/$orgId/documents/$id'
       path: '/documents/$id'
@@ -686,6 +706,7 @@ interface DashboardOrgsOrgIdRouteRouteChildren {
   DashboardOrgsOrgIdWorkflowsRouteRoute: typeof DashboardOrgsOrgIdWorkflowsRouteRouteWithChildren
   DashboardOrgsOrgIdIndexRoute: typeof DashboardOrgsOrgIdIndexRoute
   DashboardOrgsOrgIdDocumentsIdRoute: typeof DashboardOrgsOrgIdDocumentsIdRoute
+  DashboardOrgsOrgIdDocumentsFileviewRoute: typeof DashboardOrgsOrgIdDocumentsFileviewRoute
   DashboardOrgsOrgIdDocumentsIndexRoute: typeof DashboardOrgsOrgIdDocumentsIndexRoute
 }
 
@@ -697,6 +718,8 @@ const DashboardOrgsOrgIdRouteRouteChildren: DashboardOrgsOrgIdRouteRouteChildren
       DashboardOrgsOrgIdWorkflowsRouteRouteWithChildren,
     DashboardOrgsOrgIdIndexRoute: DashboardOrgsOrgIdIndexRoute,
     DashboardOrgsOrgIdDocumentsIdRoute: DashboardOrgsOrgIdDocumentsIdRoute,
+    DashboardOrgsOrgIdDocumentsFileviewRoute:
+      DashboardOrgsOrgIdDocumentsFileviewRoute,
     DashboardOrgsOrgIdDocumentsIndexRoute:
       DashboardOrgsOrgIdDocumentsIndexRoute,
   }

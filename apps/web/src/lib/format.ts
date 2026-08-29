@@ -1,20 +1,30 @@
 import { normalizeMimeType, UPLOAD_FORMATS } from "@omnipaper/shared/formats";
 
+// How an empty/unset value is rendered wherever a property has no value (list cells, field triggers).
+export const EMPTY_LABEL = "—";
+
 const MEDIUM_DATE = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 export function formatInstantDate(value: string | Date): string {
   return MEDIUM_DATE.format(new Date(value));
 }
 
+const RELATIVE_DAY = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
 export function formatRelativeDay(value: string | Date): string {
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const days = Math.round((startOfDay(new Date()) - startOfDay(new Date(value))) / 86_400_000);
   if (days <= 0) {
     return "today";
   }
-  if (days <= 7) {
-    return days === 1 ? "1 day ago" : `${days} days ago`;
+  if (days < 7) {
+    return RELATIVE_DAY.format(-days, "day");
   }
-  return formatInstantDate(value);
+  if (days < 30) {
+    return RELATIVE_DAY.format(-Math.round(days / 7), "week");
+  }
+  if (days < 365) {
+    return RELATIVE_DAY.format(-Math.round(days / 30), "month");
+  }
+  return RELATIVE_DAY.format(-Math.round(days / 365), "year");
 }
 export function formatCalendarDate(value: string): string {
   return MEDIUM_DATE.format(new Date(`${value}T00:00:00`));

@@ -6,7 +6,7 @@ import { DateFilterPicker } from "./date-filter-picker";
 import { FilterValueList } from "./filter-value-list";
 import type { FilterFieldDef, FilterValue } from "./types";
 
-function summarize(field: FilterFieldDef, value: FilterValue): string {
+export function summarizeFilterValue(field: FilterFieldDef, value: FilterValue): string {
   if (value.kind === "in") {
     const options = field.picker.kind === "in" ? field.picker.options : [];
     const labels = value.values.map((v) => options.find((o) => o.value === v)?.label ?? v);
@@ -61,7 +61,7 @@ export function ActiveFilterChip({
           >
             <Icon className="size-3.5 text-muted-foreground" />
             <span className="text-muted-foreground">{field.label}</span>
-            <span className="font-medium">{summarize(field, value)}</span>
+            <span className="font-medium">{summarizeFilterValue(field, value)}</span>
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-56 p-0">

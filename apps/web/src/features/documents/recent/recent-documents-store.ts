@@ -4,9 +4,10 @@ import { useCallback, useSyncExternalStore } from "react";
 // scoped: kept in sessionStorage so the list survives a reload but dies with the tab / on browser
 // restart — these are the docs you're working on right now, not a durable history. Keyed per org
 // because documents are org-scoped and the URL's orgId is the source of truth. We store only what the
-// sidebar renders ({ id, title }) — no date/type/mime, on purpose.
+// sidebar renders: id, title and the mime type behind the tab's file icon. mimeType is optional so
+// entries written before it existed keep parsing.
 
-export type RecentDocument = { id: string; title: string };
+export type RecentDocument = { id: string; title: string; mimeType?: string };
 
 const MAX_RECENT = 5;
 const storageKey = (orgId: string) => `omnipaper.documents.recent.${orgId}`;
@@ -73,8 +74,16 @@ function write(orgId: string, list: RecentDocument[]) {
 
 export function pushRecent(orgId: string, entry: RecentDocument) {
   const list = getList(orgId);
-  // Already a tab → leave it where it is. Tabs hold their position; we don't reorder on revisit.
-  if (list.some((e) => e.id === entry.id)) {
+  // Already a tab → leave it where it is. Tabs hold their position; we don't reorder on revisit,
+  // but we do backfill fields (mime, renamed title) recorded before we stored them.
+  const existing = list.find((e) => e.id === entry.id);
+  if (existing) {
+    if (existing.title !== entry.title || existing.mimeType !== entry.mimeType) {
+      write(
+        orgId,
+        list.map((e) => (e.id === entry.id ? { ...e, ...entry } : e)),
+      );
+    }
     return;
   }
   // Newest on top; oldest falls off once we're over the cap.

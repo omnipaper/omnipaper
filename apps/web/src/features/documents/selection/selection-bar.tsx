@@ -10,22 +10,43 @@ import {
   AlertDialogTrigger,
 } from "@omnipaper/ui/components/alert-dialog";
 import { Button } from "@omnipaper/ui/components/button";
-import { useSearch } from "@tanstack/react-router";
-import { DownloadIcon, Loader2Icon, Trash2Icon, XIcon } from "lucide-react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { ChevronsRightIcon, DownloadIcon, Loader2Icon, Trash2Icon, XIcon } from "lucide-react";
 import type { DocumentSearch } from "@/features/documents/filters/types";
+import {
+  clearNavigationSet,
+  saveNavigationSet,
+} from "@/features/documents/navigation/navigation-set";
 import { useDeleteDocuments } from "./use-delete-documents";
 import { useDocumentSelection } from "./use-document-selection";
 import { useExportDocuments } from "./use-export-documents";
 
 export function SelectionBar({ orgId }: { orgId: string }) {
-  const { hasSelection, allSelected, count, selectedIds, selectAllMatching, clear } =
+  const { hasSelection, allSelected, count, selectedIds, orderedIds, selectAllMatching, clear } =
     useDocumentSelection();
   const search = useSearch({ strict: false }) as DocumentSearch;
+  const navigate = useNavigate();
   const exportDocs = useExportDocuments(orgId);
   const deleteDocs = useDeleteDocuments(orgId);
 
   if (!hasSelection) {
     return null;
+  }
+
+  // Open the first selected document and queue the rest for prev/next. "All matching" is not a
+  // queue: the detail's list-order navigation already walks the whole filter, page by page.
+  function open() {
+    const ids = allSelected ? orderedIds : orderedIds.filter((id) => selectedIds.has(id));
+    const first = ids[0];
+    if (!first) {
+      return;
+    }
+    if (allSelected) {
+      clearNavigationSet(orgId);
+    } else {
+      saveNavigationSet(orgId, ids);
+    }
+    navigate({ to: "/dashboard/orgs/$orgId/documents/$id", params: { orgId, id: first } });
   }
 
   function download() {
@@ -51,6 +72,10 @@ export function SelectionBar({ orgId }: { orgId: string }) {
         </button>
       ) : null}
       <div className="mx-1 h-4 w-px bg-border" />
+      <Button size="sm" variant="outline" onClick={open}>
+        <ChevronsRightIcon />
+        Open
+      </Button>
       <Button size="sm" variant="outline" onClick={download} disabled={exportDocs.isPending}>
         {exportDocs.isPending ? <Loader2Icon className="animate-spin" /> : <DownloadIcon />}
         Download

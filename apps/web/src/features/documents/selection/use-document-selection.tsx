@@ -20,6 +20,10 @@ type SelectionValue = {
   toggle: (id: string, orderedIds: string[], shiftKey: boolean) => void;
   selectAllMatching: () => void;
   clear: () => void;
+  // The loaded list's order, registered by DocumentList, so actions over the selection (Open)
+  // can walk it in list order rather than click order.
+  orderedIds: string[];
+  registerOrder: (ids: string[]) => void;
 };
 
 const DocumentSelectionContext = createContext<SelectionValue | null>(null);
@@ -28,7 +32,14 @@ export function DocumentSelectionProvider({ children }: { children: ReactNode })
   const search = useSearch({ strict: false }) as DocumentSearch;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [allSelected, setAllSelected] = useState(false);
+  const [orderedIds, setOrderedIds] = useState<string[]>([]);
   const anchorRef = useRef<string | null>(null);
+
+  const registerOrder = useCallback((ids: string[]) => {
+    setOrderedIds((prev) =>
+      prev.length === ids.length && prev.every((v, i) => v === ids[i]) ? prev : ids,
+    );
+  }, []);
 
   const reset = useCallback(() => {
     setSelectedIds(new Set());
@@ -93,8 +104,10 @@ export function DocumentSelectionProvider({ children }: { children: ReactNode })
         setAllSelected(true);
       },
       clear: reset,
+      orderedIds,
+      registerOrder,
     };
-  }, [selectedIds, allSelected, reset]);
+  }, [selectedIds, allSelected, reset, orderedIds, registerOrder]);
 
   return (
     <DocumentSelectionContext.Provider value={value}>{children}</DocumentSelectionContext.Provider>

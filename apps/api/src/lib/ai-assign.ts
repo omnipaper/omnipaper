@@ -14,6 +14,7 @@ import { addDocumentTag, createTag, getOrgTags } from "@omnipaper/database/queri
 import { getAiSettings } from "@omnipaper/settings/ai-settings";
 import { getProviderKeys } from "@omnipaper/settings/provider-settings";
 import { resolveAiModel } from "@omnipaper/shared/ai-models";
+import { normalizeStoragePath } from "@omnipaper/shared/storage-paths";
 import type { AiAssignParams } from "@omnipaper/shared/workflows/ai-assign";
 import { coerceCustomValue, customPropertyRegistry } from "./custom-property-registry";
 
@@ -108,7 +109,8 @@ export async function runAiAssignMetadata(
   }
 
   if (config.storagePath && result.storagePath) {
-    const match = paths.find((p) => p.path === result.storagePath);
+    const wanted = normalizeStoragePath(result.storagePath);
+    const match = paths.find((p) => p.path === wanted);
     if (match) {
       if (config.storagePath.mode === "apply") {
         if (!doc.storagePathId) {

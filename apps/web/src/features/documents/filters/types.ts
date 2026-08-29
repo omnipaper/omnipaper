@@ -18,6 +18,8 @@ export type DocumentView = "list" | "gallery";
 export type DocumentSearch = {
   view?: DocumentView;
   q?: string;
+  // Current folder on the fileview route ("/Finance/2024"); absent = root. Ignored elsewhere.
+  path?: string;
   filters?: FilterState;
   sort?: SortState;
   savedView?: string;

@@ -1,12 +1,23 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { HomeView } from "@/features/documents/components/home-view";
+import { documentSearchSchema } from "@/features/documents/filters/search-schema";
+import { clearNavigationSet } from "@/features/documents/navigation/navigation-set";
 
-// The org index has no content of its own — it sends you to the documents page (gallery by default).
-// Later this is where a per-user default view would be resolved.
+// The Drive-style Home landing page: welcome header, centered search, filter chips, and the most
+// recently added documents. The flat list and folder browsing live under /documents.
 export const Route = createFileRoute("/dashboard/orgs/$orgId/")({
-  beforeLoad: ({ params }) => {
-    throw redirect({
-      to: "/dashboard/orgs/$orgId/documents",
-      params: { orgId: params.orgId },
-    });
-  },
+  validateSearch: documentSearchSchema,
+  component: HomePage,
 });
+
+function HomePage() {
+  const { orgId } = Route.useParams();
+
+  // Any collection page ends an "Open" queue (see navigation-set.ts).
+  useEffect(() => {
+    clearNavigationSet(orgId);
+  }, [orgId]);
+
+  return <HomeView orgId={orgId} />;
+}

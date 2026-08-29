@@ -22,6 +22,7 @@ import {
   deleteDocument,
   deleteDocuments,
   getDocumentActivity,
+  getDocumentIds,
   getDocuments,
   getDocumentsForExport,
   getOrgDocument,
@@ -298,6 +299,28 @@ export const documentsRoutes = new Hono<{
     const nextCursor =
       rows.length === DEFAULT_PAGE_SIZE ? String(offset + DEFAULT_PAGE_SIZE) : null;
     return c.json({ documents, nextCursor });
+  })
+  // The detail view's navigation snapshot: every matching id in list order (capped in the query).
+  // Same validation as the list; `cursor` is accepted and ignored.
+  .get("/ids", zValidator("query", listDocumentsQuerySchema), async (c) => {
+    const organizationId = c.get("organizationId");
+    const { q, filters, sort } = c.req.valid("query");
+    const customPropertyTypes =
+      filters && Object.keys(filters).some((key) => key.startsWith("cp:"))
+        ? new Map(
+            (await getOrgCustomPropertyTypes(db, { organizationId })).map(
+              (d) => [d.id, d.type] as const,
+            ),
+          )
+        : undefined;
+    const ids = await getDocumentIds(db, {
+      organizationId,
+      query: q,
+      filters,
+      sort,
+      customPropertyTypes,
+    });
+    return c.json({ ids });
   })
   .post("/export", zValidator("json", exportDocumentsSchema), async (c) => {
     const organizationId = c.get("organizationId");

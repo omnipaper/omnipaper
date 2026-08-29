@@ -29,7 +29,7 @@ export function AiAssignMaster({
       <div
         className={cn(
           buttonVariants({ variant: enabled ? "default" : "outline", size: "default" }),
-          "inline-flex h-7 items-stretch p-0",
+          "inline-flex items-stretch p-0",
           set.isPending && "pointer-events-none opacity-50",
         )}
       >

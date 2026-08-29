@@ -100,6 +100,42 @@ export function documentsListQuery({ orgId, query = "", filters, sort }: Documen
     },
   });
 }
+// The navigation snapshot: all matching ids in list order, fetched once per search and never
+// refetched. Its key sits deliberately OUTSIDE documentKeys — mutations invalidate that whole
+// namespace, and a snapshot must survive edits (that is its entire point).
+export function documentNavigationIdsQuery({
+  orgId,
+  query = "",
+  filters,
+  sort,
+}: DocumentListFilters) {
+  return queryOptions({
+    queryKey: [
+      "document-navigation-ids",
+      orgId,
+      { query, filters: filters ?? null, sort: sort ?? null },
+    ],
+    queryFn: async () => {
+      const res = await api.orgs[":orgId"].documents.ids.$get({
+        param: { orgId },
+        query: {
+          ...(query ? { q: query } : {}),
+          ...(filters && Object.keys(filters).length > 0
+            ? { filters: encodeFilters(filters) }
+            : {}),
+          ...(sort ? { sort: encodeSort(sort) } : {}),
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to load document ids");
+      }
+      return (await res.json()).ids;
+    },
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: 30 * 60 * 1000,
+  });
+}
+
 export class DocumentNotFoundError extends Error {}
 
 export function documentDetailQuery({ orgId, id }: DocumentRef) {

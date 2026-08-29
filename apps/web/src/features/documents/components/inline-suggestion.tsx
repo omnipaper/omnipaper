@@ -26,18 +26,16 @@ export function InlineSuggestion({
       </span>
       <div className="flex shrink-0 gap-1">
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
-          className="h-5 px-2 text-xs"
           onClick={() => accept.mutate(suggestionId)}
           disabled={accept.isPending}
         >
           Use
         </Button>
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
-          className="h-5 px-2 text-xs"
           onClick={() => dismiss.mutate(suggestionId)}
           disabled={dismiss.isPending}
           aria-label="Dismiss suggestion"

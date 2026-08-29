@@ -11,7 +11,9 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@omnipaper/ui/components/dropdown-menu";
+import { cn } from "@omnipaper/ui/lib/utils";
 import { PlusIcon } from "lucide-react";
+import { pillControl } from "@/lib/pill";
 import { DateFilterPicker } from "./date-filter-picker";
 import type { FilterFieldDef, FilterState, FilterValue } from "./types";
 export function AddFilterMenu({
@@ -45,7 +47,7 @@ export function AddFilterMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className={cn(pillControl, "rounded-full px-3")}>
           <PlusIcon />
           Filter
         </Button>

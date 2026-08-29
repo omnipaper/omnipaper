@@ -1,43 +1,24 @@
-import { Input } from "@omnipaper/ui/components/input";
-import { useNavigate, useSearch } from "@tanstack/react-router";
-import { type ReactNode, useEffect, useState } from "react";
-import { UploadButton } from "@/features/documents/components/upload-button";
-import { FilterBar } from "@/features/documents/filters/filter-bar";
-import type { DocumentSearch } from "@/features/documents/filters/types";
+import type { ReactNode } from "react";
+import { ActiveFilterChips, FilterActions } from "@/features/documents/filters/filter-bar";
 import { SelectionBar } from "@/features/documents/selection/selection-bar";
-import { useDemoReadOnly } from "@/lib/demo-mode";
 
-export function DocumentsShell({ orgId, children }: { orgId: string; children: ReactNode }) {
-  const demoReadOnly = useDemoReadOnly();
-  const navigate = useNavigate();
-  const search = useSearch({ strict: false }) as DocumentSearch;
-  const [text, setText] = useState(search.q ?? "");
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      navigate({
-        to: ".",
-        replace: true,
-        search: (prev) => ({ ...(prev as DocumentSearch), q: text.trim() || undefined }),
-      });
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [text, navigate]);
-
+export function DocumentsShell({
+  orgId,
+  fileView = false,
+  children,
+}: {
+  orgId: string;
+  fileView?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-bold text-2xl text-balance">Documents</h1>
-        {!demoReadOnly && <UploadButton orgId={orgId} />}
+    <div className="flex flex-col gap-6 p-6">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-bold text-2xl text-balance">{fileView ? "File view" : "Documents"}</h1>
+        <FilterActions orgId={orgId} fileView={fileView} />
       </div>
       <div className="flex flex-col gap-3">
-        <Input
-          type="search"
-          placeholder="Search documents…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <FilterBar orgId={orgId} />
+        <ActiveFilterChips orgId={orgId} fileView={fileView} />
         <SelectionBar orgId={orgId} />
         {children}
       </div>

@@ -66,7 +66,7 @@ export async function createStoragePath(db: Database, input: CreateStoragePathIn
     .insert(storagePaths)
     .values({
       organizationId: input.organizationId,
-      path: input.path.trim(),
+      path: input.path,
       description: input.description,
       aiEligible: input.aiEligible,
     })
@@ -83,7 +83,7 @@ export async function updateStoragePath(db: Database, input: UpdateStoragePathIn
   const patch: { path?: string; description?: string | null; aiEligible?: boolean } = {};
 
   if (input.path !== undefined) {
-    patch.path = input.path.trim();
+    patch.path = input.path;
   }
   if (input.description !== undefined) {
     patch.description = input.description;
