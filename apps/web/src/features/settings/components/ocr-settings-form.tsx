@@ -81,7 +81,7 @@ export function OcrSettingsForm() {
   }
 
   return (
-    <Card className="max-w-lg">
+    <Card>
       <CardHeader>
         <CardTitle>OCR</CardTitle>
         <CardDescription>

@@ -121,7 +121,7 @@ export function StorageSettingsForm() {
   }
 
   return (
-    <Card className="max-w-lg">
+    <Card>
       <CardHeader>
         <CardTitle>Storage</CardTitle>
         <CardDescription>

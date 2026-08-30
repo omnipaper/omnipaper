@@ -14,7 +14,7 @@ export function RegistrationSettingsForm() {
   const enabled = registrationQuery.data?.enabled ?? false;
 
   return (
-    <Card className="max-w-lg">
+    <Card>
       <CardHeader>
         <CardTitle>Registration</CardTitle>
       </CardHeader>
