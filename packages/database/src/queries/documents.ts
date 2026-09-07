@@ -227,6 +227,9 @@ export async function getDocumentActivity(db: Database, params: GetDocumentActiv
         eq(activityEvents.organizationId, params.organizationId),
         eq(activityEvents.resourceType, "document"),
         eq(activityEvents.resourceId, params.documentId),
+        // Field-change events are no longer emitted (the journal is their record); hide the
+        // historical rows too so the feed doesn't look like it stopped mid-2026.
+        inArray(activityEvents.event, ["document.created", "document.ocr_completed"]),
       ),
     )
     .orderBy(desc(activityEvents.createdAt))

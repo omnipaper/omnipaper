@@ -1,15 +1,21 @@
-import { isValidModelSetting, RECOMMENDED_MODEL } from "@omnipaper/shared/ai-models";
+import {
+  AI_MODEL_PROVIDERS,
+  type AiModelProvider,
+  isValidModelSetting,
+  RECOMMENDED_MODEL,
+  resolveAiModel,
+} from "@omnipaper/shared/ai-models";
 import { z } from "zod";
+import { getProviderKeys } from "./provider-settings";
 import { getSetting, setSetting } from "./settings";
 
 // Provider + model for AI metadata assignment. Mirrors ocr-settings; keys live in provider-settings.
 // `model` is either the "recommended" sentinel (we bump it across releases) or a concrete pinned id.
-const AI_PROVIDERS = ["openai", "anthropic", "google", "mistral"] as const;
-export type AiProvider = (typeof AI_PROVIDERS)[number];
+export type AiProvider = AiModelProvider;
 
 export const aiSettingsSchema = z
   .object({
-    provider: z.enum(AI_PROVIDERS),
+    provider: z.enum(AI_MODEL_PROVIDERS),
     model: z.string(),
   })
   .superRefine((value, ctx) => {
@@ -21,7 +27,7 @@ export const aiSettingsSchema = z
 export type AiSettings = z.infer<typeof aiSettingsSchema>;
 
 export const aiProviderTestSchema = z.object({
-  provider: z.enum(AI_PROVIDERS),
+  provider: z.enum(AI_MODEL_PROVIDERS),
   apiKey: z.string(),
 });
 
@@ -33,7 +39,7 @@ const KEYS = {
 } as const;
 
 function isAiProvider(value: string | null): value is AiProvider {
-  return value !== null && (AI_PROVIDERS as readonly string[]).includes(value);
+  return value !== null && (AI_MODEL_PROVIDERS as readonly string[]).includes(value);
 }
 
 export async function getAiSettings(): Promise<AiSettings> {
@@ -47,4 +53,21 @@ export async function getAiSettings(): Promise<AiSettings> {
 export async function setAiSettings(values: AiSettings): Promise<void> {
   await setSetting({ key: KEYS.provider, value: values.provider });
   await setSetting({ key: KEYS.model, value: values.model });
+}
+
+export type AiRuntimeConfig = { provider: AiProvider; model: string; apiKey: string };
+
+// Composes settings + provider key + model catalog into what a call site needs to construct a
+// model: concrete model id (sentinel resolved) and the decrypted key. Single place where "is AI
+// usable at all" is decided.
+export async function getAiRuntimeConfig(): Promise<
+  { ok: true; config: AiRuntimeConfig } | { ok: false; detail: string }
+> {
+  const { provider, model } = await getAiSettings();
+  const apiKey = (await getProviderKeys())[provider];
+  if (!apiKey) {
+    return { ok: false, detail: `missing ${provider} API key` };
+  }
+
+  return { ok: true, config: { provider, model: resolveAiModel(provider, model), apiKey } };
 }

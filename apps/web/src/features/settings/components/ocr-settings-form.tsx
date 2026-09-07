@@ -40,6 +40,8 @@ export function OcrSettingsForm() {
   const [model, setModel] = useState(() => ocrQuery.data?.model ?? "");
   const [mistralKey, setMistralKey] = useState("");
   const [googleKey, setGoogleKey] = useState("");
+  const [azureKey, setAzureKey] = useState("");
+  const [azureEndpoint, setAzureEndpoint] = useState("");
 
   useEffect(() => {
     if (ocrQuery.data) {
@@ -54,11 +56,21 @@ export function OcrSettingsForm() {
     if (providersQuery.data) {
       setMistralKey(providersQuery.data.mistral ?? "");
       setGoogleKey(providersQuery.data.google ?? "");
+      setAzureKey(providersQuery.data.azure ?? "");
+      setAzureEndpoint(providersQuery.data.azureEndpoint ?? "");
     }
   }, [providersQuery.data]);
 
   const selected = definitions.find((d) => d.id === definitionId);
-  const requiredKey = selected?.provider === "google" ? googleKey : mistralKey;
+
+  const keyState = {
+    mistral: [mistralKey, setMistralKey],
+    google: [googleKey, setGoogleKey],
+    azure: [azureKey, setAzureKey],
+  } as const;
+  const providerLabel = { mistral: "Mistral", google: "Google", azure: "Azure" } as const;
+
+  const [requiredKey, setRequiredKey] = selected ? keyState[selected.provider] : keyState.mistral;
 
   function selectDefinition(id: string) {
     setDefinitionId(id);
@@ -72,7 +84,7 @@ export function OcrSettingsForm() {
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     saveMutation.mutate({
-      providers: { mistral: mistralKey, google: googleKey },
+      providers: { mistral: mistralKey, google: googleKey, azure: azureKey, azureEndpoint },
       ocr: {
         definitionId: definitionId as OcrDefinitionId,
         model: selected?.modelEditable ? model : undefined,
@@ -131,20 +143,26 @@ export function OcrSettingsForm() {
             </div>
           ) : null}
 
+          {selected?.provider === "azure" ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="azureEndpoint">Azure Endpoint</Label>
+              <Input
+                id="azureEndpoint"
+                value={azureEndpoint}
+                onChange={(e) => setAzureEndpoint(e.target.value)}
+                placeholder="https://your-resource.cognitiveservices.azure.com"
+              />
+            </div>
+          ) : null}
+
           {selected ? (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="apiKey">
-                {selected.provider === "google" ? "Google" : "Mistral"} API Key
-              </Label>
+              <Label htmlFor="apiKey">{providerLabel[selected.provider]} API Key</Label>
               <Input
                 id="apiKey"
                 type="password"
                 value={requiredKey}
-                onChange={(e) =>
-                  selected.provider === "google"
-                    ? setGoogleKey(e.target.value)
-                    : setMistralKey(e.target.value)
-                }
+                onChange={(e) => setRequiredKey(e.target.value)}
               />
             </div>
           ) : null}
@@ -159,7 +177,11 @@ export function OcrSettingsForm() {
               className="ml-auto"
               onClick={() =>
                 selected &&
-                testMutation.mutate({ provider: selected.provider, apiKey: requiredKey })
+                testMutation.mutate({
+                  provider: selected.provider,
+                  apiKey: requiredKey,
+                  ...(selected.provider === "azure" ? { endpoint: azureEndpoint } : {}),
+                })
               }
               disabled={testMutation.isPending || !selected}
             >

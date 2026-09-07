@@ -3,4 +3,5 @@ export type ProviderKeys = {
   google?: string;
   openai?: string;
   anthropic?: string;
+  azure?: string;
 };

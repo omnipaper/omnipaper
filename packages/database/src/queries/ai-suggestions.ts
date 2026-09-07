@@ -22,12 +22,14 @@ export type SetSuggestionStatusInput = {
   documentId: string;
   id: string;
   status: "accepted" | "dismissed";
+  resolvedBy?: string | null;
 };
 
 export type DismissSuggestionsForFieldInput = {
   documentId: string;
   field: NewAiSuggestion["field"];
   customPropertyDefinitionId?: string | null;
+  resolvedBy?: string | null;
 };
 
 // One open suggestion per (document, field, customPropertyDefinitionId): a re-run replaces the
@@ -98,7 +100,7 @@ export async function getSuggestionById(db: Database, params: GetSuggestionByIdP
 export async function setSuggestionStatus(db: Database, input: SetSuggestionStatusInput) {
   const [suggestion] = await db
     .update(aiSuggestions)
-    .set({ status: input.status })
+    .set({ status: input.status, resolvedBy: input.resolvedBy ?? null, resolvedAt: new Date() })
     .where(and(eq(aiSuggestions.id, input.id), eq(aiSuggestions.documentId, input.documentId)))
     .returning();
 
@@ -113,7 +115,7 @@ export async function dismissSuggestionsForField(
   const defId = params.customPropertyDefinitionId;
   await db
     .update(aiSuggestions)
-    .set({ status: "dismissed" })
+    .set({ status: "dismissed", resolvedBy: params.resolvedBy ?? null, resolvedAt: new Date() })
     .where(
       and(
         eq(aiSuggestions.documentId, params.documentId),

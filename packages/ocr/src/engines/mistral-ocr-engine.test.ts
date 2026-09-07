@@ -12,8 +12,11 @@ afterAll(() => {
   fetchSpy.mockRestore();
 });
 
+const pdfBytes = new TextEncoder().encode("%PDF-1.4 test");
+const pdfDataUrl = `data:application/pdf;base64,${Buffer.from(pdfBytes).toString("base64")}`;
+
 describe("extractWithMistralOcr", () => {
-  it("sends PDF documents as document URLs and joins page text", async () => {
+  it("sends PDF documents as inline data URLs and joins page text", async () => {
     fetchSpy.mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -26,7 +29,7 @@ describe("extractWithMistralOcr", () => {
     const text = await extractWithMistralOcr({
       apiKey: "mistral-test-key",
       model: "mistral-ocr-latest",
-      documentUrl: "https://files.test/invoice.pdf",
+      data: pdfBytes,
       mimeType: "application/pdf",
     });
 
@@ -44,22 +47,24 @@ describe("extractWithMistralOcr", () => {
       model: "mistral-ocr-latest",
       document: {
         type: "document_url",
-        document_url: "https://files.test/invoice.pdf",
+        document_url: pdfDataUrl,
       },
     });
   });
 
-  it("sends image documents as image URLs", async () => {
+  it("sends image documents as inline image URLs", async () => {
     fetchSpy.mockResolvedValue(
       new Response(JSON.stringify({ pages: [{ markdown: "Scanned text" }] }), {
         status: 200,
       }),
     );
 
+    const imageBytes = new TextEncoder().encode("png-bytes");
+
     await extractWithMistralOcr({
       apiKey: "mistral-test-key",
       model: "mistral-ocr-latest",
-      documentUrl: "https://files.test/scan.png",
+      data: imageBytes,
       mimeType: "image/png",
     });
 
@@ -68,7 +73,7 @@ describe("extractWithMistralOcr", () => {
       model: "mistral-ocr-latest",
       document: {
         type: "image_url",
-        image_url: "https://files.test/scan.png",
+        image_url: `data:image/png;base64,${Buffer.from(imageBytes).toString("base64")}`,
       },
     });
   });
@@ -79,7 +84,7 @@ describe("extractWithMistralOcr", () => {
     const text = await extractWithMistralOcr({
       apiKey: "mistral-test-key",
       model: "mistral-ocr-latest",
-      documentUrl: "https://files.test/empty.pdf",
+      data: pdfBytes,
       mimeType: "application/pdf",
     });
 
@@ -92,7 +97,7 @@ describe("extractWithMistralOcr", () => {
     const promise = extractWithMistralOcr({
       apiKey: "mistral-test-key",
       model: "mistral-ocr-latest",
-      documentUrl: "https://files.test/invoice.pdf",
+      data: pdfBytes,
       mimeType: "application/pdf",
     });
 
@@ -106,7 +111,7 @@ describe("extractWithMistralOcr", () => {
     const rateLimitError = extractWithMistralOcr({
       apiKey: "mistral-test-key",
       model: "mistral-ocr-latest",
-      documentUrl: "https://files.test/invoice.pdf",
+      data: pdfBytes,
       mimeType: "application/pdf",
     });
 
@@ -117,7 +122,7 @@ describe("extractWithMistralOcr", () => {
     const badRequestError = extractWithMistralOcr({
       apiKey: "mistral-test-key",
       model: "mistral-ocr-latest",
-      documentUrl: "https://files.test/invoice.pdf",
+      data: pdfBytes,
       mimeType: "application/pdf",
     });
 

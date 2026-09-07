@@ -24,7 +24,13 @@ const getOcrSettings = mock(() =>
   Promise.resolve({ definitionId: "mistral-ocr", model: "mistral-ocr-latest" }),
 );
 const getProviderKeys = mock(() => Promise.resolve({ mistral: "test-key" }));
-const createDownloadUrl = mock(() => Promise.resolve({ url: "https://files.test/doc_1.pdf" }));
+const getAzureEndpoint = mock(() => Promise.resolve(undefined));
+const getObject = mock(() =>
+  Promise.resolve({
+    body: new TextEncoder().encode("%PDF-1.4 test").buffer as ArrayBuffer,
+    contentType: "application/pdf",
+  }),
+);
 const enqueue = mock(() => Promise.resolve());
 const taskLogger = { error: mock(() => {}) };
 
@@ -38,9 +44,9 @@ mock.module("@omnipaper/database/queries/documents", () => ({
 mock.module("@omnipaper/ocr/runner", () => ({ extractText }));
 mock.module("@omnipaper/queue/producer", () => ({ enqueue }));
 mock.module("@omnipaper/settings/ocr-settings", () => ({ getOcrSettings }));
-mock.module("@omnipaper/settings/provider-settings", () => ({ getProviderKeys }));
+mock.module("@omnipaper/settings/provider-settings", () => ({ getProviderKeys, getAzureEndpoint }));
 mock.module("../lib/storage", () => ({
-  getStorageDriver: mock(() => Promise.resolve({ createDownloadUrl })),
+  getStorageDriver: mock(() => Promise.resolve({ getObject })),
 }));
 mock.module("../logger", () => ({ taskLogger }));
 mock.module("@omnipaper/queue/worker", () => ({
@@ -62,7 +68,8 @@ beforeEach(() => {
   extractText.mockResolvedValue({ text: "Invoice text" });
   getOcrSettings.mockClear();
   getProviderKeys.mockClear();
-  createDownloadUrl.mockClear();
+  getAzureEndpoint.mockClear();
+  getObject.mockClear();
   enqueue.mockClear();
   taskLogger.error.mockClear();
 });

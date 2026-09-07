@@ -5,9 +5,10 @@ import {
   getOcrDefinition,
   isOcrDefinitionId,
   listOcrDefinitions,
+  missingCredential,
+  OcrError,
   resolveModel,
   supportsMime,
-  OcrError
 } from "./resolve";
 
 describe("OCR definitions", () => {
@@ -55,9 +56,22 @@ describe("OCR definitions", () => {
   });
 
   it("lists definitions and filters them by provider", () => {
-    expect(listOcrDefinitions()).toHaveLength(1);
+    expect(listOcrDefinitions()).toHaveLength(2);
     expect(definitionsForProvider("mistral")).toHaveLength(1);
     expect(definitionsForProvider("mistral")[0]?.id).toBe("mistral-ocr");
+    expect(definitionsForProvider("azure")[0]?.id).toBe("azure-document-intelligence");
     expect(definitionsForProvider("google")).toEqual([]);
+  });
+
+  it("reports the missing credential for a definition", () => {
+    const azure = getOcrDefinition("azure-document-intelligence");
+    const mistral = getOcrDefinition("mistral-ocr");
+
+    expect(missingCredential(mistral, { keys: {} })).toBe("mistral API key");
+    expect(missingCredential(mistral, { keys: { mistral: "key" } })).toBeNull();
+    expect(missingCredential(azure, { keys: { azure: "key" } })).toBe("Azure endpoint");
+    expect(
+      missingCredential(azure, { keys: { azure: "key" }, azureEndpoint: "https://myres.test" }),
+    ).toBeNull();
   });
 });

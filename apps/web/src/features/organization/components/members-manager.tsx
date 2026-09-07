@@ -204,7 +204,7 @@ export function MembersManager({ orgId }: { orgId: string }) {
                     <MoreHorizontalIcon />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-32">
+                <DropdownMenuContent align="end" className="w-auto min-w-32">
                   <DropdownMenuItem
                     variant="destructive"
                     onSelect={() =>
@@ -248,7 +248,7 @@ export function MembersManager({ orgId }: { orgId: string }) {
                 <MoreHorizontalIcon />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-32">
+            <DropdownMenuContent align="end" className="w-auto min-w-32">
               <DropdownMenuItem onSelect={() => copyInviteLink(invitation)}>
                 Copy invite link
               </DropdownMenuItem>

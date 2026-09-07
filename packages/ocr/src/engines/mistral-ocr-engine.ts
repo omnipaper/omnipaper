@@ -4,11 +4,14 @@ import type { DocumentInput } from "../types";
 export async function extractWithMistralOcr(
   input: DocumentInput & { apiKey: string; model: string },
 ): Promise<string> {
-  const { apiKey, model, documentUrl, mimeType } = input;
+  const { apiKey, model, data, mimeType } = input;
+
+  // Bytes go inline as a data URL so the bucket never has to be reachable from Mistral's side.
+  const dataUrl = `data:${mimeType};base64,${Buffer.from(data).toString("base64")}`;
 
   const document = mimeType.startsWith("image/")
-    ? { type: "image_url", image_url: documentUrl }
-    : { type: "document_url", document_url: documentUrl };
+    ? { type: "image_url", image_url: dataUrl }
+    : { type: "document_url", document_url: dataUrl };
 
   let response: Response;
   try {
@@ -33,8 +36,8 @@ export async function extractWithMistralOcr(
     throw new OcrError(`Mistral OCR failed (${response.status}): ${detail}`, { retryable });
   }
 
-  const data = (await response.json()) as { pages?: Array<{ markdown?: string }> };
-  return (data.pages ?? []).map((page) => page.markdown ?? "").join("\n\n");
+  const payload = (await response.json()) as { pages?: Array<{ markdown?: string }> };
+  return (payload.pages ?? []).map((page) => page.markdown ?? "").join("\n\n");
 }
 
 export async function testMistralConnection(apiKey: string): Promise<void> {

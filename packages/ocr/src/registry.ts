@@ -1,6 +1,6 @@
 export type Lane = "ocr" | "llm";
 
-export type Provider = "mistral" | "google";
+export type Provider = "mistral" | "google" | "azure";
 
 export type OcrDefinition = {
   id: string;
@@ -18,6 +18,16 @@ const IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as co
 
 const DOCUMENT_MIMES = [PDF, ...IMAGE_MIMES] as const;
 
+// Azure Document Intelligence does not accept webp/gif (unlike Mistral).
+const AZURE_DOCUMENT_MIMES = [
+  PDF,
+  "image/jpeg",
+  "image/png",
+  "image/tiff",
+  "image/bmp",
+  "image/heif",
+] as const;
+
 export const OCR_DEFINITIONS = {
   "mistral-ocr": {
     id: "mistral-ocr",
@@ -27,6 +37,17 @@ export const OCR_DEFINITIONS = {
     defaultModel: "mistral-ocr-latest",
     modelEditable: false,
     mimeTypes: DOCUMENT_MIMES,
+  },
+  // Model maps 1:1 to the Azure modelId in the analyze URL — editable so admins can pick the
+  // cheaper "prebuilt-read" over the markdown-capable default.
+  "azure-document-intelligence": {
+    id: "azure-document-intelligence",
+    label: "Azure Document Intelligence",
+    lane: "ocr",
+    provider: "azure",
+    defaultModel: "prebuilt-layout",
+    modelEditable: true,
+    mimeTypes: AZURE_DOCUMENT_MIMES,
   },
   // v0.0.1 ships Mistral OCR ONLY. The LLM lanes below stay here, commented, to re-enable in 0.2.0 —
   // uncomment to restore them in the engine dropdown. Everything they need is still in place and

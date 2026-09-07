@@ -1,8 +1,13 @@
-import { recordEvent } from "@omnipaper/database/activity";
 import { db } from "@omnipaper/database/client";
+import { recordFieldChanges } from "@omnipaper/database/field-changes";
 import { documentMatchesFilter } from "@omnipaper/database/queries/document-filters";
 import { getDocumentById } from "@omnipaper/database/queries/documents";
-import { addDocumentTag, getOrgTag, removeDocumentTag } from "@omnipaper/database/queries/tags";
+import {
+  addDocumentTag,
+  getOrgTag,
+  getTagsByDocumentIds,
+  removeDocumentTag,
+} from "@omnipaper/database/queries/tags";
 import {
   finishWorkflowRun,
   getWorkflowById,
@@ -46,11 +51,28 @@ async function runAction(
           detail: "tag not found",
         };
       }
-      await addDocumentTag(db, { documentId: doc.id, tagId: action.config.tagId });
+      const current = await getTagsByDocumentIds(db, { documentIds: [doc.id] });
+      await addDocumentTag(db, { documentId: doc.id, tagId: tag.id });
+      if (!current.some((t) => t.id === tag.id)) {
+        await recordFieldChanges(db, {
+          documentId: doc.id,
+          source: "ai",
+          changes: [{ field: "tags", newValue: { id: tag.id, name: tag.name } }],
+        });
+      }
       return { actionId: action.id, type: action.type, status: "ok" };
     }
     case "tag.remove": {
+      const current = await getTagsByDocumentIds(db, { documentIds: [doc.id] });
+      const attached = current.find((t) => t.id === action.config.tagId);
       await removeDocumentTag(db, { documentId: doc.id, tagId: action.config.tagId });
+      if (attached) {
+        await recordFieldChanges(db, {
+          documentId: doc.id,
+          source: "ai",
+          changes: [{ field: "tags", oldValue: { id: attached.id, name: attached.name } }],
+        });
+      }
       return { actionId: action.id, type: action.type, status: "ok" };
     }
     case "ai.assignMetadata": {
@@ -105,19 +127,6 @@ export const workflowRunTask = defineTask(
           detail: err instanceof Error ? err.message : String(err),
         });
       }
-    }
-
-    const tagsChanged = results.some(
-      (r) => r.status === "ok" && (r.type === "tag.add" || r.type === "tag.remove"),
-    );
-    if (tagsChanged) {
-      await recordEvent(db, {
-        organizationId: doc.organizationId,
-        resource: { type: "document", id: doc.id, label: doc.title },
-        event: "document.tags_updated",
-        actor: { type: "system" },
-        data: { workflowId },
-      });
     }
 
     const failed = results.filter((r) => r.status === "failed");

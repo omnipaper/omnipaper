@@ -8,6 +8,7 @@
     "./auth-schema": "./src/auth-schema.ts",
     "./client": "./src/client.ts",
     "./activity": "./src/activity.ts",
+    "./field-changes": "./src/field-changes.ts",
     "./queries/ai-suggestions": "./src/queries/ai-suggestions.ts",
     "./queries/custom-properties": "./src/queries/custom-properties.ts",
     "./queries/document-filters": "./src/queries/document-filters.ts",
