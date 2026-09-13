@@ -95,7 +95,7 @@ export function SaveViewButton({ orgId }: { orgId: string }) {
 
   if (activeView && dirty) {
     return (
-      <div className="flex items-center">
+      <div className="flex items-stretch">
         <Button
           variant="outline"
           size="sm"

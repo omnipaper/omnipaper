@@ -84,7 +84,7 @@ export function DetailNav({
   return (
     <div className="flex items-center gap-1">
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon-sm"
         asChild
         aria-label="Close document"

@@ -3,7 +3,7 @@ import { Button } from "@omnipaper/ui/components/button";
 import { type ChangeEvent, useRef } from "react";
 import { useUploadDocuments } from "@/features/documents/queries/upload";
 
-export function UploadButton({ orgId }: { orgId: string }) {
+export function UploadButton({ orgId, className }: { orgId: string; className?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { upload, isPending, progress } = useUploadDocuments(orgId);
 
@@ -23,7 +23,7 @@ export function UploadButton({ orgId }: { orgId: string }) {
         className="hidden"
         onChange={handleChange}
       />
-      <Button onClick={() => inputRef.current?.click()} disabled={isPending}>
+      <Button className={className} onClick={() => inputRef.current?.click()} disabled={isPending}>
         {progress ? `Uploading ${progress.done}/${progress.total}…` : "Upload"}
       </Button>
     </>

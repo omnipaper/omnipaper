@@ -49,6 +49,7 @@ import { DemoBanner } from "@/features/auth/components/demo-banner";
 import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
 import { DocumentSearchInput } from "@/features/documents/components/document-search-input";
 import { GlobalDropArea } from "@/features/documents/components/global-drop-area";
+import { UploadButton } from "@/features/documents/components/upload-button";
 import { useUploadDocuments } from "@/features/documents/queries/upload";
 import { RecentDocuments } from "@/features/documents/recent/recent-documents";
 import { OnboardingChecklist } from "@/features/onboarding/components/onboarding-checklist";
@@ -370,15 +371,23 @@ function OrgLayout() {
       <SidebarInset className="min-w-0">
         <DemoBanner />
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger />
           {inSettings ? (
-            <span className="font-medium text-sm">Settings</span>
-          ) : onHome ? null : (
             <>
-              <div className="flex flex-1 justify-center">
-                <DocumentSearchInput orgId={orgId} className="h-10 w-full max-w-xl" />
+              <SidebarTrigger />
+              <span className="font-medium text-sm">Settings</span>
+            </>
+          ) : (
+            <>
+              {/* Equal flex-1 sides keep the search centered regardless of what sits on either edge. */}
+              <div className="flex flex-1">
+                <SidebarTrigger />
               </div>
-              <span aria-hidden className="w-7 shrink-0" />
+              {onHome ? null : (
+                <DocumentSearchInput orgId={orgId} className="h-10 w-full max-w-xl" />
+              )}
+              <div className="flex flex-1 justify-end">
+                {!demoReadOnly && <UploadButton orgId={orgId} className="h-10" />}
+              </div>
             </>
           )}
         </header>
