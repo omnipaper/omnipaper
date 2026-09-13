@@ -24,10 +24,10 @@ import {
   SidebarMenuItem,
 } from "@omnipaper/ui/components/sidebar";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation, useSearch } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { BookmarkIcon, MoreHorizontalIcon } from "lucide-react";
 import { useState } from "react";
-import type { DocumentSearch } from "@/features/documents/filters/types";
+import { useDocumentSearch } from "@/features/documents/filters/use-document-search";
 import {
   type OrgSavedView,
   orgSavedViewsQuery,
@@ -63,7 +63,7 @@ export function SavedViewsSidebar({ orgId }: { orgId: string }) {
 
 function SavedViewRow({ orgId, view }: { orgId: string; view: OrgSavedView }) {
   const { pathname } = useLocation();
-  const search = useSearch({ strict: false }) as DocumentSearch;
+  const search = useDocumentSearch();
   const update = useUpdateSavedView(orgId);
   const create = useCreateSavedView(orgId);
   const remove = useDeleteSavedView(orgId);

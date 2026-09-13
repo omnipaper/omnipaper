@@ -38,8 +38,6 @@ export const OCR_DEFINITIONS = {
     modelEditable: false,
     mimeTypes: DOCUMENT_MIMES,
   },
-  // Model maps 1:1 to the Azure modelId in the analyze URL — editable so admins can pick the
-  // cheaper "prebuilt-read" over the markdown-capable default.
   "azure-document-intelligence": {
     id: "azure-document-intelligence",
     label: "Azure Document Intelligence",

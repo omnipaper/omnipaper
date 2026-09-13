@@ -104,8 +104,6 @@ export function getPropertyTypeDefinition(type: CustomPropertyType): CustomPrope
   return customPropertyRegistry[type];
 }
 
-// Snapshot of a stored property value for the field-changes journal: selects keep option identity,
-// everything else collapses to its display string.
 export function propertyChangeSnapshot(
   type: CustomPropertyType,
   options: { id: string; label: string }[],

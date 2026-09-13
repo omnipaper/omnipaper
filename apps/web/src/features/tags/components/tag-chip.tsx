@@ -11,8 +11,6 @@ type TagChipProps = {
   className?: string;
 };
 
-// The chip is filled with the tag's own color; the label switches between black and white by the
-// color's YIQ brightness, so every palette color stays readable.
 function contrastText(hex: string): string {
   const r = Number.parseInt(hex.slice(1, 3), 16);
   const g = Number.parseInt(hex.slice(3, 5), 16);
@@ -24,7 +22,6 @@ function contrastText(hex: string): string {
 export function TagChip({ name, color, onRemove, disabled, className }: TagChipProps) {
   return (
     <Badge
-      // Deliberately off the kit's Badge sizing (see ui.md): this component IS the tag look.
       className={cn("h-auto border-transparent py-0.5 font-normal text-xs", className)}
       style={{ backgroundColor: color, color: contrastText(color) }}
     >

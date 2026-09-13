@@ -163,8 +163,6 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
                       <AlertDialogAction
                         onClick={() =>
                           deleteDocument.mutate(id, {
-                            // Inside an "Open" queue a deleted document drops out and you land on
-                            // the next one (Home once the queue is exhausted).
                             onSuccess: () => {
                               if (navigation.known) {
                                 removeFromNavigationSet(orgId, id);

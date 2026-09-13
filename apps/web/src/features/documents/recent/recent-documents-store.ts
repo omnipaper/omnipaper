@@ -3,9 +3,7 @@ import { useCallback, useSyncExternalStore } from "react";
 // The documents a user has open this session, shown as closeable "tabs" in the sidebar. SESSION
 // scoped: kept in sessionStorage so the list survives a reload but dies with the tab / on browser
 // restart — these are the docs you're working on right now, not a durable history. Keyed per org
-// because documents are org-scoped and the URL's orgId is the source of truth. We store only what the
-// sidebar renders: id, title and the mime type behind the tab's file icon. mimeType is optional so
-// entries written before it existed keep parsing.
+// because documents are org-scoped and the URL's orgId is the source of truth.
 
 export type RecentDocument = { id: string; title: string; mimeType?: string };
 
@@ -74,8 +72,7 @@ function write(orgId: string, list: RecentDocument[]) {
 
 export function pushRecent(orgId: string, entry: RecentDocument) {
   const list = getList(orgId);
-  // Already a tab → leave it where it is. Tabs hold their position; we don't reorder on revisit,
-  // but we do backfill fields (mime, renamed title) recorded before we stored them.
+  // Tabs keep their position on revisit; only backfill fields recorded before we stored them.
   const existing = list.find((e) => e.id === entry.id);
   if (existing) {
     if (existing.title !== entry.title || existing.mimeType !== entry.mimeType) {

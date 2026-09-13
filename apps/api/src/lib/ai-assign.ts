@@ -41,10 +41,8 @@ type Doc = {
   documentDate: string | null;
 };
 
-// Apply-mode overwrite rule: AI may fill empty fields and revise its own earlier values, but never
-// touches human-set ones. Provenance comes from the journal (latest change row per field); no row
-// = value predates tracking, treated as human. Title is the exception (it always has an
-// ingest-generated value, so "empty" never happens): AI may replace it unless a human edited it.
+// AI may overwrite only empty or AI-set fields; no journal row counts as human-set.
+// Title is never empty (ingest sets it), so AI may replace it unless a human edited it.
 function aiMayWrite(currentValue: unknown, source: FieldSource | undefined): boolean {
   return !currentValue || source === "ai";
 }

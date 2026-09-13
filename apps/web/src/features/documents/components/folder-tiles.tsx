@@ -2,7 +2,6 @@ import type { FolderNode } from "@omnipaper/shared/storage-paths";
 import { FolderIcon } from "lucide-react";
 import { useFolderNavigate } from "@/features/documents/components/use-folder-navigate";
 
-// Presentation only: the caller derives, narrows and sorts the folder list.
 export function FolderTiles({ folders }: { folders: ReadonlyArray<FolderNode> }) {
   const goTo = useFolderNavigate();
 

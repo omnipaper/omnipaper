@@ -531,13 +531,7 @@ export const aiSuggestions = pgTable(
   ],
 );
 
-// Append-only per-field audit (old → new value), the single record of field changes (the
-// activity_events feed only carries lifecycle events). Human edits within a session are coalesced
-// by updating new_value only; old_value is never rewritten. Tag changes are one row per tag:
-// old=null means added, new=null means removed. Values are display snapshots (see
-// FieldChangeValue), so rows stay readable after renames/deletes; that is also why the definition
-// FK is set null, not cascade. "Who set the current value" is derived from the latest row per
-// field, there are no provenance columns elsewhere.
+// Append-only; snapshot values + set-null FKs keep rows readable after deletes.
 export const documentFieldChanges = pgTable(
   "document_field_changes",
   {

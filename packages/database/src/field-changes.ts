@@ -21,7 +21,6 @@ export type RecordFieldChangesInput = {
   changes: FieldChangeInput[];
 };
 
-// Identity of a value for no-op and coalescing checks: renames don't change identity.
 function valueKey(value: FieldChangeValue | null | undefined): string | null {
   if (!value) {
     return null;
@@ -29,10 +28,8 @@ function valueKey(value: FieldChangeValue | null | undefined): string | null {
   return "id" in value ? `id:${value.id}` : `value:${value.value}`;
 }
 
-// Human edits of the same (document, field, definition) within the window collapse into one row
-// per editing session: old_value keeps the session's starting point, new_value follows the latest
-// edit. Editing back to the starting value deletes the row (the session was a no-op). AI writes
-// are single-shot and tag rows are itemized add/remove, so neither coalesces.
+// Human edits within the window coalesce into one row per session (editing back to the start
+// deletes it). AI writes and itemized tag rows never coalesce.
 async function coalesce(
   tx: DbOrTx,
   input: RecordFieldChangesInput,
@@ -101,9 +98,6 @@ export async function recordFieldChanges(tx: DbOrTx, input: RecordFieldChangesIn
   }
 }
 
-// Provenance of a document's current field values, derived from the journal: the latest row per
-// (field, definition) tells who set what is there now. No row = value predates tracking, callers
-// treat that as human-set (safe direction).
 export async function getLatestFieldSources(db: Database, params: { documentId: string }) {
   return db
     .selectDistinctOn(

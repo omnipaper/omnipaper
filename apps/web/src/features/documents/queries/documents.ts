@@ -100,9 +100,7 @@ export function documentsListQuery({ orgId, query = "", filters, sort }: Documen
     },
   });
 }
-// The navigation snapshot: all matching ids in list order, fetched once per search and never
-// refetched. Its key sits deliberately OUTSIDE documentKeys — mutations invalidate that whole
-// namespace, and a snapshot must survive edits (that is its entire point).
+// Deliberately outside documentKeys: mutations invalidate that namespace, the snapshot must survive edits.
 export function documentNavigationIdsQuery({
   orgId,
   query = "",

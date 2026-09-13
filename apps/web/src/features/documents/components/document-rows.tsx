@@ -9,8 +9,6 @@ import { useDocumentFilters } from "@/features/documents/filters/use-document-fi
 import type { DocumentRow } from "@/features/documents/queries/documents";
 import { useDocumentSelection } from "@/features/documents/selection/use-document-selection";
 
-// The documents/fileview list layout: maps the shared Display properties onto table columns and
-// turns selection on. The table itself is page-agnostic — Home passes a fixed column set instead.
 export function DocumentRows({
   orgId,
   documents,
@@ -30,8 +28,7 @@ export function DocumentRows({
   const selection = useDocumentSelection();
   const { sort, setSort } = useDocumentFilters();
 
-  // Checked when every loaded row is selected; toggling on flags ALL matching documents (also
-  // pages not fetched yet), toggling off clears the selection entirely.
+  // Toggling on selects ALL matching documents, including pages not fetched yet.
   const allChecked = documents.length > 0 && documents.every((doc) => isSelected(doc.id));
   const onToggleAll = () => (allChecked ? selection.clear() : selection.selectAllMatching());
 

@@ -1,6 +1,5 @@
 import { normalizeMimeType, UPLOAD_FORMATS } from "@omnipaper/shared/formats";
 
-// How an empty/unset value is rendered wherever a property has no value (list cells, field triggers).
 export const EMPTY_LABEL = "—";
 
 const MEDIUM_DATE = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });

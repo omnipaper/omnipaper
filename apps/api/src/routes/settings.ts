@@ -209,7 +209,6 @@ const adminSettings = new Hono<{ Variables: Variables }>()
       openai: keys.openai ? SECRET_MASK : null,
       anthropic: keys.anthropic ? SECRET_MASK : null,
       azure: keys.azure ? SECRET_MASK : null,
-      // Plain config, not a secret — returned as-is so the form can edit it.
       azureEndpoint: (await getAzureEndpoint()) ?? null,
     });
   })

@@ -5,9 +5,6 @@ import { DisplayPopover } from "./display-popover";
 import { useDocumentFilterFields } from "./fields";
 import { useDocumentFilters } from "./use-document-filters";
 
-// The old FilterBar, split in two: the action buttons live in the page title row, the active
-// chips render above the results. On the fileview route folder navigation owns the path scope,
-// so the path field leaves both halves, and views are not saveable there.
 export function FilterActions({ orgId, fileView = false }: { orgId: string; fileView?: boolean }) {
   const fields = useDocumentFilterFields(orgId);
   const { filters, sort, view, setValue, remove, setSort, setView } = useDocumentFilters();

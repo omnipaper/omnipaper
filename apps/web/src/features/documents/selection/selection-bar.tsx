@@ -10,9 +10,9 @@ import {
   AlertDialogTrigger,
 } from "@omnipaper/ui/components/alert-dialog";
 import { Button } from "@omnipaper/ui/components/button";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { ChevronsRightIcon, DownloadIcon, Loader2Icon, Trash2Icon, XIcon } from "lucide-react";
-import type { DocumentSearch } from "@/features/documents/filters/types";
+import { useDocumentSearch } from "@/features/documents/filters/use-document-search";
 import {
   clearNavigationSet,
   saveNavigationSet,
@@ -24,7 +24,7 @@ import { useExportDocuments } from "./use-export-documents";
 export function SelectionBar({ orgId }: { orgId: string }) {
   const { hasSelection, allSelected, count, selectedIds, orderedIds, selectAllMatching, clear } =
     useDocumentSelection();
-  const search = useSearch({ strict: false }) as DocumentSearch;
+  const search = useDocumentSearch();
   const navigate = useNavigate();
   const exportDocs = useExportDocuments(orgId);
   const deleteDocs = useDeleteDocuments(orgId);
@@ -33,8 +33,6 @@ export function SelectionBar({ orgId }: { orgId: string }) {
     return null;
   }
 
-  // Open the first selected document and queue the rest for prev/next. "All matching" is not a
-  // queue: the detail's list-order navigation already walks the whole filter, page by page.
   function open() {
     const ids = allSelected ? orderedIds : orderedIds.filter((id) => selectedIds.has(id));
     const first = ids[0];

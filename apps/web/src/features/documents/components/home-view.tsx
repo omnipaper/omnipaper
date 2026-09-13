@@ -1,6 +1,6 @@
 import { cn } from "@omnipaper/ui/lib/utils";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Link, useSearch } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ClockIcon, FilesIcon, LayoutGridIcon, ListIcon } from "lucide-react";
 import { PageLoader } from "@/components/page-loader";
 import { sessionQueryOptions } from "@/features/auth/queries/session";
@@ -13,17 +13,15 @@ import { ActiveFilterChip } from "@/features/documents/filters/active-filter-chi
 import { AddFilterMenu } from "@/features/documents/filters/add-filter-menu";
 import { useDocumentFilterFields } from "@/features/documents/filters/fields";
 import { FilterFieldChip } from "@/features/documents/filters/filter-field-chip";
-import type { DocumentSearch, DocumentView } from "@/features/documents/filters/types";
+import type { DocumentView } from "@/features/documents/filters/types";
 import { useDocumentFilters } from "@/features/documents/filters/use-document-filters";
+import { useDocumentSearch } from "@/features/documents/filters/use-document-search";
 import { type DocumentRow, documentsListQuery } from "@/features/documents/queries/documents";
 import { TagChip } from "@/features/tags/components/tag-chip";
 import { formatInstantDate, formatRelativeDay } from "@/lib/format";
 
-// The Drive-style landing page: centered welcome + search + filter chips, then the most recently
-// added documents. Deliberately simpler than /documents — no display properties, no selection, no
-// sort control (recency is the point); the layout toggle only picks cards vs rows.
 export function HomeView({ orgId }: { orgId: string }) {
-  const search = useSearch({ strict: false }) as DocumentSearch;
+  const search = useDocumentSearch();
   const fields = useDocumentFilterFields(orgId);
   const { filters, view, setValue, remove, setView, clearAll } = useDocumentFilters();
   const userName = useQuery(sessionQueryOptions).data?.user?.name;
@@ -32,9 +30,6 @@ export function HomeView({ orgId }: { orgId: string }) {
   const { data, isPending, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useInfiniteQuery(documentsListQuery({ orgId, query, filters }));
 
-  // The four everyday fields are permanent Drive-style chips; everything else (file type,
-  // document date, custom properties) stays behind "+ Filter" and surfaces as a removable chip
-  // only while set.
   const PINNED_FILTER_KEYS = ["documentType", "path", "tags", "createdAt"];
   const pinnedFields = fields.filter((f) => PINNED_FILTER_KEYS.includes(f.key));
   const menuFields = fields.filter((f) => !PINNED_FILTER_KEYS.includes(f.key));
@@ -164,7 +159,6 @@ function ViewToggle({
   );
 }
 
-// Home cards show exactly three things: preview, title, added date.
 function HomeCards({ orgId, documents }: { orgId: string; documents: DocumentRow[] }) {
   return (
     <ul className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">

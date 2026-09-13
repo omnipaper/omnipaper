@@ -1,13 +1,11 @@
-// The explicit queue behind "Open" on the selection bar: document ids to step through in the
-// detail view, in list order. Session-scoped like lastListSearch. Every collection page clears
-// it, so a stale queue can never hijack prev/next for a document opened by a plain click later.
+// The "Open" queue. Every collection page clears it, so a stale one can't hijack prev/next later.
 const storageKey = (orgId: string) => `omnipaper.documents.navigationSet.${orgId}`;
 
 export function saveNavigationSet(orgId: string, ids: string[]) {
   try {
     sessionStorage.setItem(storageKey(orgId), JSON.stringify(ids));
   } catch {
-    // ignore write failures (private mode, quota) — prev/next falls back to the list order
+    // private mode or quota: prev/next falls back to list order
   }
 }
 

@@ -24,7 +24,6 @@ function DocumentsView() {
     saveLastListSearch(orgId, search);
   }, [orgId, search]);
 
-  // Any collection page ends an "Open" queue (see navigation-set.ts).
   useEffect(() => {
     clearNavigationSet(orgId);
   }, [orgId]);

@@ -9,8 +9,6 @@ import pdfIcon from "./file-icons/pdf.svg";
 import tableIcon from "./file-icons/table.svg";
 import wordIcon from "./file-icons/word.svg";
 
-// Material Icon Theme glyphs (MIT, see file-icons/LICENSE) carry their own color, so callers only
-// size them. Rendered as <img> since Vite serves .svg as a URL and there is no SVGR in this app.
 function svgIcon(src: string): ComponentType<{ className?: string }> {
   return function FileTypeSvg({ className }: { className?: string }) {
     return <img src={src} alt="" aria-hidden className={className} />;
@@ -43,8 +41,6 @@ export function fileTypeIcon(mimeType: string): ComponentType<{ className?: stri
   return DocumentIcon;
 }
 
-// Display a pulsing skeleton while the thumbnail image loads, fade it in once loaded, and show a
-// file-type icon if the image fails to load.
 function Thumbnail({
   src,
   alt,
@@ -88,8 +84,6 @@ function Thumbnail({
   );
 }
 
-// The three-state preview every document surface shares: the rendered thumbnail, a spinner while
-// the worker is generating one, or the mime icon when there is nothing to render.
 export function DocumentThumbnail({
   orgId,
   doc,

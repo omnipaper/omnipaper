@@ -48,8 +48,6 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }, h
       throw new Error(`OCR is not configured: missing ${missing}`);
     }
 
-    // Providers receive the bytes inline (base64), so the bucket never has to be reachable
-    // from outside — only from this process.
     const object = await storage.getObject({ key: doc.storageKey });
 
     if (!object) {

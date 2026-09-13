@@ -58,8 +58,6 @@ export type ProviderCredentials = {
   azureEndpoint?: string;
 };
 
-// What each provider needs to run lives here, next to the registry — callers (routes, tasks)
-// only ask "is it configured / what's missing" instead of re-encoding per-provider rules.
 export function missingCredential(
   definition: OcrDefinition,
   credentials: ProviderCredentials,

@@ -40,8 +40,6 @@ function StepButton({
   );
 }
 
-// Close + step through without going back to the list: the editing flow is "open, fix, next".
-// Stepping past the last document finishes on Home. ←/→ do the same from the keyboard.
 export function DetailNav({
   orgId,
   navigation,

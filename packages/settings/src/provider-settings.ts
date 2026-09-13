@@ -12,7 +12,6 @@ export const providerKeysSchema = z.object({
 
 export type { ProviderKeys };
 
-// The Azure resource endpoint travels with the keys but is plain config, not a secret.
 export const providerSettingsUpdateSchema = providerKeysSchema.extend({
   azureEndpoint: z.string().optional(),
 });
@@ -59,9 +58,6 @@ export async function setProviderSettings(values: ProviderSettingsUpdate): Promi
   await persistValue(KEYS.azureEndpoint, values.azureEndpoint, { secret: false });
 }
 
-// undefined → field not submitted, leave the stored value untouched.
-// Blank → admin cleared the field, delete the row (storing "" would be a non-functional value).
-// Otherwise persist (encrypted when secret).
 async function persistValue(
   key: string,
   value: string | undefined,

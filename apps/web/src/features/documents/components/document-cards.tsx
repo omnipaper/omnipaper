@@ -83,9 +83,7 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
           </div>
 
           <div className="flex min-w-0 flex-col gap-1.5 px-1 pb-1">
-            {/* Single-line marquee: on hover the title slides left by exactly its overflow
-                (100cqw = container width, 100% = text width); short titles clamp to 0 and stay
-                put. The right-edge mask only fades text that actually reaches it. */}
+            {/* Marquee: on hover the title slides left by exactly its overflow (100cqw container, 100% text). */}
             <span
               title={doc.title}
               className="block overflow-hidden whitespace-nowrap font-medium text-sm [container-type:inline-size] [mask-image:linear-gradient(to_right,black_calc(100%-12px),transparent)] group-hover:underline"

@@ -14,14 +14,11 @@ import {
 export type DocumentNavigation = {
   previousId: string | null;
   nextId: string | null;
-  // False while the snapshot is still loading, or when this document is not part of it.
   known: boolean;
 };
 
-// Prev/next walk a SNAPSHOT of ids, never a live query, so editing a document out of the current
-// filter cannot strand you mid-review. The snapshot comes from the session set when "Open" wrote
-// one, otherwise it is fetched once for the last list search and then persisted to the same set,
-// after which both flows behave identically (delete, reload). Collection pages clear the set.
+// Prev/next walk a snapshot of ids, not a live query, so editing a document out of the
+// filter can't strand you mid-review.
 export function useDocumentNavigation({
   orgId,
   id,

@@ -24,12 +24,10 @@ export type DocumentColumnKey =
   | "documentDate"
   | "added";
 
-// Metadata columns hide on phones (max-sm) — a narrow screen keeps just the name.
 type ColumnDef = {
   label: string;
   width: string;
   cellClassName: string;
-  // Present only when the API can order by this column (SORT_COLUMNS on the server).
   sortField?: string;
   defaultDir?: "asc" | "desc";
   render: (doc: DocumentRow) => ReactNode;
@@ -105,8 +103,6 @@ function renderSnippet(snippet: string) {
   });
 }
 
-// Drive-style list: a header row naming the columns, then one line per document. Pages differ
-// only in which columns they pass (and whether rows are selectable) — the table stays dumb.
 export function DocumentTable({
   orgId,
   documents,
@@ -119,7 +115,6 @@ export function DocumentTable({
   orgId: string;
   documents: DocumentRow[];
   columns: DocumentColumnKey[];
-  // Leading folder rows (file view's list mode): name + dashes, Drive-style, outside selection.
   folders?: ReadonlyArray<FolderNode>;
   onOpenFolder?: (path: string) => void;
   selection?: {
@@ -137,8 +132,6 @@ export function DocumentTable({
 
   return (
     <div className="overflow-x-auto rounded-md border">
-      {/* w-fit + min-w-full: rows size to their columns and the wrapper scrolls sideways when
-          they outgrow the page, instead of crushing the name column to nothing. */}
       <div className="w-fit min-w-full">
         <div className="flex items-center border-b text-muted-foreground text-xs">
           {selection ? (

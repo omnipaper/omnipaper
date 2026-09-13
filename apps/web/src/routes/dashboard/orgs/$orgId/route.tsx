@@ -86,7 +86,6 @@ function OrgLayout() {
   const canManage = canManageOrg(member?.role);
   const settingsBase = `/dashboard/orgs/${orgId}/settings`;
   const inSettings = pathname.startsWith(settingsBase);
-  // Home has its own large centered search — a second one in the header would be a duplicate.
   const onHome = pathname === `/dashboard/orgs/${orgId}`;
   // Workflows highlights on the whole section (list, /new, /$workflowId), not just the index.
   const inWorkflows = pathname.startsWith(`/dashboard/orgs/${orgId}/workflows`);
@@ -379,18 +378,11 @@ function OrgLayout() {
               <div className="flex flex-1 justify-center">
                 <DocumentSearchInput orgId={orgId} className="h-10 w-full max-w-xl" />
               </div>
-              {/* balances the trigger so the search sits optically centered */}
               <span aria-hidden className="w-7 shrink-0" />
             </>
           )}
         </header>
-        {/*
-          One scroll container for every page, with a reserved scrollbar gutter so the content
-          never shifts sideways when a filter shortens a list and the scrollbar disappears.
-          Padding stays on each page (swaps atomically with content); only scroll/gutter live here.
-          A page that owns its own layout (e.g. the paned document detail) opts out by marking its
-          root data-fullbleed, and :has() drops the outer scroll + gutter for it.
-        */}
+        {/* Reserved scrollbar gutter avoids sideways shift; pages marked data-fullbleed opt out via :has(). */}
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-gutter-stable has-[[data-fullbleed]]:scrollbar-gutter-auto has-[[data-fullbleed]]:overflow-hidden">
           <Outlet />
         </div>

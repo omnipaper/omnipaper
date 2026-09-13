@@ -1,5 +1,3 @@
-// Single source of truth for storage path naming. Normalize before validating or comparing so
-// the API routes, the web validators, and ai-assign path matching cannot drift.
 export const STORAGE_PATH_PATTERN = /^\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+$/;
 
 export function normalizeStoragePath(raw: string): string {
@@ -23,8 +21,7 @@ export type FolderNode = {
   pathId: string | null;
 };
 
-// Mirrors S3 ListObjects prefix+delimiter: a folder exists when any stored path passes through
-// it. Callers sort for display themselves (Intl.Collator) — DB collation varies per deployment.
+// Mirrors S3 prefix+delimiter: a folder exists when any stored path passes through it.
 export function listChildFolders(
   paths: ReadonlyArray<{ id: string; path: string }>,
   prefix: string,

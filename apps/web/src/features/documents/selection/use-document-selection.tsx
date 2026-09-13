@@ -1,4 +1,3 @@
-import { useSearch } from "@tanstack/react-router";
 import {
   createContext,
   type ReactNode,
@@ -9,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { DocumentSearch } from "@/features/documents/filters/types";
+import { useDocumentSearch } from "@/features/documents/filters/use-document-search";
 
 type SelectionValue = {
   selectedIds: Set<string>;
@@ -20,8 +19,6 @@ type SelectionValue = {
   toggle: (id: string, orderedIds: string[], shiftKey: boolean) => void;
   selectAllMatching: () => void;
   clear: () => void;
-  // The loaded list's order, registered by DocumentList, so actions over the selection (Open)
-  // can walk it in list order rather than click order.
   orderedIds: string[];
   registerOrder: (ids: string[]) => void;
 };
@@ -29,7 +26,7 @@ type SelectionValue = {
 const DocumentSelectionContext = createContext<SelectionValue | null>(null);
 
 export function DocumentSelectionProvider({ children }: { children: ReactNode }) {
-  const search = useSearch({ strict: false }) as DocumentSearch;
+  const search = useDocumentSearch();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [allSelected, setAllSelected] = useState(false);
   const [orderedIds, setOrderedIds] = useState<string[]>([]);

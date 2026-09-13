@@ -1,7 +1,6 @@
 import { Loader2Icon } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-// Invisible marker at the end of a list; when it scrolls near the viewport the next page loads.
 export function InfiniteScrollSentinel({
   hasNextPage,
   isFetchingNextPage,

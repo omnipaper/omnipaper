@@ -150,7 +150,6 @@ type SuggestionTargetDoc = {
   storagePathId: string | null;
 };
 
-// Accepting a suggestion is a human decision, so provenance and journal rows say "human".
 async function applySuggestionValue(
   organizationId: string,
   doc: SuggestionTargetDoc,
@@ -269,7 +268,7 @@ async function applySuggestionValue(
       const prevRow = (await getDocumentPropertyValues(db, { documentId })).find(
         (row) => row.definitionId === definitionId,
       );
-      // Options may have grown above (newOptionLabel), refetch for the snapshot lookup.
+      // newOptionLabel may have added an option above.
       const refreshed = await getOrgPropertyDefinition(db, { organizationId, id: definitionId });
       const options = refreshed?.options ?? found.options;
       await setDocumentPropertyValue(db, { documentId, definitionId, values: columns });
@@ -374,8 +373,6 @@ export const documentsRoutes = new Hono<{
       rows.length === DEFAULT_PAGE_SIZE ? String(offset + DEFAULT_PAGE_SIZE) : null;
     return c.json({ documents, nextCursor });
   })
-  // The detail view's navigation snapshot: every matching id in list order (capped in the query).
-  // Same validation as the list; `cursor` is accepted and ignored.
   .get("/ids", zValidator("query", listDocumentsQuerySchema), async (c) => {
     const organizationId = c.get("organizationId");
     const { q, filters, sort } = c.req.valid("query");

@@ -14,7 +14,6 @@ function documentContent({ data, mimeType }: DocumentInput) {
   };
 }
 
-// The llm lane only registers mistral/google definitions; azure exists solely on the ocr lane.
 function llmProvider(provider: Provider): AiProvider {
   return provider === "mistral" ? "mistral" : "google";
 }

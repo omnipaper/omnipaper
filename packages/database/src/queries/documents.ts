@@ -80,8 +80,7 @@ export async function getDocuments(db: Database, params: GetDocumentsParams) {
     .limit(limit)
     .offset(offset);
 }
-// The client's navigation snapshot: ids only, in exactly the order getDocuments would return
-// them, capped. Ordering must mirror getDocuments (rank for text search, createdAt otherwise).
+// Ordering must mirror getDocuments (rank for text search, createdAt otherwise).
 export const NAVIGATION_IDS_LIMIT = 1_000;
 
 export type GetDocumentIdsParams = Omit<GetDocumentsParams, "limit" | "offset">;
@@ -227,8 +226,7 @@ export async function getDocumentActivity(db: Database, params: GetDocumentActiv
         eq(activityEvents.organizationId, params.organizationId),
         eq(activityEvents.resourceType, "document"),
         eq(activityEvents.resourceId, params.documentId),
-        // Field-change events are no longer emitted (the journal is their record); hide the
-        // historical rows too so the feed doesn't look like it stopped mid-2026.
+        // Legacy field-change events: the journal is their record now.
         inArray(activityEvents.event, ["document.created", "document.ocr_completed"]),
       ),
     )

@@ -57,9 +57,6 @@ export async function setAiSettings(values: AiSettings): Promise<void> {
 
 export type AiRuntimeConfig = { provider: AiProvider; model: string; apiKey: string };
 
-// Composes settings + provider key + model catalog into what a call site needs to construct a
-// model: concrete model id (sentinel resolved) and the decrypted key. Single place where "is AI
-// usable at all" is decided.
 export async function getAiRuntimeConfig(): Promise<
   { ok: true; config: AiRuntimeConfig } | { ok: false; detail: string }
 > {

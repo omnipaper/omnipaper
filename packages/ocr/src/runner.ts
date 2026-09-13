@@ -17,7 +17,6 @@ export type ExtractTextInput = DocumentInput & {
   /** Custom provider model id; used only when the definition is modelEditable */
   model?: string;
   keys: ProviderKeys;
-  /** Azure Document Intelligence resource endpoint; required by azure definitions */
   azureEndpoint?: string;
 };
 

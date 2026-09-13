@@ -7,9 +7,6 @@ import { DateFilterPicker } from "./date-filter-picker";
 import { FilterValueList } from "./filter-value-list";
 import type { FilterFieldDef, FilterValue } from "./types";
 
-// A permanently visible filter chip (Drive-style): the field stays on screen whether set or not,
-// the popover edits its value, and an active chip highlights and grows an X to clear it. Contrast
-// with ActiveFilterChip, which only exists while its filter is set.
 export function FilterFieldChip({
   field,
   value,

@@ -50,7 +50,6 @@ export function RecentDocuments({ orgId }: { orgId: string }) {
   );
 }
 
-// The sidebar button sizes plain svg children itself; our file icons are <img>, so size explicitly.
 function RecentDocIcon({ mimeType }: { mimeType?: string }) {
   const Icon = fileTypeIcon(mimeType ?? "");
   return <Icon className="size-4 shrink-0" />;

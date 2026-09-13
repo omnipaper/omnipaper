@@ -7,11 +7,14 @@ import {
 } from "@omnipaper/ui/components/dropdown-menu";
 import { cn } from "@omnipaper/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { BookmarkPlusIcon, ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { DocumentSearch } from "@/features/documents/filters/types";
+import {
+  useDocumentSearch,
+  useDocumentSearchPatch,
+} from "@/features/documents/filters/use-document-search";
 import {
   orgSavedViewsQuery,
   useCreateSavedView,
@@ -31,7 +34,8 @@ import { SaveViewDialog } from "./save-view-dialog";
 // A clean active view (live state == snapshot) shows nothing — there's nothing to do.
 export function SaveViewButton({ orgId }: { orgId: string }) {
   const navigate = useNavigate();
-  const search = useSearch({ strict: false }) as DocumentSearch;
+  const search = useDocumentSearch();
+  const patch = useDocumentSearchPatch();
   const { data } = useQuery(orgSavedViewsQuery({ orgId }));
   const create = useCreateSavedView(orgId);
   const update = useUpdateSavedView(orgId);
@@ -42,11 +46,7 @@ export function SaveViewButton({ orgId }: { orgId: string }) {
   const dirty = activeView ? !isSameViewState(currentState, activeView.state) : false;
 
   function applyActiveView(id: string) {
-    navigate({
-      to: ".",
-      replace: true,
-      search: (prev) => ({ ...(prev as DocumentSearch), savedView: id }),
-    });
+    patch({ savedView: id });
   }
 
   function handleCreate(name: string) {
