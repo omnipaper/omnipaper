@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
-import { recordEvent } from "@omnipaper/database/activity";
 import { db } from "@omnipaper/database/client";
+import { type FieldChangeInput, recordFieldChanges } from "@omnipaper/database/field-changes";
 import {
   dismissSuggestionsForField,
   getPendingSuggestions,
@@ -22,6 +22,7 @@ import {
   deleteDocument,
   deleteDocuments,
   getDocumentActivity,
+  getDocumentIds,
   getDocuments,
   getDocumentsForExport,
   getOrgDocument,
@@ -60,6 +61,7 @@ import { errors, PasswordProtectedPdfError } from "../errors";
 import {
   coerceCustomValue,
   customPropertyRegistry,
+  propertyChangeSnapshot,
   type ValueColumns,
 } from "../lib/custom-property-registry";
 import { createDocumentsZipStream } from "../lib/export";
@@ -140,26 +142,63 @@ const exportDocumentsSchema = z.union([
     sort: sortStateSchema.optional(),
   }),
 ]);
+type SuggestionTargetDoc = {
+  id: string;
+  title: string;
+  documentDate: string | null;
+  documentTypeId: string | null;
+  storagePathId: string | null;
+};
+
 async function applySuggestionValue(
   organizationId: string,
-  documentId: string,
+  doc: SuggestionTargetDoc,
   field: string,
   value: AiSuggestionValue,
   definitionId: string | null,
+  userId: string | null,
 ): Promise<void> {
+  const documentId = doc.id;
+  const changes: FieldChangeInput[] = [];
+
   if ((field === "documentType" || field === "storagePath") && "id" in value) {
     if (field === "documentType") {
-      if (!(await getOrgDocumentType(db, { organizationId, id: value.id }))) {
+      const next = await getOrgDocumentType(db, { organizationId, id: value.id });
+      if (!next) {
         throw errors.badRequest("invalid_document_type", "Document type no longer exists");
       }
-      await updateDocument(db, { organizationId, id: documentId, documentTypeId: value.id });
+      const prev = doc.documentTypeId
+        ? await getOrgDocumentType(db, { organizationId, id: doc.documentTypeId })
+        : null;
+      await updateDocument(db, {
+        organizationId,
+        id: documentId,
+        documentTypeId: value.id,
+      });
+      changes.push({
+        field: "documentType",
+        oldValue: prev ? { id: prev.id, name: prev.name } : null,
+        newValue: { id: next.id, name: next.name },
+      });
     } else {
-      if (!(await getOrgStoragePath(db, { organizationId, id: value.id }))) {
+      const next = await getOrgStoragePath(db, { organizationId, id: value.id });
+      if (!next) {
         throw errors.badRequest("invalid_storage_path", "Storage path no longer exists");
       }
-      await updateDocument(db, { organizationId, id: documentId, storagePathId: value.id });
+      const prev = doc.storagePathId
+        ? await getOrgStoragePath(db, { organizationId, id: doc.storagePathId })
+        : null;
+      await updateDocument(db, {
+        organizationId,
+        id: documentId,
+        storagePathId: value.id,
+      });
+      changes.push({
+        field: "storagePath",
+        oldValue: prev ? { id: prev.id, name: prev.path } : null,
+        newValue: { id: next.id, name: next.path },
+      });
     }
-    return;
   }
 
   if ((field === "title" || field === "documentDate") && "value" in value) {
@@ -168,19 +207,38 @@ async function applySuggestionValue(
       id: documentId,
       ...(field === "title" ? { title: value.value } : { documentDate: value.value }),
     });
-    return;
+    changes.push(
+      field === "title"
+        ? {
+            field: "title",
+            oldValue: { value: doc.title },
+            newValue: { value: value.value },
+          }
+        : {
+            field: "documentDate",
+            oldValue: doc.documentDate ? { value: doc.documentDate } : null,
+            newValue: value.value ? { value: value.value } : null,
+          },
+    );
   }
 
   if (field === "tags" && "existingIds" in value) {
+    const currentIds = new Set(
+      (await getTagsByDocumentIds(db, { documentIds: [documentId] })).map((t) => t.id),
+    );
     const owned = value.existingIds.length
       ? await getOrgTagsByIds(db, { organizationId, ids: value.existingIds })
       : [];
     for (const tag of owned) {
       await addDocumentTag(db, { documentId, tagId: tag.id });
+      if (!currentIds.has(tag.id)) {
+        changes.push({ field: "tags", newValue: { id: tag.id, name: tag.name } });
+      }
     }
     for (const name of value.newNames) {
       const tag = await createTag(db, { organizationId, name });
       await addDocumentTag(db, { documentId, tagId: tag.id });
+      changes.push({ field: "tags", newValue: { id: tag.id, name: tag.name } });
     }
   }
 
@@ -207,8 +265,24 @@ async function applySuggestionValue(
       columns = coerceCustomValue(found.definition.type, found.options, value.value);
     }
     if (columns) {
+      const prevRow = (await getDocumentPropertyValues(db, { documentId })).find(
+        (row) => row.definitionId === definitionId,
+      );
+      // newOptionLabel may have added an option above.
+      const refreshed = await getOrgPropertyDefinition(db, { organizationId, id: definitionId });
+      const options = refreshed?.options ?? found.options;
       await setDocumentPropertyValue(db, { documentId, definitionId, values: columns });
+      changes.push({
+        field: "customProperty",
+        customPropertyDefinitionId: definitionId,
+        oldValue: propertyChangeSnapshot(found.definition.type, options, prevRow),
+        newValue: propertyChangeSnapshot(found.definition.type, options, columns),
+      });
     }
+  }
+
+  if (changes.length > 0) {
+    await recordFieldChanges(db, { documentId, source: "human", createdBy: userId, changes });
   }
 }
 
@@ -298,6 +372,26 @@ export const documentsRoutes = new Hono<{
     const nextCursor =
       rows.length === DEFAULT_PAGE_SIZE ? String(offset + DEFAULT_PAGE_SIZE) : null;
     return c.json({ documents, nextCursor });
+  })
+  .get("/ids", zValidator("query", listDocumentsQuerySchema), async (c) => {
+    const organizationId = c.get("organizationId");
+    const { q, filters, sort } = c.req.valid("query");
+    const customPropertyTypes =
+      filters && Object.keys(filters).some((key) => key.startsWith("cp:"))
+        ? new Map(
+            (await getOrgCustomPropertyTypes(db, { organizationId })).map(
+              (d) => [d.id, d.type] as const,
+            ),
+          )
+        : undefined;
+    const ids = await getDocumentIds(db, {
+      organizationId,
+      query: q,
+      filters,
+      sort,
+      customPropertyTypes,
+    });
+    return c.json({ ids });
   })
   .post("/export", zValidator("json", exportDocumentsSchema), async (c) => {
     const organizationId = c.get("organizationId");
@@ -407,25 +501,64 @@ export const documentsRoutes = new Hono<{
         throw errors.notFound("Document not found");
       }
       const values = c.req.valid("json");
+      let newType = null;
       if (values.documentTypeId) {
-        const found = await getOrgDocumentType(db, { organizationId, id: values.documentTypeId });
-        if (!found) {
+        newType = await getOrgDocumentType(db, { organizationId, id: values.documentTypeId });
+        if (!newType) {
           throw errors.badRequest(
             "invalid_document_type",
             "Document type does not belong to this organization",
           );
         }
       }
+      let newPath = null;
       if (values.storagePathId) {
-        const found = await getOrgStoragePath(db, { organizationId, id: values.storagePathId });
-        if (!found) {
+        newPath = await getOrgStoragePath(db, { organizationId, id: values.storagePathId });
+        if (!newPath) {
           throw errors.badRequest(
             "invalid_storage_path",
             "Storage path does not belong to this organization",
           );
         }
       }
+      const userId = c.get("user")?.id ?? null;
+      const changes: FieldChangeInput[] = [];
+      if (values.title !== undefined) {
+        changes.push({
+          field: "title",
+          oldValue: { value: doc.title },
+          newValue: { value: values.title.trim() },
+        });
+      }
+      if (values.documentDate !== undefined) {
+        changes.push({
+          field: "documentDate",
+          oldValue: doc.documentDate ? { value: doc.documentDate } : null,
+          newValue: values.documentDate ? { value: values.documentDate } : null,
+        });
+      }
+      if (values.documentTypeId !== undefined) {
+        const prevType = doc.documentTypeId
+          ? await getOrgDocumentType(db, { organizationId, id: doc.documentTypeId })
+          : null;
+        changes.push({
+          field: "documentType",
+          oldValue: prevType ? { id: prevType.id, name: prevType.name } : null,
+          newValue: newType ? { id: newType.id, name: newType.name } : null,
+        });
+      }
+      if (values.storagePathId !== undefined) {
+        const prevPath = doc.storagePathId
+          ? await getOrgStoragePath(db, { organizationId, id: doc.storagePathId })
+          : null;
+        changes.push({
+          field: "storagePath",
+          oldValue: prevPath ? { id: prevPath.id, name: prevPath.path } : null,
+          newValue: newPath ? { id: newPath.id, name: newPath.path } : null,
+        });
+      }
       await updateDocument(db, { organizationId, id, ...values });
+      await recordFieldChanges(db, { documentId: id, source: "human", createdBy: userId, changes });
       const supersededField: Record<
         string,
         "documentType" | "storagePath" | "title" | "documentDate"
@@ -438,16 +571,9 @@ export const documentsRoutes = new Hono<{
       for (const key of Object.keys(values)) {
         const field = supersededField[key];
         if (field) {
-          await dismissSuggestionsForField(db, { documentId: id, field });
+          await dismissSuggestionsForField(db, { documentId: id, field, resolvedBy: userId });
         }
       }
-      await recordEvent(db, {
-        organizationId,
-        resource: { type: "document", id, label: doc.title },
-        event: "document.metadata_updated",
-        actor: { type: "user", id: c.get("user")?.id },
-        data: { updatedFields: Object.keys(values) },
-      });
       return c.json({ ok: true });
     },
   )
@@ -548,33 +674,17 @@ export const documentsRoutes = new Hono<{
       }
       await applySuggestionValue(
         organizationId,
-        documentId,
+        doc,
         suggestion.field,
         suggestion.suggestedValue,
         suggestion.customPropertyDefinitionId,
+        c.get("user")?.id ?? null,
       );
-      await setSuggestionStatus(db, { id: suggestionId, documentId, status: "accepted" });
-      const event =
-        suggestion.field === "tags"
-          ? "document.tags_updated"
-          : suggestion.field === "customProperty"
-            ? "document.property_updated"
-            : "document.metadata_updated";
-      await recordEvent(db, {
-        organizationId,
-        resource: { type: "document", id: documentId, label: doc.title },
-        event,
-        actor: { type: "user", id: c.get("user")?.id },
-        data:
-          suggestion.field === "tags"
-            ? { source: "ai-accept" }
-            : suggestion.field === "customProperty"
-              ? {
-                  updatedDefinitions: suggestion.customPropertyDefinitionId
-                    ? [suggestion.customPropertyDefinitionId]
-                    : [],
-                }
-              : { updatedFields: [suggestion.field] },
+      await setSuggestionStatus(db, {
+        id: suggestionId,
+        documentId,
+        status: "accepted",
+        resolvedBy: c.get("user")?.id ?? null,
       });
       return c.json({ ok: true });
     },
@@ -592,6 +702,7 @@ export const documentsRoutes = new Hono<{
         id: c.req.param("suggestionId"),
         documentId,
         status: "dismissed",
+        resolvedBy: c.get("user")?.id ?? null,
       });
       return c.json({ ok: true });
     },
@@ -625,18 +736,28 @@ export const documentsRoutes = new Hono<{
       const addedTags = owned.filter((t) => !currentTagIdSet.has(t.id));
       const removedTags = currentTagRows.filter((t) => !newTagIdSet.has(t.id));
       if (addedTags.length > 0 || removedTags.length > 0) {
-        await recordEvent(db, {
-          organizationId,
-          resource: { type: "document", id: documentId, label: doc.title },
-          event: "document.tags_updated",
-          actor: { type: "user", id: c.get("user")?.id },
-          data: {
-            added: addedTags.map((t) => ({ tagId: t.id, tagName: t.name })),
-            removed: removedTags.map((t) => ({ tagId: t.id, tagName: t.name })),
-          },
+        await recordFieldChanges(db, {
+          documentId,
+          source: "human",
+          createdBy: c.get("user")?.id ?? null,
+          changes: [
+            ...addedTags.map(
+              (t): FieldChangeInput => ({ field: "tags", newValue: { id: t.id, name: t.name } }),
+            ),
+            ...removedTags.map(
+              (t): FieldChangeInput => ({
+                field: "tags",
+                oldValue: { id: t.id, name: t.name },
+              }),
+            ),
+          ],
         });
       }
-      await dismissSuggestionsForField(db, { documentId, field: "tags" });
+      await dismissSuggestionsForField(db, {
+        documentId,
+        field: "tags",
+        resolvedBy: c.get("user")?.id ?? null,
+      });
       return c.json({ tags });
     },
   )
@@ -667,17 +788,23 @@ export const documentsRoutes = new Hono<{
       if (definition.hasOptions && !found.options.some((o) => o.id === parsed.data)) {
         throw errors.badRequest("invalid_option", "Option does not belong to this property");
       }
-      await setDocumentPropertyValue(db, {
+      const columns = definition.toDb(parsed.data);
+      const prevRow = (await getDocumentPropertyValues(db, { documentId })).find(
+        (row) => row.definitionId === definitionId,
+      );
+      await setDocumentPropertyValue(db, { documentId, definitionId, values: columns });
+      await recordFieldChanges(db, {
         documentId,
-        definitionId,
-        values: definition.toDb(parsed.data),
-      });
-      await recordEvent(db, {
-        organizationId,
-        resource: { type: "document", id: documentId, label: doc.title },
-        event: "document.property_updated",
-        actor: { type: "user", id: c.get("user")?.id },
-        data: { updatedDefinitions: [definitionId] },
+        source: "human",
+        createdBy: c.get("user")?.id ?? null,
+        changes: [
+          {
+            field: "customProperty",
+            customPropertyDefinitionId: definitionId,
+            oldValue: propertyChangeSnapshot(found.definition.type, found.options, prevRow),
+            newValue: propertyChangeSnapshot(found.definition.type, found.options, columns),
+          },
+        ],
       });
       return c.json({ ok: true });
     },
@@ -693,14 +820,26 @@ export const documentsRoutes = new Hono<{
       if (!doc) {
         throw errors.notFound("Document not found");
       }
+      const found = await getOrgPropertyDefinition(db, { organizationId, id: definitionId });
+      const prevRow = (await getDocumentPropertyValues(db, { documentId })).find(
+        (row) => row.definitionId === definitionId,
+      );
       await clearDocumentPropertyValue(db, { documentId, definitionId });
-      await recordEvent(db, {
-        organizationId,
-        resource: { type: "document", id: documentId, label: doc.title },
-        event: "document.property_updated",
-        actor: { type: "user", id: c.get("user")?.id },
-        data: { updatedDefinitions: [definitionId] },
-      });
+      if (found && prevRow) {
+        await recordFieldChanges(db, {
+          documentId,
+          source: "human",
+          createdBy: c.get("user")?.id ?? null,
+          changes: [
+            {
+              field: "customProperty",
+              customPropertyDefinitionId: definitionId,
+              oldValue: propertyChangeSnapshot(found.definition.type, found.options, prevRow),
+              newValue: null,
+            },
+          ],
+        });
+      }
       return c.json({ ok: true });
     },
   )

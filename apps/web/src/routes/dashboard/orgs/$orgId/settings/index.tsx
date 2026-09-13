@@ -30,7 +30,7 @@ export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/")({
 
 function SettingsIndexPage() {
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-2">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
       <h1 className="font-semibold text-2xl">Settings</h1>
       <p className="text-muted-foreground text-sm">Nothing here yet.</p>
     </div>

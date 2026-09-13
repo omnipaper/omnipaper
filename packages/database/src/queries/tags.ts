@@ -178,15 +178,35 @@ export async function getTagsByDocumentIds(db: Database, params: GetTagsByDocume
     .orderBy(asc(tags.name));
 }
 
+// Diff-based (not delete-all + reinsert) so surviving rows keep their createdAt.
 export async function setDocumentTags(db: Database, params: SetDocumentTagsParams) {
   const tagIds = [...new Set(params.tagIds)];
 
   await db.transaction(async (tx) => {
-    await tx.delete(documentsTags).where(eq(documentsTags.documentId, params.documentId));
-    if (tagIds.length > 0) {
+    const existing = await tx
+      .select({ tagId: documentsTags.tagId })
+      .from(documentsTags)
+      .where(eq(documentsTags.documentId, params.documentId));
+    const existingIds = new Set(existing.map((row) => row.tagId));
+    const wantedIds = new Set(tagIds);
+
+    const toRemove = [...existingIds].filter((id) => !wantedIds.has(id));
+    if (toRemove.length > 0) {
+      await tx
+        .delete(documentsTags)
+        .where(
+          and(
+            eq(documentsTags.documentId, params.documentId),
+            inArray(documentsTags.tagId, toRemove),
+          ),
+        );
+    }
+
+    const toAdd = tagIds.filter((id) => !existingIds.has(id));
+    if (toAdd.length > 0) {
       await tx
         .insert(documentsTags)
-        .values(tagIds.map((tagId) => ({ documentId: params.documentId, tagId })));
+        .values(toAdd.map((tagId) => ({ documentId: params.documentId, tagId })));
     }
   });
 }

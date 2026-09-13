@@ -161,8 +161,10 @@ export function buildDocumentOrderBy(sort?: SortState): SQL[] | undefined {
     return undefined;
   }
   // Tiebreak on id so rows keep a stable order across pages when the sort column has duplicates.
+  // Postgres defaults DESC to NULLS FIRST; a null-heavy column shouldn't lead with empty rows.
   const dir = sort.dir === "asc" ? asc : desc;
-  return [dir(column), dir(documents.id)];
+  const primary = sort.dir === "asc" ? asc(column) : sql`${column} DESC NULLS LAST`;
+  return [primary, dir(documents.id)];
 }
 
 export type DocumentMatchesFilterParams = {

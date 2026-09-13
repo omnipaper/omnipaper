@@ -6,12 +6,12 @@ import {
   markDocumentOcrFailed,
   markDocumentOcrProcessing,
 } from "@omnipaper/database/queries/documents";
-import { getOcrDefinition, OcrError } from "@omnipaper/ocr/resolve";
+import { getOcrDefinition, missingCredential, OcrError } from "@omnipaper/ocr/resolve";
 import { extractText } from "@omnipaper/ocr/runner";
 import { enqueue } from "@omnipaper/queue/producer";
 import { defineTask } from "@omnipaper/queue/worker";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
-import { getProviderKeys } from "@omnipaper/settings/provider-settings";
+import { getAzureEndpoint, getProviderKeys } from "@omnipaper/settings/provider-settings";
 import { getStorageDriver } from "../lib/storage";
 import { taskLogger } from "../logger";
 
@@ -39,20 +39,28 @@ export const ocrExtractTask = defineTask("ocr-extract", async ({ documentId }, h
     // the chosen definition's provider tells us which key the runner needs.
     const ocr = await getOcrSettings();
     const keys = await getProviderKeys();
-    const { provider } = getOcrDefinition(ocr.definitionId);
+    const azureEndpoint = await getAzureEndpoint();
+    const definition = getOcrDefinition(ocr.definitionId);
 
-    if (!keys[provider]) {
-      throw new Error(`OCR is not configured: missing ${provider} API key`);
+    const missing = missingCredential(definition, { keys, azureEndpoint });
+
+    if (missing) {
+      throw new Error(`OCR is not configured: missing ${missing}`);
     }
 
-    const { url } = await storage.createDownloadUrl({ key: doc.storageKey });
+    const object = await storage.getObject({ key: doc.storageKey });
+
+    if (!object) {
+      throw new Error(`Document file is missing from storage: ${doc.storageKey}`);
+    }
 
     const { text } = await extractText({
       definitionId: ocr.definitionId,
       model: ocr.model,
-      documentUrl: url,
+      data: new Uint8Array(object.body),
       mimeType: doc.mimeType,
       keys,
+      azureEndpoint,
     });
 
     await completeDocumentOcr(db, {

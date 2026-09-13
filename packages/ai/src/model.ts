@@ -2,10 +2,9 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createMistral } from "@ai-sdk/mistral";
 import { createOpenAI } from "@ai-sdk/openai";
+import type { AiModelProvider } from "@omnipaper/shared/ai-models";
 
-export type AiProvider = "openai" | "anthropic" | "google" | "mistral";
-
-export const AI_PROVIDERS: AiProvider[] = ["openai", "anthropic", "google", "mistral"];
+export type AiProvider = AiModelProvider;
 
 export function resolveModel(provider: AiProvider, model: string, apiKey: string) {
   switch (provider) {

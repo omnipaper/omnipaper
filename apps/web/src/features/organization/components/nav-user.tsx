@@ -2,7 +2,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@omnipaper/ui/components/av
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -14,8 +13,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@omnipaper/ui/components/sidebar";
-import { Link } from "@tanstack/react-router";
-import { ChevronsUpDownIcon, LogOutIcon, SettingsIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Building2Icon, CheckIcon, ChevronsUpDownIcon, LogOutIcon, PlusIcon } from "lucide-react";
+import { useState } from "react";
+import { authClient } from "@/features/auth/auth-client";
+import { CreateOrgDialog } from "@/features/organization/components/create-org-dialog";
+import { fullOrganizationQuery } from "@/features/organization/queries/organization";
 
 type NavUserProps = {
   user: {
@@ -29,7 +33,15 @@ type NavUserProps = {
 
 export function NavUser({ user, orgId, onSignOut }: NavUserProps) {
   const { isMobile } = useSidebar();
+  const navigate = useNavigate();
+  const { data: organizations } = authClient.useListOrganizations();
+  const { data: org } = useQuery(fullOrganizationQuery(orgId));
+  const [createOpen, setCreateOpen] = useState(false);
   const initials = user.name.slice(0, 2).toUpperCase() || user.email.slice(0, 2).toUpperCase();
+
+  function handleSelectOrg(organizationId: string) {
+    navigate({ to: "/dashboard/orgs/$orgId", params: { orgId: organizationId } });
+  }
 
   return (
     <SidebarMenu>
@@ -46,7 +58,7 @@ export function NavUser({ user, orgId, onSignOut }: NavUserProps) {
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate text-xs">{org?.name ?? user.email}</span>
               </div>
               <ChevronsUpDownIcon className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -70,14 +82,28 @@ export function NavUser({ user, orgId, onSignOut }: NavUserProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link to="/dashboard/orgs/$orgId/settings" params={{ orgId }}>
-                  <SettingsIcon />
-                  Settings
-                </Link>
+            <DropdownMenuLabel className="text-muted-foreground text-xs">
+              Organizations
+            </DropdownMenuLabel>
+            {organizations?.map((organization) => (
+              <DropdownMenuItem
+                key={organization.id}
+                onClick={() => handleSelectOrg(organization.id)}
+                className="gap-2 p-2"
+              >
+                <div className="flex size-6 items-center justify-center rounded-md border">
+                  <Building2Icon className="size-3.5 shrink-0" />
+                </div>
+                {organization.name}
+                {organization.id === orgId ? <CheckIcon className="ml-auto size-4" /> : null}
               </DropdownMenuItem>
-            </DropdownMenuGroup>
+            ))}
+            <DropdownMenuItem onSelect={() => setCreateOpen(true)} className="gap-2 p-2">
+              <div className="flex size-6 items-center justify-center rounded-md border">
+                <PlusIcon className="size-3.5 shrink-0" />
+              </div>
+              Create organization
+            </DropdownMenuItem>
             {onSignOut ? (
               <>
                 <DropdownMenuSeparator />
@@ -90,6 +116,8 @@ export function NavUser({ user, orgId, onSignOut }: NavUserProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
+
+      <CreateOrgDialog open={createOpen} onOpenChange={setCreateOpen} />
     </SidebarMenu>
   );
 }

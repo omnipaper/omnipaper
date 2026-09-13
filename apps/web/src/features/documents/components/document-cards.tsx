@@ -1,19 +1,20 @@
 import { cn } from "@omnipaper/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
+import { CalendarIcon, ClockIcon, FolderIcon, ShapesIcon } from "lucide-react";
 import {
-  FileIcon,
-  FileImageIcon,
-  FileSpreadsheetIcon,
-  FileTextIcon,
-  Loader2Icon,
-  MailIcon,
-} from "lucide-react";
-import { type ComponentType, useEffect, useRef, useState } from "react";
+  DocumentThumbnail,
+  fileTypeIcon,
+} from "@/features/documents/components/document-thumbnail";
 import { useDisplayProperties } from "@/features/documents/filters/display-properties";
-import { type DocumentRow, thumbnailUrl } from "@/features/documents/queries/documents";
+import type { DocumentRow } from "@/features/documents/queries/documents";
 import { SelectCheckbox } from "@/features/documents/selection/select-checkbox";
 import { TagChip } from "@/features/tags/components/tag-chip";
-import { fileTypeLabel, formatCalendarDate, formatRelativeDay } from "@/lib/format";
+import {
+  fileTypeLabel,
+  formatCalendarDate,
+  formatInstantDate,
+  formatRelativeDay,
+} from "@/lib/format";
 
 type DocumentCardsProps = {
   orgId: string;
@@ -22,85 +23,26 @@ type DocumentCardsProps = {
   onToggle: (id: string, shiftKey: boolean) => void;
 };
 
-function iconForMime(mimeType: string): ComponentType<{ className?: string }> {
-  if (mimeType === "application/pdf") {
-    return FileTextIcon;
-  }
-  if (mimeType.startsWith("image/")) {
-    return FileImageIcon;
-  }
-  if (mimeType.startsWith("message/")) {
-    return MailIcon;
-  }
-  if (mimeType === "application/vnd.ms-excel" || mimeType.includes("spreadsheet")) {
-    return FileSpreadsheetIcon;
-  }
-  return FileIcon;
-}
-
-// Display a pulsing skeleton while the thumbnail image loads, fade it in once loaded, and show a file-type icon if the image fails to load.
-function Thumbnail({
-  src,
-  alt,
-  Icon,
-}: {
-  src: string;
-  alt: string;
-  Icon: ComponentType<{ className?: string }>;
-}) {
-  const ref = useRef<HTMLImageElement>(null);
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
-
-  // A cached thumbnail can finish loading before React attaches onLoad — catch that on mount.
-  useEffect(() => {
-    const img = ref.current;
-    if (img?.complete) {
-      setStatus(img.naturalWidth > 0 ? "loaded" : "error");
-    }
-  }, []);
-
-  if (status === "error") {
-    return <Icon className="size-10 text-muted-foreground" />;
-  }
-
-  return (
-    <>
-      {status === "loading" ? <div className="absolute inset-0 animate-pulse bg-muted" /> : null}
-      <img
-        ref={ref}
-        src={src}
-        alt={alt}
-        loading="lazy"
-        onLoad={() => setStatus("loaded")}
-        onError={() => setStatus("error")}
-        className={cn(
-          "h-full w-full object-cover object-top outline-1 -outline-offset-1 outline-black/10 transition-opacity duration-300 group-hover:opacity-90 dark:outline-white/10",
-          status === "loaded" ? "opacity-100" : "opacity-0",
-        )}
-      />
-    </>
-  );
-}
-
 // Gallery layout. Each card shows the same Display properties as the list rows (driven by the shared
 // localStorage store), just stacked under the thumbnail instead of laid out in row slots.
 export function DocumentCards({ orgId, documents, isSelected, onToggle }: DocumentCardsProps) {
   const { isOn } = useDisplayProperties();
 
   function card(doc: DocumentRow) {
-    const Icon = iconForMime(doc.mimeType);
+    const Icon = fileTypeIcon(doc.mimeType);
     const selected = isSelected(doc.id);
     const fileType = isOn("fileType") ? fileTypeLabel(doc.mimeType) : null;
     const typeName = isOn("documentType") ? doc.documentTypeName : null;
     const showTags = isOn("tags") && doc.tags.length > 0;
     const docDate = isOn("date") && doc.documentDate ? formatCalendarDate(doc.documentDate) : null;
-    const added = isOn("created") ? `Added ${formatRelativeDay(doc.createdAt)}` : null;
+    const added = isOn("created") ? formatRelativeDay(doc.createdAt) : null;
+    const pathName = isOn("path") ? doc.storagePathName : null;
 
     return (
       <li key={doc.id} className="group relative">
         <div
           className={cn(
-            "absolute top-2 left-2 z-10 transition-opacity",
+            "absolute top-4 left-4 z-10 transition-opacity",
             // Reveal on hover; keep it visible once selected so the selection stays legible.
             selected ? "opacity-100" : "opacity-0 focus-within:opacity-100 group-hover:opacity-100",
           )}
@@ -114,16 +56,10 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
         <Link
           to="/dashboard/orgs/$orgId/documents/$id"
           params={{ orgId, id: doc.id }}
-          className="group flex flex-col gap-2"
+          className="group flex h-full flex-col gap-2 rounded-2xl border bg-card p-2 transition-colors hover:border-foreground/20"
         >
-          <div className="relative flex aspect-3/4 items-center justify-center overflow-hidden rounded-md border bg-muted">
-            {doc.thumbnailStatus === "completed" ? (
-              <Thumbnail src={thumbnailUrl(orgId, doc.id)} alt={doc.title} Icon={Icon} />
-            ) : doc.thumbnailStatus === "pending" || doc.thumbnailStatus === "processing" ? (
-              <Loader2Icon className="size-8 animate-spin text-muted-foreground" />
-            ) : (
-              <Icon className="size-10 text-muted-foreground" />
-            )}
+          <div className="relative flex aspect-3/4 items-center justify-center overflow-hidden rounded-lg bg-muted">
+            <DocumentThumbnail orgId={orgId} doc={doc} />
             {/* Tags overlay the thumbnail — right-aligned, stacked top-to-bottom — since the
                 metadata row below has no room for them. Cap at 4; more won't fit the card height. */}
             {showTags ? (
@@ -138,33 +74,62 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
                 ))}
               </div>
             ) : null}
+            {fileType ? (
+              <span className="absolute right-2 bottom-2 z-10 flex items-center gap-1 rounded-md border bg-background/90 px-1.5 py-0.5 font-medium text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
+                <Icon className="size-3 shrink-0" />
+                {fileType}
+              </span>
+            ) : null}
           </div>
 
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <span className="line-clamp-2 font-medium text-sm group-hover:underline">
-              {doc.title}
+          <div className="flex min-w-0 flex-col gap-1.5 px-1 pb-1">
+            {/* Marquee: on hover the title slides left by exactly its overflow (100cqw container, 100% text). */}
+            <span
+              title={doc.title}
+              className="block overflow-hidden whitespace-nowrap font-medium text-sm [container-type:inline-size] [mask-image:linear-gradient(to_right,black_calc(100%-12px),transparent)] group-hover:underline"
+            >
+              <span className="inline-block w-max transition-transform delay-200 duration-1000 ease-linear motion-safe:group-hover:[transform:translateX(min(0px,calc(100cqw-100%)))]">
+                {doc.title}
+              </span>
             </span>
 
-            {fileType || typeName ? (
-              <div className="flex flex-wrap items-center gap-1.5">
-                {fileType ? (
-                  <span className="rounded-md border px-1.5 py-0.5 font-medium text-[11px] text-muted-foreground">
-                    {fileType}
-                  </span>
-                ) : null}
-                {typeName ? (
-                  <span className="max-w-full truncate rounded-md border px-2 py-0.5 text-foreground text-xs">
-                    {typeName}
-                  </span>
-                ) : null}
-              </div>
+            {typeName ? (
+              <span
+                className="flex items-center gap-1 text-muted-foreground text-xs"
+                title="Document type"
+              >
+                <ShapesIcon className="size-3 shrink-0" />
+                <span className="min-w-0 truncate">{typeName}</span>
+              </span>
+            ) : null}
+
+            {pathName ? (
+              <span
+                className="flex items-center gap-1 text-muted-foreground text-xs"
+                title="Storage path"
+              >
+                <FolderIcon className="size-3 shrink-0" />
+                <span className="min-w-0 truncate">{pathName}</span>
+              </span>
             ) : null}
 
             {docDate || added ? (
-              <div className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground text-xs tabular-nums">
-                {docDate ? <span>{docDate}</span> : null}
-                {docDate && added ? <span aria-hidden>·</span> : null}
-                {added ? <span>{added}</span> : null}
+              <div className="flex flex-col gap-1 text-muted-foreground text-xs tabular-nums">
+                {docDate ? (
+                  <span className="flex items-center gap-1" title="Document date">
+                    <CalendarIcon className="size-3 shrink-0" />
+                    {docDate}
+                  </span>
+                ) : null}
+                {added ? (
+                  <span
+                    className="flex items-center gap-1"
+                    title={`Added ${formatInstantDate(doc.createdAt)}`}
+                  >
+                    <ClockIcon className="size-3 shrink-0" />
+                    {added}
+                  </span>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -174,7 +139,7 @@ export function DocumentCards({ orgId, documents, isSelected, onToggle }: Docume
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+    <ul className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
       {documents.map(card)}
     </ul>
   );

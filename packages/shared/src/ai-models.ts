@@ -1,9 +1,9 @@
-export type AiModelProvider = "openai" | "anthropic" | "google" | "mistral";
+export const AI_MODEL_PROVIDERS = ["openai", "anthropic", "google", "mistral"] as const;
+
+export type AiModelProvider = (typeof AI_MODEL_PROVIDERS)[number];
 
 export type AiModel = { id: string; label: string };
 
-// Stored model setting can be this sentinel (omnipaper-managed, auto-bumped across releases) or a
-// concrete pinned id from the lists below. Curated short lists, not the full catalogs.
 export const RECOMMENDED_MODEL = "recommended" as const;
 
 export const AI_MODELS = {
@@ -16,10 +16,10 @@ export const AI_MODELS = {
     ],
   },
   anthropic: {
-    recommended: "claude-sonnet-4-6",
+    recommended: "claude-sonnet-5",
     models: [
       { id: "claude-opus-4-8", label: "Claude Opus 4.8 (most capable)" },
-      { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
+      { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
       { id: "claude-haiku-4-5", label: "Claude Haiku 4.5 (fastest)" },
     ],
   },

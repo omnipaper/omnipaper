@@ -11,12 +11,20 @@ type TagChipProps = {
   className?: string;
 };
 
-// The tag's own color is shown as a small dot rather than the chip background, so arbitrary
-// user-picked colors never fight the text for contrast.
+function contrastText(hex: string): string {
+  const r = Number.parseInt(hex.slice(1, 3), 16);
+  const g = Number.parseInt(hex.slice(3, 5), 16);
+  const b = Number.parseInt(hex.slice(5, 7), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 150 ? "#000000" : "#ffffff";
+}
+
 export function TagChip({ name, color, onRemove, disabled, className }: TagChipProps) {
   return (
-    <Badge variant="secondary" className={cn("h-auto py-0.5 font-normal text-xs", className)}>
-      <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+    <Badge
+      className={cn("h-auto border-transparent py-0.5 font-normal text-xs", className)}
+      style={{ backgroundColor: color, color: contrastText(color) }}
+    >
       {name}
       {onRemove ? (
         <button
@@ -24,7 +32,7 @@ export function TagChip({ name, color, onRemove, disabled, className }: TagChipP
           onClick={onRemove}
           disabled={disabled}
           aria-label={`Remove ${name}`}
-          className="-mr-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+          className="-mr-0.5 rounded-full p-0.5 opacity-70 hover:bg-black/15 hover:opacity-100 disabled:pointer-events-none disabled:opacity-50"
         >
           <X className="size-3" />
         </button>

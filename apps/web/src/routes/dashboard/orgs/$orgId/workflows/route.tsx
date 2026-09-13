@@ -11,7 +11,7 @@ export const Route = createFileRoute("/dashboard/orgs/$orgId/workflows")({
     }
   },
   component: () => (
-    <div className="min-h-0 flex-1 overflow-y-auto p-6">
+    <div className="p-6">
       <Outlet />
     </div>
   ),

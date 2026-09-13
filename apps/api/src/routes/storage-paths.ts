@@ -7,6 +7,7 @@ import {
   getOrgStoragePaths,
   updateStoragePath,
 } from "@omnipaper/database/queries/storage-paths";
+import { isValidStoragePath, normalizeStoragePath } from "@omnipaper/shared/storage-paths";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
@@ -16,8 +17,8 @@ import { toStoragePathDto } from "../serializers/storage-path";
 
 const pathValue = z
   .string()
-  .trim()
-  .regex(/^\/(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+$/, "Path like /Finance/2024 — no spaces");
+  .transform(normalizeStoragePath)
+  .refine(isValidStoragePath, "Path like /Finance/2024 — letters, digits, _ and - only");
 
 const createStoragePathSchema = z.object({
   path: pathValue,

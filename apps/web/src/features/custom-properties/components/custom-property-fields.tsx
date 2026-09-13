@@ -9,7 +9,6 @@ import {
 } from "@omnipaper/ui/components/select";
 import { Switch } from "@omnipaper/ui/components/switch";
 import { useQuery } from "@tanstack/react-query";
-import { NONE_LABEL } from "@/components/creatable-combobox";
 import {
   orgPropertyDefinitionsQuery,
   type PropertyDefinition,
@@ -21,6 +20,7 @@ import {
   useSetDocumentPropertyValue,
 } from "@/features/documents/queries/documents";
 import type { DocumentSuggestion } from "@/features/documents/queries/suggestions";
+import { EMPTY_LABEL } from "@/lib/format";
 
 // "None" can't be an empty string in a radix Select item, so use a sentinel that maps to clearing.
 const NONE_VALUE = "__none__";
@@ -55,7 +55,7 @@ function PropertyValueEditor({ definition, value, onSet, onClear }: EditorProps)
 
     return (
       <Select
-        value={optionId || NONE_VALUE}
+        value={optionId || undefined}
         onValueChange={(v) => {
           if (v === NONE_VALUE) {
             onClear();
@@ -65,10 +65,10 @@ function PropertyValueEditor({ definition, value, onSet, onClear }: EditorProps)
         }}
       >
         <SelectTrigger className="w-full" aria-label={definition.name}>
-          <SelectValue placeholder={NONE_LABEL} />
+          <SelectValue placeholder={EMPTY_LABEL} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE_VALUE}>{NONE_LABEL}</SelectItem>
+          <SelectItem value={NONE_VALUE}>{EMPTY_LABEL}</SelectItem>
           {definition.options.map((o) => (
             <SelectItem key={o.id} value={o.id}>
               {o.label}

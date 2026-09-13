@@ -8,7 +8,8 @@ import {
   SidebarMenuItem,
 } from "@omnipaper/ui/components/sidebar";
 import { Link, useLocation } from "@tanstack/react-router";
-import { FileTextIcon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
+import { fileTypeIcon } from "@/features/documents/components/document-thumbnail";
 import { removeRecent, useRecentDocuments } from "./recent-documents-store";
 
 export function RecentDocuments({ orgId }: { orgId: string }) {
@@ -28,7 +29,7 @@ export function RecentDocuments({ orgId }: { orgId: string }) {
             <SidebarMenuItem key={doc.id}>
               <SidebarMenuButton asChild isActive={pathname.includes(`/documents/${doc.id}`)}>
                 <Link to="/dashboard/orgs/$orgId/documents/$id" params={{ orgId, id: doc.id }}>
-                  <FileTextIcon />
+                  <RecentDocIcon mimeType={doc.mimeType} />
                   <span className="truncate" title={doc.title}>
                     {doc.title}
                   </span>
@@ -47,4 +48,9 @@ export function RecentDocuments({ orgId }: { orgId: string }) {
       </SidebarGroupContent>
     </SidebarGroup>
   );
+}
+
+function RecentDocIcon({ mimeType }: { mimeType?: string }) {
+  const Icon = fileTypeIcon(mimeType ?? "");
+  return <Icon className="size-4 shrink-0" />;
 }

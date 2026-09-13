@@ -3,11 +3,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@omnipaper/ui/component
 import { cn } from "@omnipaper/ui/lib/utils";
 import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
+import { EMPTY_LABEL } from "@/lib/format";
 
 export type ComboboxItem = { id: string; label: string };
-
-// One label for "no value selected" across every picker (combobox, select) so it never drifts.
-export const NONE_LABEL = "None";
 
 type Props = {
   items: ComboboxItem[];
@@ -48,7 +46,7 @@ export function CreatableCombobox({
   createLabel = (input) => `Create “${input}”`,
   pending = false,
   allowClear = true,
-  clearLabel = NONE_LABEL,
+  clearLabel = EMPTY_LABEL,
   itemClassName,
   triggerId,
   "aria-label": ariaLabel,

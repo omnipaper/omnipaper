@@ -18,6 +18,7 @@ export type DocumentView = "list" | "gallery";
 export type DocumentSearch = {
   view?: DocumentView;
   q?: string;
+  path?: string;
   filters?: FilterState;
   sort?: SortState;
   savedView?: string;

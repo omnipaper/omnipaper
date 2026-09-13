@@ -1,3 +1,4 @@
+import { FIELD_SOURCES, type FieldChangeValue } from "@omnipaper/shared/field-changes";
 import type { SavedViewState } from "@omnipaper/shared/saved-views";
 import type { AiSuggestionValue } from "@omnipaper/shared/workflows/ai-assign";
 import type { WorkflowDefinition } from "@omnipaper/shared/workflows/schema";
@@ -88,6 +89,8 @@ export const aiSuggestionStatusEnum = pgEnum("ai_suggestion_status", [
   "accepted",
   "dismissed",
 ]);
+
+export const fieldSourceEnum = pgEnum("field_source", FIELD_SOURCES);
 
 export const emailIngestSecurityEnum = pgEnum("email_ingest_security", ["ssl", "starttls", "none"]);
 
@@ -513,6 +516,8 @@ export const aiSuggestions = pgTable(
     ),
     suggestedValue: jsonb("suggested_value").$type<AiSuggestionValue>().notNull(),
     status: aiSuggestionStatusEnum("status").notNull().default("pending"),
+    resolvedBy: text("resolved_by").references(() => user.id, { onDelete: "set null" }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -524,6 +529,30 @@ export const aiSuggestions = pgTable(
       .where(sql`${t.customPropertyDefinitionId} is not null`),
     index("ai_suggestions_doc_status_idx").on(t.documentId, t.status),
   ],
+);
+
+// Append-only; snapshot values + set-null FKs keep rows readable after deletes.
+export const documentFieldChanges = pgTable(
+  "document_field_changes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("dfc")),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    field: aiSuggestionFieldEnum("field").notNull(),
+    customPropertyDefinitionId: text("custom_property_definition_id").references(
+      () => customPropertyDefinitions.id,
+      { onDelete: "set null" },
+    ),
+    oldValue: jsonb("old_value").$type<FieldChangeValue>(),
+    newValue: jsonb("new_value").$type<FieldChangeValue>(),
+    source: fieldSourceEnum("source").notNull(),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("document_field_changes_doc_field_idx").on(t.documentId, t.field, t.createdAt)],
 );
 
 export type DocumentType = typeof documentTypes.$inferSelect;
@@ -572,3 +601,6 @@ export type NewWorkflowRun = typeof workflowRuns.$inferInsert;
 
 export type AiSuggestion = typeof aiSuggestions.$inferSelect;
 export type NewAiSuggestion = typeof aiSuggestions.$inferInsert;
+
+export type DocumentFieldChange = typeof documentFieldChanges.$inferSelect;
+export type NewDocumentFieldChange = typeof documentFieldChanges.$inferInsert;

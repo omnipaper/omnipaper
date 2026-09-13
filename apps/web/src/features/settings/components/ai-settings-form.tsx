@@ -91,7 +91,7 @@ export function AiSettingsForm() {
   }
 
   return (
-    <Card className="max-w-lg">
+    <Card>
       <CardHeader>
         <CardTitle>AI</CardTitle>
         <CardDescription>

@@ -1,20 +1,34 @@
-import { useCallback, useSyncExternalStore } from "react";
+import {
+  CalendarIcon,
+  CalendarPlusIcon,
+  FileTypeIcon,
+  FolderTreeIcon,
+  ShapesIcon,
+  TagIcon,
+} from "lucide-react";
+import { type ComponentType, useCallback, useSyncExternalStore } from "react";
 
 export const DISPLAY_PROPERTY_KEYS = [
   "documentType",
   "date",
   "tags",
+  "path",
   "fileType",
   "created",
 ] as const;
 export type DisplayPropertyKey = (typeof DISPLAY_PROPERTY_KEYS)[number];
 
-export const DISPLAY_PROPERTIES: { key: DisplayPropertyKey; label: string }[] = [
-  { key: "documentType", label: "Document type" },
-  { key: "date", label: "Date" },
-  { key: "tags", label: "Tags" },
-  { key: "fileType", label: "File type" },
-  { key: "created", label: "Added" },
+export const DISPLAY_PROPERTIES: {
+  key: DisplayPropertyKey;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+}[] = [
+  { key: "documentType", label: "Document type", icon: ShapesIcon },
+  { key: "date", label: "Document date", icon: CalendarIcon },
+  { key: "tags", label: "Tags", icon: TagIcon },
+  { key: "path", label: "Storage path", icon: FolderTreeIcon },
+  { key: "fileType", label: "File type", icon: FileTypeIcon },
+  { key: "created", label: "Added", icon: CalendarPlusIcon },
 ];
 
 const DEFAULT_ENABLED: DisplayPropertyKey[] = ["documentType", "date", "tags"];

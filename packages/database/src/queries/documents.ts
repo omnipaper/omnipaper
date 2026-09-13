@@ -80,6 +80,46 @@ export async function getDocuments(db: Database, params: GetDocumentsParams) {
     .limit(limit)
     .offset(offset);
 }
+// Ordering must mirror getDocuments (rank for text search, createdAt otherwise).
+export const NAVIGATION_IDS_LIMIT = 1_000;
+
+export type GetDocumentIdsParams = Omit<GetDocumentsParams, "limit" | "offset">;
+
+export async function getDocumentIds(db: Database, params: GetDocumentIdsParams) {
+  const { organizationId, filters, sort, customPropertyTypes } = params;
+  const q = params.query?.trim();
+  const filterConds = buildDocumentWhere(filters, customPropertyTypes);
+  const explicitOrder = buildDocumentOrderBy(sort);
+  if (q) {
+    const tsQuery = sql`to_tsquery('simple', nullif(websearch_to_tsquery('simple', ${q})::text, '') || ':*')`;
+    const rows = await db
+      .select({ id: documents.id })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.organizationId, organizationId),
+          sql`${documents.searchVector} @@ ${tsQuery}`,
+          ...filterConds,
+        ),
+      )
+      .orderBy(
+        ...(explicitOrder ?? [
+          sql`ts_rank(${documents.searchVector}, ${tsQuery}) desc`,
+          desc(documents.id),
+        ]),
+      )
+      .limit(NAVIGATION_IDS_LIMIT);
+    return rows.map((r) => r.id);
+  }
+  const rows = await db
+    .select({ id: documents.id })
+    .from(documents)
+    .where(and(eq(documents.organizationId, organizationId), ...filterConds))
+    .orderBy(...(explicitOrder ?? [desc(documents.createdAt), desc(documents.id)]))
+    .limit(NAVIGATION_IDS_LIMIT);
+  return rows.map((r) => r.id);
+}
+
 export type ExportDocumentRow = {
   id: string;
   storageKey: string;
@@ -186,6 +226,8 @@ export async function getDocumentActivity(db: Database, params: GetDocumentActiv
         eq(activityEvents.organizationId, params.organizationId),
         eq(activityEvents.resourceType, "document"),
         eq(activityEvents.resourceId, params.documentId),
+        // Legacy field-change events: the journal is their record now.
+        inArray(activityEvents.event, ["document.created", "document.ocr_completed"]),
       ),
     )
     .orderBy(desc(activityEvents.createdAt))

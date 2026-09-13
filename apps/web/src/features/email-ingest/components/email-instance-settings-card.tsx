@@ -19,7 +19,7 @@ export function EmailInstanceSettingsCard() {
   const save = useSaveEmailInstanceSettings();
 
   return (
-    <Card className="max-w-2xl">
+    <Card>
       <CardHeader>
         <CardTitle>Instance settings</CardTitle>
         <CardDescription>Applies to every organization on this instance.</CardDescription>

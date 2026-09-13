@@ -1,6 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 import { testAiProvider } from "@omnipaper/ai/test";
-import { getOcrDefinition, listOcrDefinitions, resolveModel } from "@omnipaper/ocr/resolve";
+import {
+  getOcrDefinition,
+  listOcrDefinitions,
+  missingCredential,
+  resolveModel,
+} from "@omnipaper/ocr/resolve";
 import { testProviderConnection } from "@omnipaper/ocr/runner";
 import {
   aiProviderTestSchema,
@@ -23,10 +28,11 @@ import {
   setOcrSettings,
 } from "@omnipaper/settings/ocr-settings";
 import {
+  getAzureEndpoint,
   getProviderKeys,
-  providerKeysSchema,
+  providerSettingsUpdateSchema,
   providerTestSchema,
-  setProviderKeys,
+  setProviderSettings,
 } from "@omnipaper/settings/provider-settings";
 import { SECRET_MASK, unmaskSecret } from "@omnipaper/settings/secret";
 import {
@@ -153,9 +159,10 @@ const adminSettings = new Hono<{ Variables: Variables }>()
     const ocr = await getOcrSettings();
     const keys = await getProviderKeys();
     const definition = getOcrDefinition(ocr.definitionId);
+    const azureEndpoint = await getAzureEndpoint();
 
     return c.json({
-      configured: Boolean(keys[definition.provider]),
+      configured: missingCredential(definition, { keys, azureEndpoint }) === null,
       definitionId: ocr.definitionId,
       model: resolveModel(definition, ocr.model),
       definitions: listOcrDefinitions().map((d) => ({
@@ -201,14 +208,16 @@ const adminSettings = new Hono<{ Variables: Variables }>()
       google: keys.google ? SECRET_MASK : null,
       openai: keys.openai ? SECRET_MASK : null,
       anthropic: keys.anthropic ? SECRET_MASK : null,
+      azure: keys.azure ? SECRET_MASK : null,
+      azureEndpoint: (await getAzureEndpoint()) ?? null,
     });
   })
-  .put("/providers", zValidator("json", providerKeysSchema), async (c) => {
+  .put("/providers", zValidator("json", providerSettingsUpdateSchema), async (c) => {
     const incoming = c.req.valid("json");
     const stored = await getProviderKeys();
 
     // A key left as SECRET_MASK means the admin didn't change it → keep the stored value.
-    await setProviderKeys({
+    await setProviderSettings({
       mistral:
         incoming.mistral === undefined ? undefined : unmaskSecret(incoming.mistral, stored.mistral),
       google:
@@ -219,19 +228,24 @@ const adminSettings = new Hono<{ Variables: Variables }>()
         incoming.anthropic === undefined
           ? undefined
           : unmaskSecret(incoming.anthropic, stored.anthropic),
+      azure: incoming.azure === undefined ? undefined : unmaskSecret(incoming.azure, stored.azure),
+      azureEndpoint: incoming.azureEndpoint,
     });
 
     return c.json({ ok: true });
   })
   .post("/providers/test", zValidator("json", providerTestSchema), async (c) => {
-    const { provider, apiKey } = c.req.valid("json");
+    const { provider, apiKey, endpoint } = c.req.valid("json");
     const stored = await getProviderKeys();
     const key = unmaskSecret(apiKey, stored[provider]);
 
     try {
       await testProviderConnection(
         provider,
-        provider === "mistral" ? { mistral: key } : { google: key },
+        { [provider]: key },
+        provider === "azure"
+          ? { azureEndpoint: endpoint?.trim() || (await getAzureEndpoint()) }
+          : undefined,
       );
       return c.json({ ok: true, error: null });
     } catch (error) {

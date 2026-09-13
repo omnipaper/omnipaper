@@ -30,10 +30,13 @@ import {
   Building2Icon,
   FilesIcon,
   FileTypeIcon,
+  FolderIcon,
   FolderTreeIcon,
   HardDriveIcon,
+  HomeIcon,
   KeyIcon,
   MailIcon,
+  SettingsIcon,
   SlidersHorizontalIcon,
   SparklesIcon,
   TagIcon,
@@ -44,14 +47,15 @@ import {
 import { signOut } from "@/features/auth/auth-client";
 import { DemoBanner } from "@/features/auth/components/demo-banner";
 import { sessionKeys, sessionQueryOptions } from "@/features/auth/queries/session";
+import { DocumentSearchInput } from "@/features/documents/components/document-search-input";
 import { GlobalDropArea } from "@/features/documents/components/global-drop-area";
 import { useUploadDocuments } from "@/features/documents/queries/upload";
 import { RecentDocuments } from "@/features/documents/recent/recent-documents";
 import { OnboardingChecklist } from "@/features/onboarding/components/onboarding-checklist";
 import { NavUser } from "@/features/organization/components/nav-user";
-import { OrgSwitcher } from "@/features/organization/components/org-switcher";
 import { fullOrganizationQuery, useOrgMember } from "@/features/organization/queries/organization";
 import { SavedViewsSidebar } from "@/features/saved-views/components/saved-views-sidebar";
+import { config } from "@/lib/config";
 import { useDemoReadOnly } from "@/lib/demo-mode";
 import { queryClient } from "@/lib/query-client";
 
@@ -82,6 +86,7 @@ function OrgLayout() {
   const canManage = canManageOrg(member?.role);
   const settingsBase = `/dashboard/orgs/${orgId}/settings`;
   const inSettings = pathname.startsWith(settingsBase);
+  const onHome = pathname === `/dashboard/orgs/${orgId}`;
   // Workflows highlights on the whole section (list, /new, /$workflowId), not just the index.
   const inWorkflows = pathname.startsWith(`/dashboard/orgs/${orgId}/workflows`);
 
@@ -275,12 +280,27 @@ function OrgLayout() {
         ) : (
           <>
             <SidebarHeader>
-              <OrgSwitcher orgId={orgId} />
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <div className="flex h-12 items-center gap-2 px-2">
+                    <img src="/favicon.png" alt="" className="size-8 rounded-lg" />
+                    <span className="truncate font-semibold text-sm">{config.appName}</span>
+                  </div>
+                </SidebarMenuItem>
+              </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
               <SidebarGroup>
                 <SidebarGroupContent>
                   <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname === `/dashboard/orgs/${orgId}`}>
+                        <Link to="/dashboard/orgs/$orgId" params={{ orgId }}>
+                          <HomeIcon />
+                          <span>Home</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         asChild
@@ -292,6 +312,17 @@ function OrgLayout() {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname.endsWith("/documents/fileview")}
+                      >
+                        <Link to="/dashboard/orgs/$orgId/documents/fileview" params={{ orgId }}>
+                          <FolderIcon />
+                          <span>File view</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -299,10 +330,10 @@ function OrgLayout() {
               <SavedViewsSidebar orgId={orgId} />
               <SidebarSeparator />
               <RecentDocuments orgId={orgId} />
-              {canManage ? (
-                <SidebarGroup className="mt-auto">
-                  <SidebarGroupContent>
-                    <SidebarMenu>
+              <SidebarGroup className="mt-auto">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {canManage ? (
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={inWorkflows}>
                           <Link to="/dashboard/orgs/$orgId/workflows" params={{ orgId }}>
@@ -311,10 +342,18 @@ function OrgLayout() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              ) : null}
+                    ) : null}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link to="/dashboard/orgs/$orgId/settings" params={{ orgId }}>
+                          <SettingsIcon />
+                          <span>Settings</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
               {session?.user ? (
@@ -328,13 +367,25 @@ function OrgLayout() {
           </>
         )}
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <DemoBanner />
-        <header className="flex shrink-0 items-center gap-2 border-b px-4 py-3">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger />
-          <span className="font-medium text-sm">{inSettings ? "Settings" : "Dashboard"}</span>
+          {inSettings ? (
+            <span className="font-medium text-sm">Settings</span>
+          ) : onHome ? null : (
+            <>
+              <div className="flex flex-1 justify-center">
+                <DocumentSearchInput orgId={orgId} className="h-10 w-full max-w-xl" />
+              </div>
+              <span aria-hidden className="w-7 shrink-0" />
+            </>
+          )}
         </header>
-        <Outlet />
+        {/* Reserved scrollbar gutter avoids sideways shift; pages marked data-fullbleed opt out via :has(). */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-gutter-stable has-[[data-fullbleed]]:scrollbar-gutter-auto has-[[data-fullbleed]]:overflow-hidden">
+          <Outlet />
+        </div>
       </SidebarInset>
       <OnboardingChecklist orgId={orgId} />
     </SidebarProvider>

@@ -13,7 +13,7 @@ afterAll(() => {
 
 const baseInput = {
   definitionId: "mistral-ocr",
-  documentUrl: "https://files.test/invoice.pdf",
+  data: new TextEncoder().encode("%PDF-1.4 test"),
   mimeType: "application/pdf",
   keys: { mistral: "mistral-test-key" },
 };
@@ -70,5 +70,41 @@ describe("extractText", () => {
     const promise = extractText(baseInput);
 
     await expect(promise).rejects.toMatchObject({ retryable: true });
+  });
+
+  it("rejects azure definitions without an endpoint", async () => {
+    const promise = extractText({
+      ...baseInput,
+      definitionId: "azure-document-intelligence",
+      keys: { azure: "azure-test-key" },
+    });
+
+    await expect(promise).rejects.toThrow("Missing Azure endpoint");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("routes azure definitions to the azure engine", async () => {
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 202,
+          headers: { "operation-location": "https://myres.test/analyzeResults/op-1" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ status: "succeeded", analyzeResult: { content: "Azure text" } }),
+          { status: 200 },
+        ),
+      );
+
+    const result = await extractText({
+      ...baseInput,
+      definitionId: "azure-document-intelligence",
+      keys: { azure: "azure-test-key" },
+      azureEndpoint: "https://myres.cognitiveservices.azure.com",
+    });
+
+    expect(result).toEqual({ text: "Azure text" });
   });
 });

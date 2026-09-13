@@ -1,25 +1,17 @@
 import type { FilterValue, SortState } from "@omnipaper/shared/document-filters";
-import { useNavigate, useSearch } from "@tanstack/react-router";
-import type { DocumentSearch, DocumentView } from "./types";
+import type { DocumentView } from "./types";
+import { useDocumentSearch, useDocumentSearchPatch } from "./use-document-search";
 
 // Ergonomic read/write layer over the URL filter+sort state. Route-agnostic (uses the non-strict
 // hooks) so the same bar works on list/folders/gallery. The URL stays the single source of truth;
 // every mutation merges into the existing search and replaces history (no back-button spam).
 export function useDocumentFilters() {
-  const navigate = useNavigate();
-  const search = useSearch({ strict: false }) as DocumentSearch;
+  const search = useDocumentSearch();
+  const patch = useDocumentSearchPatch();
 
   const filters = search.filters ?? {};
   const sort = search.sort;
   const view = search.view ?? "gallery";
-
-  function patch(next: Partial<DocumentSearch>) {
-    navigate({
-      to: ".",
-      replace: true,
-      search: (prev) => ({ ...(prev as DocumentSearch), ...next }),
-    });
-  }
 
   return {
     filters,

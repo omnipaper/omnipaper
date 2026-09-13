@@ -1,4 +1,5 @@
 import { filterStateSchema, sortStateSchema } from "@omnipaper/shared/document-filters";
+import { isValidStoragePath, normalizeStoragePath } from "@omnipaper/shared/storage-paths";
 import type { DocumentSearch } from "./types";
 
 function coerce(value: unknown): unknown {
@@ -17,6 +18,13 @@ export function documentSearchSchema(raw: Record<string, unknown>): DocumentSear
 
   if (raw.view === "list" || raw.view === "gallery") {
     out.view = raw.view;
+  }
+
+  if (typeof raw.path === "string") {
+    const path = normalizeStoragePath(raw.path);
+    if (isValidStoragePath(path)) {
+      out.path = path;
+    }
   }
 
   if (typeof raw.q === "string" && raw.q.length > 0) {

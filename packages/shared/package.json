@@ -8,6 +8,8 @@
     "./provider": "./src/provider.ts",
     "./formats": "./src/formats.ts",
     "./document-filters": "./src/document-filters.ts",
+    "./field-changes": "./src/field-changes.ts",
+    "./storage-paths": "./src/storage-paths.ts",
     "./saved-views": "./src/saved-views.ts",
     "./ai-models": "./src/ai-models.ts",
     "./workflows/triggers": "./src/workflows/triggers.ts",

@@ -1,101 +1,66 @@
-import { Link } from "@tanstack/react-router";
-import { Fragment } from "react";
+import type { FolderNode } from "@omnipaper/shared/storage-paths";
+import {
+  type DocumentColumnKey,
+  DocumentTable,
+} from "@/features/documents/components/document-table";
 import { useDisplayProperties } from "@/features/documents/filters/display-properties";
+import { DEFAULT_ORDER } from "@/features/documents/filters/fields";
+import { useDocumentFilters } from "@/features/documents/filters/use-document-filters";
 import type { DocumentRow } from "@/features/documents/queries/documents";
-import { SelectCheckbox } from "@/features/documents/selection/select-checkbox";
-import { TagChip } from "@/features/tags/components/tag-chip";
-import { fileTypeLabel, formatCalendarDate, formatRelativeDay } from "@/lib/format";
+import { useDocumentSelection } from "@/features/documents/selection/use-document-selection";
 
-type DocumentRowsProps = {
+export function DocumentRows({
+  orgId,
+  documents,
+  folders,
+  onOpenFolder,
+  isSelected,
+  onToggle,
+}: {
   orgId: string;
   documents: DocumentRow[];
+  folders?: ReadonlyArray<FolderNode>;
+  onOpenFolder?: (path: string) => void;
   isSelected: (id: string) => boolean;
   onToggle: (id: string, shiftKey: boolean) => void;
-};
-
-function renderSnippet(snippet: string) {
-  return snippet.split(/(<mark>.*?<\/mark>)/g).map((part, index) => {
-    const isMark = part.startsWith("<mark>");
-    return {
-      key: index,
-      isMark,
-      text: isMark ? part.slice("<mark>".length, -"</mark>".length) : part,
-    };
-  });
-}
-
-export function DocumentRows({ orgId, documents, isSelected, onToggle }: DocumentRowsProps) {
+}) {
   const { isOn } = useDisplayProperties();
+  const selection = useDocumentSelection();
+  const { sort, setSort } = useDocumentFilters();
 
-  function row(doc: DocumentRow) {
-    const typeName = isOn("documentType") ? doc.documentTypeName : null;
-    const showTags = isOn("tags") && doc.tags.length > 0;
-    const docDate = isOn("date") && doc.documentDate ? formatCalendarDate(doc.documentDate) : null;
-    const added = isOn("created") ? `Added ${formatRelativeDay(doc.createdAt)}` : null;
+  // Toggling on selects ALL matching documents, including pages not fetched yet.
+  const allChecked = documents.length > 0 && documents.every((doc) => isSelected(doc.id));
+  const onToggleAll = () => (allChecked ? selection.clear() : selection.selectAllMatching());
 
-    return (
-      <li key={doc.id} className="flex items-start hover:bg-accent">
-        <div className="flex shrink-0 items-start pt-3.5 pl-4">
-          <SelectCheckbox
-            checked={isSelected(doc.id)}
-            onToggle={(shiftKey) => onToggle(doc.id, shiftKey)}
-            label={`Select ${doc.title}`}
-          />
-        </div>
-        <Link
-          to="/dashboard/orgs/$orgId/documents/$id"
-          params={{ orgId, id: doc.id }}
-          className="flex flex-1 items-start gap-3 py-3 pr-4 pl-3"
-        >
-          {isOn("fileType") ? (
-            <span className="mt-0.5 w-11 shrink-0 rounded-md border py-0.5 text-center font-medium text-[11px] text-muted-foreground">
-              {fileTypeLabel(doc.mimeType)}
-            </span>
-          ) : null}
-
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <span className="truncate font-medium">{doc.title}</span>
-
-            {typeName || showTags ? (
-              <div className="flex flex-wrap items-center gap-1.5">
-                {typeName ? (
-                  <span className="max-w-[170px] truncate rounded-md border px-2 py-0.5 text-foreground text-xs">
-                    {typeName}
-                  </span>
-                ) : null}
-                {showTags
-                  ? doc.tags.map((tag) => (
-                      <TagChip key={tag.id} name={tag.name} color={tag.color} />
-                    ))
-                  : null}
-              </div>
-            ) : null}
-
-            {doc.snippet ? (
-              <p className="line-clamp-2 text-muted-foreground text-sm">
-                {renderSnippet(doc.snippet).map((part) =>
-                  part.isMark ? (
-                    <mark key={part.key} className="rounded bg-yellow-200 text-foreground">
-                      {part.text}
-                    </mark>
-                  ) : (
-                    <Fragment key={part.key}>{part.text}</Fragment>
-                  ),
-                )}
-              </p>
-            ) : null}
-          </div>
-
-          {docDate || added ? (
-            <div className="flex shrink-0 flex-col items-end gap-0.5 whitespace-nowrap text-muted-foreground text-xs tabular-nums">
-              {docDate ? <span>{docDate}</span> : null}
-              {added ? <span>{added}</span> : null}
-            </div>
-          ) : null}
-        </Link>
-      </li>
-    );
+  const columns: DocumentColumnKey[] = [];
+  if (isOn("fileType")) {
+    columns.push("fileType");
+  }
+  if (isOn("documentType")) {
+    columns.push("type");
+  }
+  if (isOn("tags")) {
+    columns.push("tags");
+  }
+  if (isOn("path")) {
+    columns.push("location");
+  }
+  if (isOn("date")) {
+    columns.push("documentDate");
+  }
+  if (isOn("created")) {
+    columns.push("added");
   }
 
-  return <ul className="divide-y rounded-md border">{documents.map(row)}</ul>;
+  return (
+    <DocumentTable
+      orgId={orgId}
+      documents={documents}
+      columns={columns}
+      folders={folders}
+      onOpenFolder={onOpenFolder}
+      selection={{ isSelected, onToggle, allChecked, onToggleAll }}
+      sorting={{ sort: sort ?? DEFAULT_ORDER, onSortChange: setSort }}
+    />
+  );
 }

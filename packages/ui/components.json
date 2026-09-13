@@ -1,12 +1,12 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "radix-mira",
+  "style": "radix-rhea",
   "rsc": false,
   "tsx": true,
   "tailwind": {
     "config": "",
     "css": "src/styles/globals.css",
-    "baseColor": "stone",
+    "baseColor": "mist",
     "cssVariables": true,
     "prefix": ""
   },
@@ -17,8 +17,8 @@
     "hooks": "@omnipaper/ui/hooks",
     "lib": "@omnipaper/ui/lib"
   },
-  "iconLibrary": "hugeicons",
-  "menuColor": "inverted-translucent",
+  "iconLibrary": "phosphor",
+  "menuColor": "default",
   "menuAccent": "subtle",
   "rtl": false
 }

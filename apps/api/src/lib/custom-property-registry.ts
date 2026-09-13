@@ -1,4 +1,5 @@
 import type { customPropertyTypeEnum } from "@omnipaper/database/schema";
+import type { FieldChangeValue } from "@omnipaper/shared/field-changes";
 import { z } from "zod";
 
 export type CustomPropertyType = (typeof customPropertyTypeEnum.enumValues)[number];
@@ -101,6 +102,25 @@ export const customPropertyRegistry: Record<CustomPropertyType, CustomPropertyTy
 
 export function getPropertyTypeDefinition(type: CustomPropertyType): CustomPropertyTypeDefinition {
   return customPropertyRegistry[type];
+}
+
+export function propertyChangeSnapshot(
+  type: CustomPropertyType,
+  options: { id: string; label: string }[],
+  row: ValueColumns | null | undefined,
+): FieldChangeValue | null {
+  if (!row) {
+    return null;
+  }
+  if (type === "select") {
+    if (!row.selectOptionId) {
+      return null;
+    }
+    const option = options.find((o) => o.id === row.selectOptionId);
+    return { id: row.selectOptionId, name: option?.label ?? "" };
+  }
+  const raw = row.valueText ?? row.valueNumber ?? row.valueDate ?? row.valueBool;
+  return raw === null || raw === undefined ? null : { value: String(raw) };
 }
 
 export function coerceCustomValue(

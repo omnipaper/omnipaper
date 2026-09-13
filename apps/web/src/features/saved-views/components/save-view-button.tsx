@@ -5,12 +5,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@omnipaper/ui/components/dropdown-menu";
+import { cn } from "@omnipaper/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { BookmarkPlusIcon, ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { DocumentSearch } from "@/features/documents/filters/types";
+import {
+  useDocumentSearch,
+  useDocumentSearchPatch,
+} from "@/features/documents/filters/use-document-search";
 import {
   orgSavedViewsQuery,
   useCreateSavedView,
@@ -21,6 +25,7 @@ import {
   hasSavableState,
   isSameViewState,
 } from "@/features/saved-views/view-state";
+import { pillControl } from "@/lib/pill";
 import { SaveViewDialog } from "./save-view-dialog";
 
 // The view-level save control in the filter bar. Two modes:
@@ -29,7 +34,8 @@ import { SaveViewDialog } from "./save-view-dialog";
 // A clean active view (live state == snapshot) shows nothing — there's nothing to do.
 export function SaveViewButton({ orgId }: { orgId: string }) {
   const navigate = useNavigate();
-  const search = useSearch({ strict: false }) as DocumentSearch;
+  const search = useDocumentSearch();
+  const patch = useDocumentSearchPatch();
   const { data } = useQuery(orgSavedViewsQuery({ orgId }));
   const create = useCreateSavedView(orgId);
   const update = useUpdateSavedView(orgId);
@@ -40,11 +46,7 @@ export function SaveViewButton({ orgId }: { orgId: string }) {
   const dirty = activeView ? !isSameViewState(currentState, activeView.state) : false;
 
   function applyActiveView(id: string) {
-    navigate({
-      to: ".",
-      replace: true,
-      search: (prev) => ({ ...(prev as DocumentSearch), savedView: id }),
-    });
+    patch({ savedView: id });
   }
 
   function handleCreate(name: string) {
@@ -97,7 +99,7 @@ export function SaveViewButton({ orgId }: { orgId: string }) {
         <Button
           variant="outline"
           size="sm"
-          className="rounded-r-none"
+          className={cn(pillControl, "rounded-l-full rounded-r-none px-3")}
           onClick={handleOverwrite}
           disabled={update.isPending}
         >
@@ -108,13 +110,13 @@ export function SaveViewButton({ orgId }: { orgId: string }) {
             <Button
               variant="outline"
               size="sm"
-              className="rounded-l-none border-l-0 px-2"
+              className={cn(pillControl, "rounded-r-full rounded-l-none border-l-0 px-2")}
               aria-label="More save options"
             >
-              <ChevronDownIcon className="size-4" />
+              <ChevronDownIcon />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="min-w-44">
             <DropdownMenuItem onSelect={() => setDialog("fork")}>Save as new view</DropdownMenuItem>
             <DropdownMenuItem onSelect={handleReset}>Reset changes</DropdownMenuItem>
           </DropdownMenuContent>
@@ -127,8 +129,13 @@ export function SaveViewButton({ orgId }: { orgId: string }) {
   if (!activeView && hasSavableState(currentState)) {
     return (
       <>
-        <Button variant="outline" size="sm" onClick={() => setDialog("create")}>
-          <BookmarkPlusIcon className="size-4" />
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(pillControl, "rounded-full px-3")}
+          onClick={() => setDialog("create")}
+        >
+          <BookmarkPlusIcon />
           Save view
         </Button>
         {dialogNode}

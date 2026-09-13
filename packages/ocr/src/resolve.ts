@@ -4,6 +4,7 @@ import {
   type OcrDefinitionId,
   type Provider,
 } from "./registry";
+import type { ProviderKeys } from "./types";
 
 export class OcrError extends Error {
   // Transient (429 rate limit, 5xx, network) → the OCR task rethrows so the queue retries with
@@ -50,6 +51,26 @@ export function resolveModel(definition: OcrDefinition, userModel?: string): str
   }
 
   return userModel?.trim() || definition.defaultModel;
+}
+
+export type ProviderCredentials = {
+  keys: ProviderKeys;
+  azureEndpoint?: string;
+};
+
+export function missingCredential(
+  definition: OcrDefinition,
+  credentials: ProviderCredentials,
+): string | null {
+  if (!credentials.keys[definition.provider]) {
+    return `${definition.provider} API key`;
+  }
+
+  if (definition.provider === "azure" && !credentials.azureEndpoint) {
+    return "Azure endpoint";
+  }
+
+  return null;
 }
 
 export function listOcrDefinitions(): OcrDefinition[] {

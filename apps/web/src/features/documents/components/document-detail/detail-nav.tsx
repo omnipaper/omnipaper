@@ -1,22 +1,24 @@
 import { Button } from "@omnipaper/ui/components/button";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { getLastListSearch } from "@/features/documents/filters/last-list-search";
-import { useDocumentNavigation } from "@/features/documents/navigation/use-document-navigation";
+import type { DocumentNavigation } from "@/features/documents/navigation/use-document-navigation";
+
+type StepTarget = { id: string } | { home: true } | null;
 
 function StepButton({
   orgId,
-  targetId,
+  target,
   label,
   children,
 }: {
   orgId: string;
-  targetId: string | null;
+  target: StepTarget;
   label: string;
   children: ReactNode;
 }) {
-  if (!targetId) {
+  if (!target) {
     return (
       <Button variant="outline" size="icon-sm" disabled aria-label={label}>
         {children}
@@ -25,17 +27,59 @@ function StepButton({
   }
   return (
     <Button variant="outline" size="icon-sm" asChild aria-label={label} title={label}>
-      <Link to="/dashboard/orgs/$orgId/documents/$id" params={{ orgId, id: targetId }}>
-        {children}
-      </Link>
+      {"home" in target ? (
+        <Link to="/dashboard/orgs/$orgId" params={{ orgId }}>
+          {children}
+        </Link>
+      ) : (
+        <Link to="/dashboard/orgs/$orgId/documents/$id" params={{ orgId, id: target.id }}>
+          {children}
+        </Link>
+      )}
     </Button>
   );
 }
 
-// Close + step through the list without going back to it: the editing flow is "open, fix, next".
-export function DetailNav({ orgId, id }: { orgId: string; id: string }) {
-  const { previousId, nextId } = useDocumentNavigation({ orgId, id });
+export function DetailNav({
+  orgId,
+  navigation,
+}: {
+  orgId: string;
+  navigation: DocumentNavigation;
+}) {
+  const navigate = useNavigate();
   const backSearch = getLastListSearch(orgId);
+  const { previousId, nextId, known } = navigation;
+  const finishToHome = known && nextId === null;
+  const next: StepTarget = nextId ? { id: nextId } : finishToHome ? { home: true } : null;
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      if (
+        e.metaKey ||
+        e.ctrlKey ||
+        e.altKey ||
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+      if (e.key === "ArrowLeft" && previousId) {
+        e.preventDefault();
+        navigate({ to: "/dashboard/orgs/$orgId/documents/$id", params: { orgId, id: previousId } });
+      } else if (e.key === "ArrowRight" && nextId) {
+        e.preventDefault();
+        navigate({ to: "/dashboard/orgs/$orgId/documents/$id", params: { orgId, id: nextId } });
+      } else if (e.key === "ArrowRight" && finishToHome) {
+        e.preventDefault();
+        navigate({ to: "/dashboard/orgs/$orgId", params: { orgId } });
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [navigate, orgId, previousId, nextId, finishToHome]);
 
   return (
     <div className="flex items-center gap-1">
@@ -50,10 +94,18 @@ export function DetailNav({ orgId, id }: { orgId: string; id: string }) {
           <XIcon />
         </Link>
       </Button>
-      <StepButton orgId={orgId} targetId={previousId} label="Previous document">
+      <StepButton
+        orgId={orgId}
+        target={previousId ? { id: previousId } : null}
+        label="Previous document"
+      >
         <ChevronLeftIcon />
       </StepButton>
-      <StepButton orgId={orgId} targetId={nextId} label="Next document">
+      <StepButton
+        orgId={orgId}
+        target={next}
+        label={finishToHome ? "Done, back to Home" : "Next document"}
+      >
         <ChevronRightIcon />
       </StepButton>
     </div>
