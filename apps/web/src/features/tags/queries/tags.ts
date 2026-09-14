@@ -75,6 +75,23 @@ export function useUpsertTag(orgId: string) {
   });
 }
 
+export function useImproveTagDescription(orgId: string) {
+  return useMutation({
+    mutationFn: async (input: { name: string; description: string }) => {
+      const res = await api.orgs[":orgId"].tags["improve-description"].$post({
+        param: { orgId },
+        json: input,
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error?: { message?: string } };
+        throw new Error(body.error?.message ?? "Failed to improve description");
+      }
+      return res.json();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+}
+
 export function useSetTagAiEligible(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({

@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@omnipaper/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
-import { CircleHelpIcon, Loader2Icon, PlusIcon, SearchIcon } from "lucide-react";
+import { CircleHelpIcon, Loader2Icon, PlusIcon, SearchIcon, SparklesIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { RowActions, TableEmptyRow } from "@/components/settings/settings-table";
 import { AiAssignMaster } from "@/features/ai-assign/components/ai-assign-master";
@@ -29,6 +29,7 @@ import {
   type OrgTag,
   orgTagsQuery,
   useDeleteTag,
+  useImproveTagDescription,
   useSetTagAiEligible,
   useUpsertTag,
 } from "@/features/tags/queries/tags";
@@ -208,6 +209,7 @@ function TagDialogBody({
   const [description, setDescription] = useState(editing?.description ?? "");
 
   const upsert = useUpsertTag(orgId);
+  const improve = useImproveTagDescription(orgId);
 
   return (
     <>
@@ -265,6 +267,22 @@ function TagDialogBody({
             onChange={(e) => setDescription(e.target.value)}
             maxLength={500}
           />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="self-end text-muted-foreground"
+            disabled={!name.trim() || !description.trim() || improve.isPending}
+            onClick={() =>
+              improve.mutate(
+                { name: name.trim(), description: description.trim() },
+                { onSuccess: (data) => setDescription(data.description) },
+              )
+            }
+          >
+            {improve.isPending ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+            Improve with AI
+          </Button>
         </div>
         <DialogFooter>
           <DialogClose asChild>

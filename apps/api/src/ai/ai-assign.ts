@@ -29,7 +29,7 @@ import {
   coerceCustomValue,
   customPropertyRegistry,
   propertyChangeSnapshot,
-} from "./custom-property-registry";
+} from "../lib/custom-property-registry";
 
 type Doc = {
   id: string;

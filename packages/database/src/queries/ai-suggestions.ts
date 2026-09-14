@@ -1,4 +1,5 @@
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { user } from "../auth-schema";
 import type { Database } from "../client";
 import { aiSuggestions, type NewAiSuggestion } from "../schema";
 
@@ -76,6 +77,31 @@ export async function upsertAiSuggestion(db: Database, input: UpsertAiSuggestion
           .returning();
 
   return suggestion;
+}
+
+export async function getDocumentSuggestions(
+  db: Database,
+  params: { documentId: string; field?: NewAiSuggestion["field"] },
+) {
+  return db
+    .select({
+      field: aiSuggestions.field,
+      customPropertyDefinitionId: aiSuggestions.customPropertyDefinitionId,
+      suggestedValue: aiSuggestions.suggestedValue,
+      status: aiSuggestions.status,
+      createdAt: aiSuggestions.createdAt,
+      resolvedAt: aiSuggestions.resolvedAt,
+      resolvedByName: user.name,
+    })
+    .from(aiSuggestions)
+    .leftJoin(user, eq(aiSuggestions.resolvedBy, user.id))
+    .where(
+      and(
+        eq(aiSuggestions.documentId, params.documentId),
+        params.field ? eq(aiSuggestions.field, params.field) : undefined,
+      ),
+    )
+    .orderBy(desc(aiSuggestions.createdAt));
 }
 
 export async function getPendingSuggestions(db: Database, params: GetPendingSuggestionsParams) {
