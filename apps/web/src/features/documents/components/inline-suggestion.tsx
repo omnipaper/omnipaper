@@ -19,7 +19,7 @@ export function InlineSuggestion({
   const dismiss = useDismissSuggestion(orgId, documentId);
 
   return (
-    <div className="mt-1 flex items-center justify-between gap-2 rounded border border-primary/20 bg-primary/5 px-2 py-1 text-xs">
+    <div className="mt-1 flex items-center justify-between gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-1 text-xs">
       <span className="min-w-0 truncate text-muted-foreground">
         <span className="mr-1.5 font-medium text-primary">✨ Suggested:</span>
         {label}

@@ -70,7 +70,7 @@ export function TagSuggestions({
   };
 
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-1.5 rounded border border-primary/20 bg-primary/5 px-2 py-1.5 text-xs">
+    <div className="mt-1 flex flex-wrap items-center gap-1.5 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs">
       <span className="mr-0.5 font-medium text-primary">✨ Suggested:</span>
       {existing.map((tag) => (
         <button
@@ -109,7 +109,7 @@ export function TagSuggestions({
         type="button"
         onClick={() => dismiss.mutate(suggestion.id)}
         aria-label="Dismiss tag suggestions"
-        className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+        className="ml-auto rounded-full p-0.5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
       >
         <XIcon className="size-3" />
       </button>
