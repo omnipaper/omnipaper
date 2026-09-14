@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@omnipaper/ui/components/table";
+import { Textarea } from "@omnipaper/ui/components/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { CircleHelpIcon, Loader2Icon, PlusIcon, SearchIcon, SparklesIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -239,7 +240,9 @@ function TagDialogBody({
         className="flex flex-col gap-4"
       >
         <div className="flex flex-col gap-2">
-          <Label htmlFor="tag-name">Name</Label>
+          <Label htmlFor="tag-name" required>
+            Name
+          </Label>
           <div className="flex items-center gap-2">
             <input
               type="color"
@@ -260,29 +263,33 @@ function TagDialogBody({
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="tag-description">Description (optional)</Label>
-          <Input
+          <div className="flex items-center justify-between">
+            <Label htmlFor="tag-description">Description</Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="-my-1 h-auto py-1 text-muted-foreground"
+              disabled={!name.trim() || !description.trim() || improve.isPending}
+              onClick={() =>
+                improve.mutate(
+                  { name: name.trim(), description: description.trim() },
+                  { onSuccess: (data) => setDescription(data.description) },
+                )
+              }
+            >
+              {improve.isPending ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+              Improve with AI
+            </Button>
+          </div>
+          <Textarea
             id="tag-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={500}
+            rows={3}
+            className="resize-none"
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="self-end text-muted-foreground"
-            disabled={!name.trim() || !description.trim() || improve.isPending}
-            onClick={() =>
-              improve.mutate(
-                { name: name.trim(), description: description.trim() },
-                { onSuccess: (data) => setDescription(data.description) },
-              )
-            }
-          >
-            {improve.isPending ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
-            Improve with AI
-          </Button>
         </div>
         <DialogFooter>
           <DialogClose asChild>
