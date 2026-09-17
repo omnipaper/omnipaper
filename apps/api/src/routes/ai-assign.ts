@@ -52,7 +52,12 @@ export const aiAssignRoutes = new Hono<{ Variables: Variables }>()
       }
       const { field, enabled, mode, allowNew } = input;
       const m = mode ?? "suggest";
-      const value = field === "tags" ? { mode: m, allowNew: allowNew ?? false } : { mode: m };
+      let value: { mode: typeof m; allowNew?: boolean } = { mode: m };
+      if (field === "tags" || field === "storagePath") {
+        // Keep a flag set elsewhere (workflow builder) when this patch doesn't mention it.
+        const current = (await getSystemAiAssign(organizationId)).fields[field];
+        value = { mode: m, allowNew: allowNew ?? current.allowNew };
+      }
       const patch = { [field]: enabled ? value : undefined } as Partial<AiAssignParams>;
       return c.json(await setSystemAiAssign(organizationId, patch));
     },

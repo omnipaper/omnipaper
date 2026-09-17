@@ -48,13 +48,13 @@ export function DocumentMetadataPanel({
   const types = typesData?.documentTypes ?? [];
   const paths = pathsData?.storagePaths ?? [];
 
-  const { data: suggestionsData } = useQuery(documentSuggestionsQuery({ orgId, documentId }));
-  const suggestions = suggestionsData?.suggestions ?? [];
-
   const patch = useUpdateDocumentMetadata(orgId, documentId);
 
   const createType = useCreateDocumentType(orgId);
   const createPath = useCreateStoragePath(orgId);
+
+  const { data: suggestionsData } = useQuery(documentSuggestionsQuery({ orgId, documentId }));
+  const suggestions = suggestionsData?.suggestions ?? [];
 
   function getSuggestionLabel(suggestion: (typeof suggestions)[number]): string {
     const value = suggestion.suggestedValue;
@@ -64,7 +64,8 @@ export function DocumentMetadataPanel({
     if (suggestion.field === "storagePath" && "id" in value) {
       return paths.find((p) => p.id === value.id)?.path ?? "unknown";
     }
-    if ((suggestion.field === "title" || suggestion.field === "documentDate") && "value" in value) {
+    // title, documentDate, and a proposed storage path that doesn't exist yet
+    if ("value" in value) {
       return value.value;
     }
     return suggestion.field;
@@ -79,7 +80,19 @@ export function DocumentMetadataPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="doc-title">Title</Label>
+        <div className="flex items-center justify-between gap-1.5">
+          <Label htmlFor="doc-title">Title</Label>
+          {titleSuggestion && (
+            <InlineSuggestion
+              orgId={orgId}
+              documentId={documentId}
+              suggestionId={titleSuggestion.id}
+              label={getSuggestionLabel(titleSuggestion)}
+              fieldLabel="Title"
+              current={title}
+            />
+          )}
+        </div>
         <Input
           id="doc-title"
           key={title}
@@ -92,18 +105,22 @@ export function DocumentMetadataPanel({
             }
           }}
         />
-        {titleSuggestion && (
-          <InlineSuggestion
-            orgId={orgId}
-            documentId={documentId}
-            suggestionId={titleSuggestion.id}
-            label={getSuggestionLabel(titleSuggestion)}
-          />
-        )}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="doc-date">Document date</Label>
+        <div className="flex items-center justify-between gap-1.5">
+          <Label htmlFor="doc-date">Document date</Label>
+          {dateSuggestion && (
+            <InlineSuggestion
+              orgId={orgId}
+              documentId={documentId}
+              suggestionId={dateSuggestion.id}
+              label={getSuggestionLabel(dateSuggestion)}
+              fieldLabel="Document date"
+              current={documentDate}
+            />
+          )}
+        </div>
         <Input
           id="doc-date"
           type="date"
@@ -113,22 +130,29 @@ export function DocumentMetadataPanel({
             const value = e.target.value;
             if (value !== (documentDate ?? "")) {
               const next = value || null;
-              patch.mutate({ body: { documentDate: next }, optimistic: { documentDate: next } });
+              patch.mutate({
+                body: { documentDate: next },
+                optimistic: { documentDate: next },
+              });
             }
           }}
         />
-        {dateSuggestion && (
-          <InlineSuggestion
-            orgId={orgId}
-            documentId={documentId}
-            suggestionId={dateSuggestion.id}
-            label={getSuggestionLabel(dateSuggestion)}
-          />
-        )}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="doc-type">Document type</Label>
+        <div className="flex items-center justify-between gap-1.5">
+          <Label htmlFor="doc-type">Document type</Label>
+          {typeSuggestion && (
+            <InlineSuggestion
+              orgId={orgId}
+              documentId={documentId}
+              suggestionId={typeSuggestion.id}
+              label={getSuggestionLabel(typeSuggestion)}
+              fieldLabel="Document type"
+              current={documentType?.name ?? null}
+            />
+          )}
+        </div>
         <CreatableCombobox
           triggerId="doc-type"
           aria-label="Document type"
@@ -157,18 +181,23 @@ export function DocumentMetadataPanel({
           }
           pending={createType.isPending}
         />
-        {typeSuggestion && (
-          <InlineSuggestion
-            orgId={orgId}
-            documentId={documentId}
-            suggestionId={typeSuggestion.id}
-            label={getSuggestionLabel(typeSuggestion)}
-          />
-        )}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="doc-path">Storage path</Label>
+        <div className="flex items-center justify-between gap-1.5">
+          <Label htmlFor="doc-path">Storage path</Label>
+          {pathSuggestion && (
+            <InlineSuggestion
+              orgId={orgId}
+              documentId={documentId}
+              suggestionId={pathSuggestion.id}
+              label={getSuggestionLabel(pathSuggestion)}
+              fieldLabel="Storage path"
+              isNew={"value" in pathSuggestion.suggestedValue}
+              current={storagePath?.path ?? null}
+            />
+          )}
+        </div>
         <CreatableCombobox
           triggerId="doc-path"
           aria-label="Storage path"
@@ -198,27 +227,21 @@ export function DocumentMetadataPanel({
           validateCreate={isValidStoragePath}
           pending={createPath.isPending}
         />
-        {pathSuggestion && (
-          <InlineSuggestion
-            orgId={orgId}
-            documentId={documentId}
-            suggestionId={pathSuggestion.id}
-            label={getSuggestionLabel(pathSuggestion)}
-          />
-        )}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Tags</Label>
+        <div className="flex items-center justify-between gap-1.5">
+          <Label>Tags</Label>
+          {tagsSuggestion && (
+            <TagSuggestions
+              orgId={orgId}
+              documentId={documentId}
+              suggestion={tagsSuggestion}
+              tags={tags}
+            />
+          )}
+        </div>
         <TagPicker orgId={orgId} documentId={documentId} tags={tags} />
-        {tagsSuggestion && (
-          <TagSuggestions
-            orgId={orgId}
-            documentId={documentId}
-            suggestion={tagsSuggestion}
-            tags={tags}
-          />
-        )}
       </div>
     </div>
   );
