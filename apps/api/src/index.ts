@@ -1,4 +1,3 @@
-import "./instrumentation";
 import { migrate } from "@omnipaper/database/migrate";
 import { waitForDatabase } from "@omnipaper/database/wait";
 import { env } from "@omnipaper/env";
@@ -6,6 +5,7 @@ import { startWorker } from "@omnipaper/queue/worker";
 import { serveStatic } from "hono/bun";
 import { createApp } from "./app";
 import { bootstrapDemoAdmin } from "./demo";
+import { flushTracing } from "./instrumentation";
 import { serverLogger } from "./logger";
 import { emailPollTask } from "./tasks/email-poll";
 import { emailPollDispatchTask } from "./tasks/email-poll-dispatch";
@@ -31,6 +31,9 @@ const shutdown = async (signal: string) => {
   // Neither stop() cancels work in flight: the server refuses new connections and lets open
   // requests finish, the runner stops taking jobs and waits out the ones it holds.
   await Promise.allSettled([server?.stop(), runner?.stop()]);
+
+  // Only now are the last spans recorded, and they are still sitting in the exporter's batch.
+  await flushTracing();
 
   process.exit(0);
 };

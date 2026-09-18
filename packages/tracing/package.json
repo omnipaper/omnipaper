@@ -1,0 +1,24 @@
+{
+  "name": "@omnipaper/tracing",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/otel": "1.0.9",
+    "@langfuse/otel": "5.9.1",
+    "@omnipaper/env": "workspace:*",
+    "@omnipaper/logger": "workspace:*",
+    "@opentelemetry/sdk-node": "0.219.0",
+    "ai": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}
