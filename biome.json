@@ -17,7 +17,8 @@
       "!**/*.generated.ts",
       "!**/*.gen.ts",
       "!**/.generated",
-      "!**/packages/ui"
+      "!**/packages/ui",
+      "!**/*.svg"
     ]
   },
   "formatter": {
