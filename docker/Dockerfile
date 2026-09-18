@@ -18,6 +18,7 @@ COPY packages/queue/package.json packages/queue/
 COPY packages/settings/package.json packages/settings/
 COPY packages/shared/package.json packages/shared/
 COPY packages/storage/package.json packages/storage/
+COPY packages/tracing/package.json packages/tracing/
 COPY packages/ui/package.json packages/ui/
 RUN bun install --frozen-lockfile
 COPY . .
@@ -42,10 +43,20 @@ COPY packages/queue/package.json packages/queue/
 COPY packages/settings/package.json packages/settings/
 COPY packages/shared/package.json packages/shared/
 COPY packages/storage/package.json packages/storage/
+COPY packages/tracing/package.json packages/tracing/
 COPY packages/ui/package.json packages/ui/
 
+# Langfuse tracing is opt-in at build time: the OpenTelemetry closure adds ~42MB to a
+# ~400MB image and most self-hosters never look at a trace, so it is only installed
+# when asked for. Without it the API still runs; instrumentation.ts degrades to a warning.
+ARG WITH_TRACING=false
+
 # only the API workspace's prod dependency closure — not web/docs/ui or any devDeps
-RUN bun install --frozen-lockfile --production --filter='@omnipaper/api'
+RUN if [ "$WITH_TRACING" = "true" ]; then \
+      bun install --frozen-lockfile --production --filter='@omnipaper/api' --filter='@omnipaper/tracing'; \
+    else \
+      bun install --frozen-lockfile --production --filter='@omnipaper/api'; \
+    fi
 
 # ---- runtime: final image ----
 FROM base AS runtime
