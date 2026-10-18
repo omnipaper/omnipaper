@@ -48,6 +48,7 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
       ? tags.filter((t) => t.id !== tag.id)
       : [...tags, { id: tag.id, name: tag.name, color: tag.color }];
     setTags.mutate(next);
+    setSearch("");
   }
 
   function remove(tagId: string) {
@@ -65,7 +66,15 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
         <TagChip key={tag.id} name={tag.name} color={tag.color} onRemove={() => remove(tag.id)} />
       ))}
 
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) {
+            setSearch("");
+          }
+        }}
+      >
         <PopoverTrigger asChild>
           <Badge asChild variant="outline" className="cursor-pointer hover:bg-muted">
             <button type="button">

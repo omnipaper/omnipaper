@@ -35,9 +35,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@ai-sdk/otel": "1.0.9",
-    "@langfuse/otel": "5.9.1",
-    "@opentelemetry/sdk-node": "0.219.0",
     "@types/bun": "catalog:",
     "@types/mailparser": "3.4.6",
     "@types/pngjs": "6.0.5",

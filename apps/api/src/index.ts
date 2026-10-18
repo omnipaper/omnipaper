@@ -6,6 +6,7 @@ import { startWorker } from "@omnipaper/queue/worker";
 import { serveStatic } from "hono/bun";
 import { createApp } from "./app";
 import { bootstrapDemoAdmin } from "./demo";
+import { shutdownTracing } from "./instrumentation";
 import { serverLogger } from "./logger";
 import { emailPollTask } from "./tasks/email-poll";
 import { emailPollDispatchTask } from "./tasks/email-poll-dispatch";
@@ -31,6 +32,8 @@ const shutdown = async (signal: string) => {
   // Neither stop() cancels work in flight: the server refuses new connections and lets open
   // requests finish, the runner stops taking jobs and waits out the ones it holds.
   await Promise.allSettled([server?.stop(), runner?.stop()]);
+  // After the drain, so spans from the last in-flight jobs are flushed too.
+  await shutdownTracing().catch((err) => serverLogger.warn({ err }, "tracing flush failed"));
 
   process.exit(0);
 };
