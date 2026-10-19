@@ -54,7 +54,6 @@ function useFitWidth() {
   return { ref, width };
 }
 
-
 function LazyPage({ pageNumber, width }: { pageNumber: number; width: number }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -101,7 +100,10 @@ function PdfPreview({ url, onRetry }: { url: string; onRetry?: () => void }) {
 
   return (
     <div ref={ref} className="w-full">
+      {/* react-pdf 11 suspends by default; with no boundary here every page load blanks the
+          whole app through the router's root Suspense. Pages inherit this setting. */}
       <Document
+        suspense={false}
         file={url}
         onLoadSuccess={({ numPages: total }) => setNumPages(total)}
         className="flex flex-col items-center gap-4"
