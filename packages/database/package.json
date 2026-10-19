@@ -39,13 +39,13 @@
     "@omnipaper/logger": "workspace:*",
     "@omnipaper/shared": "workspace:*",
     "drizzle-orm": "catalog:",
-    "nanoid": "5.1.16",
-    "pg": "8.22.0"
+    "nanoid": "6.0.2",
+    "pg": "8.23.1"
   },
   "devDependencies": {
-    "@types/pg": "8.20.0",
-    "dotenv": "17.4.2",
-    "drizzle-kit": "0.31.10",
+    "@types/pg": "8.23.1",
+    "dotenv": "18.0.8",
+    "drizzle-kit": "0.31.11",
     "typescript": "catalog:"
   }
 }
