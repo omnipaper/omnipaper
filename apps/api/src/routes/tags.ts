@@ -7,8 +7,10 @@ import {
   getOrgTags,
   updateTag,
 } from "@omnipaper/database/queries/tags";
+import { getAiRuntimeConfig } from "@omnipaper/settings/ai-settings";
 import { Hono } from "hono";
 import { z } from "zod";
+import { improveFieldDescription } from "../ai/improve-field-description";
 import type { Variables } from "../context";
 import { errors } from "../errors";
 import { requireOrgPermission } from "../middleware";
@@ -67,6 +69,33 @@ export const tagsRoutes = new Hono<{ Variables: Variables }>()
 
         throw err;
       }
+    },
+  )
+  .post(
+    "/improve-description",
+    requireOrgPermission({ tags: ["update"] }),
+    zValidator(
+      "json",
+      z.object({
+        name: z.string().trim().min(1).max(50),
+        description: z.string().trim().min(1).max(500),
+      }),
+    ),
+    async (c) => {
+      const { name, description } = c.req.valid("json");
+      const runtime = await getAiRuntimeConfig();
+      if (!runtime.ok) {
+        throw errors.conflict("ai_not_configured", runtime.detail);
+      }
+
+      const improved = await improveFieldDescription({
+        kind: "tag",
+        name,
+        description,
+        config: runtime.config,
+      });
+
+      return c.json({ description: improved });
     },
   )
   .get("/:id", async (c) => {

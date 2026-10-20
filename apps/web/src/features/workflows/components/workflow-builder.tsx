@@ -48,6 +48,7 @@ type DraftAction = {
   tagId: string;
   fields: Partial<Record<AiFieldKey, Mode>>;
   allowNew: boolean;
+  allowNewPaths: boolean;
   customFields: Record<string, DraftCustomField>;
 };
 
@@ -63,6 +64,7 @@ function newAction(): DraftAction {
     tagId: "",
     fields: {},
     allowNew: false,
+    allowNewPaths: false,
     customFields: {},
   };
 }
@@ -93,6 +95,7 @@ function hydrateActions(actions: Workflow["definition"]["actions"]): DraftAction
         tagId: "",
         fields,
         allowNew: config.tags?.allowNew ?? false,
+        allowNewPaths: config.storagePath?.allowNew ?? false,
         customFields: Object.fromEntries(
           (config.customFields ?? []).map((e) => [
             e.definitionId,
@@ -107,6 +110,7 @@ function hydrateActions(actions: Workflow["definition"]["actions"]): DraftAction
       tagId: action.config.tagId,
       fields: {},
       allowNew: false,
+      allowNewPaths: false,
       customFields: {},
     };
   });
@@ -247,7 +251,7 @@ export function WorkflowBuilder({
       if (a.type === "ai.assignMetadata") {
         const config: {
           documentType?: { mode: Mode };
-          storagePath?: { mode: Mode };
+          storagePath?: { mode: Mode; allowNew: boolean };
           tags?: { mode: Mode; allowNew: boolean };
           documentDate?: { mode: Mode };
           title?: { mode: Mode };
@@ -257,7 +261,7 @@ export function WorkflowBuilder({
           config.documentType = { mode: a.fields.documentType };
         }
         if (a.fields.storagePath) {
-          config.storagePath = { mode: a.fields.storagePath };
+          config.storagePath = { mode: a.fields.storagePath, allowNew: a.allowNewPaths };
         }
         if (a.fields.tags) {
           config.tags = { mode: a.fields.tags, allowNew: a.allowNew };
@@ -445,6 +449,17 @@ export function WorkflowBuilder({
                                   }
                                 />
                                 Let AI add tags that don't exist yet
+                              </div>
+                            ) : null}
+                            {f.key === "storagePath" && mode ? (
+                              <div className="flex items-center gap-2 pl-7 text-muted-foreground text-xs">
+                                <Switch
+                                  checked={action.allowNewPaths}
+                                  onCheckedChange={(on) =>
+                                    updateAction(action.key, { allowNewPaths: on })
+                                  }
+                                />
+                                Let AI add storage paths that don't exist yet
                               </div>
                             ) : null}
                           </div>

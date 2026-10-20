@@ -6,7 +6,7 @@ const field = z.object({ mode: fieldMode });
 export const aiAssignParamsSchema = z
   .object({
     documentType: field.optional(),
-    storagePath: field.optional(),
+    storagePath: z.object({ mode: fieldMode, allowNew: z.boolean().default(false) }).optional(),
     tags: z.object({ mode: fieldMode, allowNew: z.boolean().default(false) }).optional(),
     documentDate: field.optional(),
     title: field.optional(),

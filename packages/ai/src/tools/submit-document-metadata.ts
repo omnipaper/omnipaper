@@ -12,7 +12,9 @@ function buildSchema(input: ClassifyInput) {
     const names = candidates.documentTypes.map((t) => t.name) as [string, ...string[]];
     shape.documentType = z.enum(names).nullable();
   }
-  if (fields.storagePath && candidates.storagePaths.length > 0) {
+  if (fields.storagePath?.allowNew) {
+    shape.storagePath = z.string().nullable();
+  } else if (fields.storagePath && candidates.storagePaths.length > 0) {
     const paths = candidates.storagePaths.map((p) => p.path) as [string, ...string[]];
     shape.storagePath = z.enum(paths).nullable();
   }

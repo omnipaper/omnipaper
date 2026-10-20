@@ -18,6 +18,7 @@ COPY packages/queue/package.json packages/queue/
 COPY packages/settings/package.json packages/settings/
 COPY packages/shared/package.json packages/shared/
 COPY packages/storage/package.json packages/storage/
+COPY packages/tracing/package.json packages/tracing/
 COPY packages/ui/package.json packages/ui/
 RUN bun install --frozen-lockfile
 COPY . .
@@ -42,10 +43,15 @@ COPY packages/queue/package.json packages/queue/
 COPY packages/settings/package.json packages/settings/
 COPY packages/shared/package.json packages/shared/
 COPY packages/storage/package.json packages/storage/
+COPY packages/tracing/package.json packages/tracing/
 COPY packages/ui/package.json packages/ui/
 
-# only the API workspace's prod dependency closure — not web/docs/ui or any devDeps
-RUN bun install --frozen-lockfile --production --filter='@omnipaper/api'
+# only the API workspace's prod dependency closure — not web/docs/ui or any devDeps.
+# @omnipaper/tracing (OTel + Langfuse, ~33MB) is not a dependency of the API on purpose, so it
+# only lands in the image when asked for: --build-arg WITH_TRACING=true
+ARG WITH_TRACING
+RUN if [ "$WITH_TRACING" = "true" ]; then TRACING="--filter=@omnipaper/tracing"; fi; \
+    bun install --frozen-lockfile --production --filter='@omnipaper/api' $TRACING
 
 # ---- runtime: final image ----
 FROM base AS runtime

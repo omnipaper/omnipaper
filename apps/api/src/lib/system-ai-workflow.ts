@@ -20,7 +20,7 @@ export type AiAssignView = {
   enabled: boolean;
   fields: {
     documentType: { enabled: boolean; mode: FieldMode };
-    storagePath: { enabled: boolean; mode: FieldMode };
+    storagePath: { enabled: boolean; mode: FieldMode; allowNew: boolean };
     tags: { enabled: boolean; mode: FieldMode; allowNew: boolean };
     title: { enabled: boolean; mode: FieldMode };
     documentDate: { enabled: boolean; mode: FieldMode };
@@ -67,7 +67,11 @@ function toView(workflow: Workflow): AiAssignView {
     enabled: workflow.enabled,
     fields: {
       documentType: field(config.documentType),
-      storagePath: field(config.storagePath),
+      storagePath: {
+        enabled: Boolean(config.storagePath),
+        mode: config.storagePath?.mode ?? "suggest",
+        allowNew: config.storagePath?.allowNew ?? false,
+      },
       tags: {
         enabled: Boolean(config.tags),
         mode: config.tags?.mode ?? "suggest",

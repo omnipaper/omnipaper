@@ -31,7 +31,11 @@ import {
   updateDocument,
   updateDocumentOcrText,
 } from "@omnipaper/database/queries/documents";
-import { getOrgStoragePath } from "@omnipaper/database/queries/storage-paths";
+import {
+  createStoragePath,
+  getOrgStoragePath,
+  getOrgStoragePaths,
+} from "@omnipaper/database/queries/storage-paths";
 import {
   addDocumentTag,
   createTag,
@@ -53,6 +57,7 @@ import {
   isUploadAllowed,
   MAX_UPLOAD_BYTES,
 } from "@omnipaper/shared/formats";
+import { isValidStoragePath, normalizeStoragePath } from "@omnipaper/shared/storage-paths";
 import type { AiSuggestionValue } from "@omnipaper/shared/workflows/ai-assign";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -199,6 +204,28 @@ async function applySuggestionValue(
         newValue: { id: next.id, name: next.path },
       });
     }
+  }
+
+  if (field === "storagePath" && "value" in value) {
+    const wanted = normalizeStoragePath(value.value);
+    if (!isValidStoragePath(wanted)) {
+      throw errors.badRequest("invalid_storage_path", "Proposed storage path is not valid");
+    }
+    // The path may have been created since the suggestion was made (another accept, manual add).
+    const existing = (await getOrgStoragePaths(db, { organizationId })).find(
+      (p) => p.path === wanted,
+    );
+    const next =
+      existing ?? (await createStoragePath(db, { organizationId, path: wanted, aiEligible: true }));
+    const prev = doc.storagePathId
+      ? await getOrgStoragePath(db, { organizationId, id: doc.storagePathId })
+      : null;
+    await updateDocument(db, { organizationId, id: documentId, storagePathId: next.id });
+    changes.push({
+      field: "storagePath",
+      oldValue: prev ? { id: prev.id, name: prev.path } : null,
+      newValue: { id: next.id, name: next.path },
+    });
   }
 
   if ((field === "title" || field === "documentDate") && "value" in value) {

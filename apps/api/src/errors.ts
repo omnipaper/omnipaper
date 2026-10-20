@@ -4,7 +4,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 function apiError(status: ContentfulStatusCode, code: string, message: string): HTTPException {
   return new HTTPException(status, {
     res: Response.json({ error: { code, message } }, { status }),
-});
+  });
 }
 
 export const errors = {
@@ -12,8 +12,8 @@ export const errors = {
   forbidden: (message = "Forbidden") => apiError(403, "forbidden", message),
   notFound: (message = "Not found") => apiError(404, "not_found", message),
   badRequest: (code: string, message: string) => apiError(400, code, message),
+  conflict: (code: string, message: string) => apiError(409, code, message),
 };
-
 
 export class PasswordProtectedPdfError extends Error {
   constructor() {

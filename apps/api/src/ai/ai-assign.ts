@@ -14,7 +14,7 @@ import {
 } from "@omnipaper/database/queries/custom-properties";
 import { getOrgDocumentTypes } from "@omnipaper/database/queries/document-types";
 import { updateDocument } from "@omnipaper/database/queries/documents";
-import { getOrgStoragePaths } from "@omnipaper/database/queries/storage-paths";
+import { createStoragePath, getOrgStoragePaths } from "@omnipaper/database/queries/storage-paths";
 import {
   addDocumentTag,
   createTag,
@@ -23,13 +23,13 @@ import {
 } from "@omnipaper/database/queries/tags";
 import { getAiRuntimeConfig } from "@omnipaper/settings/ai-settings";
 import type { FieldSource } from "@omnipaper/shared/field-changes";
-import { normalizeStoragePath } from "@omnipaper/shared/storage-paths";
+import { isValidStoragePath, normalizeStoragePath } from "@omnipaper/shared/storage-paths";
 import type { AiAssignParams } from "@omnipaper/shared/workflows/ai-assign";
 import {
   coerceCustomValue,
   customPropertyRegistry,
   propertyChangeSnapshot,
-} from "./custom-property-registry";
+} from "../lib/custom-property-registry";
 
 type Doc = {
   id: string;
@@ -138,29 +138,37 @@ export async function runAiAssignMetadata(
   if (config.storagePath && result.storagePath) {
     const wanted = normalizeStoragePath(result.storagePath);
     const match = paths.find((p) => p.path === wanted);
-    if (match) {
+    // A model-proposed path is only usable when allowNew is on and it passes the path rules.
+    const canCreate = !match && config.storagePath.allowNew && isValidStoragePath(wanted);
+    if (match || canCreate) {
       if (config.storagePath.mode === "apply") {
-        if (
-          aiMayWrite(doc.storagePathId, sourceByField.get("storagePath")) &&
-          doc.storagePathId !== match.id
-        ) {
-          const prev = paths.find((p) => p.id === doc.storagePathId);
-          await updateDocument(db, {
-            organizationId: doc.organizationId,
-            id: doc.id,
-            storagePathId: match.id,
-          });
-          changes.push({
-            field: "storagePath",
-            oldValue: prev ? { id: prev.id, name: prev.path } : null,
-            newValue: { id: match.id, name: match.path },
-          });
+        if (aiMayWrite(doc.storagePathId, sourceByField.get("storagePath"))) {
+          const next =
+            match ??
+            (await createStoragePath(db, {
+              organizationId: doc.organizationId,
+              path: wanted,
+              aiEligible: true,
+            }));
+          if (doc.storagePathId !== next.id) {
+            const prev = paths.find((p) => p.id === doc.storagePathId);
+            await updateDocument(db, {
+              organizationId: doc.organizationId,
+              id: doc.id,
+              storagePathId: next.id,
+            });
+            changes.push({
+              field: "storagePath",
+              oldValue: prev ? { id: prev.id, name: prev.path } : null,
+              newValue: { id: next.id, name: next.path },
+            });
+          }
         }
       } else {
         await upsertAiSuggestion(db, {
           documentId: doc.id,
           field: "storagePath",
-          suggestedValue: { id: match.id },
+          suggestedValue: match ? { id: match.id } : { value: wanted },
         });
       }
     }

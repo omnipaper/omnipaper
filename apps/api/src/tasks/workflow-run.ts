@@ -15,7 +15,7 @@ import {
 } from "@omnipaper/database/queries/workflows";
 import { defineTask } from "@omnipaper/queue/worker";
 import { type WorkflowAction, workflowDefinitionSchema } from "@omnipaper/shared/workflows/schema";
-import { runAiAssignMetadata } from "../lib/ai-assign";
+import { runAiAssignMetadata } from "../ai/ai-assign";
 import { taskLogger } from "../logger";
 
 type ActionResult = {

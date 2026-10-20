@@ -183,7 +183,7 @@ export function CustomPropertyFields({
       return definition.options.find((o) => o.id === value.selectOptionId)?.label ?? "?";
     }
     if ("newOptionLabel" in value) {
-      return `${value.newOptionLabel} (new option)`;
+      return value.newOptionLabel;
     }
     if ("value" in value) {
       return value.value;
@@ -198,7 +198,19 @@ export function CustomPropertyFields({
 
         return (
           <div key={definition.id} className="flex flex-col gap-1.5">
-            <Label>{definition.name}</Label>
+            <div className="flex items-center justify-between gap-1.5">
+              <Label>{definition.name}</Label>
+              {suggestion && (
+                <InlineSuggestion
+                  orgId={orgId}
+                  documentId={documentId}
+                  suggestionId={suggestion.id}
+                  label={getSuggestionLabel(definition, suggestion)}
+                  fieldLabel={definition.name}
+                  isNew={"newOptionLabel" in suggestion.suggestedValue}
+                />
+              )}
+            </div>
             <PropertyValueEditor
               definition={definition}
               value={valueByDefinition.get(definition.id)}
@@ -213,14 +225,6 @@ export function CustomPropertyFields({
               }}
               onClear={() => clearValue.mutate(definition.id)}
             />
-            {suggestion && (
-              <InlineSuggestion
-                orgId={orgId}
-                documentId={documentId}
-                suggestionId={suggestion.id}
-                label={getSuggestionLabel(definition, suggestion)}
-              />
-            )}
           </div>
         );
       })}

@@ -1,0 +1,22 @@
+{
+  "name": "@omnipaper/tracing",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./start": "./src/start.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/otel": "1.0.143",
+    "@langfuse/otel": "6.0.0",
+    "@opentelemetry/sdk-trace-node": "2.12.0",
+    "ai": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

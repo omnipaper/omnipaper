@@ -1,4 +1,4 @@
-import { Button } from "@omnipaper/ui/components/button";
+import { Badge } from "@omnipaper/ui/components/badge";
 import { Input } from "@omnipaper/ui/components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@omnipaper/ui/components/popover";
 import { useQuery } from "@tanstack/react-query";
@@ -48,6 +48,7 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
       ? tags.filter((t) => t.id !== tag.id)
       : [...tags, { id: tag.id, name: tag.name, color: tag.color }];
     setTags.mutate(next);
+    setSearch("");
   }
 
   function remove(tagId: string) {
@@ -65,12 +66,22 @@ export function TagPicker({ orgId, documentId, tags = [] }: TagPickerProps) {
         <TagChip key={tag.id} name={tag.name} color={tag.color} onRemove={() => remove(tag.id)} />
       ))}
 
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) {
+            setSearch("");
+          }
+        }}
+      >
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm">
-            <Plus />
-            Add tag
-          </Button>
+          <Badge asChild variant="outline" className="cursor-pointer hover:bg-muted">
+            <button type="button">
+              <Plus />
+              Add tag
+            </button>
+          </Badge>
         </PopoverTrigger>
         <PopoverContent className="p-0">
           <div className="p-1">

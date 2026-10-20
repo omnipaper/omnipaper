@@ -19,11 +19,14 @@ function buildPrompt(input: ClassifyInput) {
       .join("\n");
     sections.push(`## Document types (pick one name, or null)\n${lines}`);
   }
-  if (fields.storagePath && candidates.storagePaths.length > 0) {
+  if (fields.storagePath && (candidates.storagePaths.length > 0 || fields.storagePath.allowNew)) {
     const lines = candidates.storagePaths
       .map((p) => (p.description ? `${p.path} — ${p.description}` : p.path))
       .join("\n");
-    sections.push(`## Storage paths (pick one path, or null)\n${lines}`);
+    const rule = fields.storagePath.allowNew
+      ? "pick one path; if none fits, propose a new one like /Invoices/2026; or null"
+      : "pick one path, or null";
+    sections.push(`## Storage paths (${rule})\n${lines || "(none yet)"}`);
   }
   if (fields.tags) {
     const existing = candidates.tags.map((t) => t.name).join(", ");

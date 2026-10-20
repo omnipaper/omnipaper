@@ -1,5 +1,7 @@
+import { Button } from "@omnipaper/ui/components/button";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@omnipaper/ui/components/hover-card";
 import { useQuery } from "@tanstack/react-query";
-import { PlusIcon, XIcon } from "lucide-react";
+import { CheckIcon, PlusIcon, SparklesIcon, XIcon } from "lucide-react";
 import { type DocumentTag, useSetDocumentTags } from "@/features/documents/queries/documents";
 import {
   type DocumentSuggestion,
@@ -10,7 +12,8 @@ import { type OrgTag, orgTagsQuery, useCreateTag } from "@/features/tags/queries
 
 // AI tag suggestions are a set, so unlike single-value fields the user picks tags one at a time
 // instead of accepting the whole batch. Each pick uses the normal add-tag path; the suggestion is
-// retired once its last tag is taken (or dismissed wholesale).
+// retired once its last tag is taken (or dismissed wholesale). Renders the "Suggestions" pill for
+// the label row itself, so nothing shows once every suggested tag is already on the document.
 export function TagSuggestions({
   orgId,
   documentId,
@@ -38,7 +41,7 @@ export function TagSuggestions({
   const attachedIds = new Set(tags.map((t) => t.id));
   const attachedNames = new Set(tags.map((t) => t.name.toLowerCase()));
 
-  // Only surface what isn't on the document yet, so taking a tag makes it disappear from the strip.
+  // Only surface what isn't on the document yet, so taking a tag makes it disappear from the list.
   const existing = value.existingIds
     .map((id) => orgTags.find((t) => t.id === id))
     .filter((t): t is OrgTag => t !== undefined && !attachedIds.has(t.id));
@@ -70,49 +73,87 @@ export function TagSuggestions({
   };
 
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-1.5 rounded border border-primary/20 bg-primary/5 px-2 py-1.5 text-xs">
-      <span className="mr-0.5 font-medium text-primary">✨ Suggested:</span>
-      {existing.map((tag) => (
-        <button
-          key={tag.id}
-          type="button"
-          onClick={() => addExisting(tag)}
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 hover:bg-accent"
-        >
-          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} />
-          {tag.name}
-          <PlusIcon className="size-3 text-muted-foreground" />
-        </button>
-      ))}
-      {newNames.map((name) => (
-        <button
-          key={name}
-          type="button"
-          onClick={() => addNew(name)}
-          className="inline-flex items-center gap-1 rounded-full border border-primary/30 border-dashed bg-background px-2 py-0.5 hover:bg-accent"
-        >
-          {name}
-          <PlusIcon className="size-3 text-muted-foreground" />
-        </button>
-      ))}
-      {remaining > 1 ? (
+    <HoverCard openDelay={100} closeDelay={150}>
+      <HoverCardTrigger asChild>
         <button
           type="button"
-          onClick={() => accept.mutate(suggestion.id)}
-          disabled={accept.isPending}
-          className="text-primary hover:underline disabled:opacity-50"
+          aria-label="Suggested tags"
+          className="-my-0.5 inline-flex h-6 items-center gap-1 rounded-2xl bg-primary/10 px-2 font-medium text-primary text-xs transition-colors hover:bg-primary/20"
         >
-          Add all
+          <SparklesIcon className="size-3.5" />
+          Suggestions
         </button>
-      ) : null}
-      <button
-        type="button"
-        onClick={() => dismiss.mutate(suggestion.id)}
-        aria-label="Dismiss tag suggestions"
-        className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
-      >
-        <XIcon className="size-3" />
-      </button>
-    </div>
+      </HoverCardTrigger>
+      <HoverCardContent align="end" className="w-60 gap-2 rounded-2xl p-2.5">
+        <div className="flex flex-col gap-1">
+          {existing.map((tag) => (
+            <div
+              key={tag.id}
+              className="flex items-center gap-1.5 rounded-2xl bg-input/50 py-1 pr-1 pl-2.5"
+            >
+              <span
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: tag.color }}
+              />
+              <span className="min-w-0 flex-1 truncate font-medium text-sm leading-tight">
+                {tag.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => addExisting(tag)}
+                aria-label={`Add ${tag.name}`}
+                title="Add this tag only"
+                className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+              >
+                <PlusIcon className="size-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+          {newNames.map((name) => (
+            <div
+              key={name}
+              className="flex items-center gap-1.5 rounded-2xl bg-input/50 py-1 pr-1 pl-2.5"
+            >
+              <span className="min-w-0 flex-1 truncate font-medium text-sm leading-tight">
+                {name}
+                <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-px align-middle font-medium text-[10px] text-primary uppercase">
+                  new
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => addNew(name)}
+                aria-label={`Create and add ${name}`}
+                title="Create and add this tag only"
+                className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+              >
+                <PlusIcon className="size-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-1">
+          <Button
+            size="xs"
+            className="flex-1"
+            onClick={() => accept.mutate(suggestion.id)}
+            disabled={accept.isPending}
+          >
+            <CheckIcon />
+            Apply
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            className="flex-1"
+            onClick={() => dismiss.mutate(suggestion.id)}
+            disabled={dismiss.isPending}
+          >
+            <XIcon />
+            Reject
+          </Button>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   );
 }

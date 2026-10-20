@@ -1,5 +1,6 @@
 import type { FieldChangeValue, FieldSource } from "@omnipaper/shared/field-changes";
 import { and, desc, eq, gte, isNull } from "drizzle-orm";
+import { user } from "./auth-schema";
 import type { Database } from "./client";
 import { documentFieldChanges, type NewDocumentFieldChange } from "./schema";
 
@@ -96,6 +97,32 @@ export async function recordFieldChanges(tx: DbOrTx, input: RecordFieldChangesIn
   if (rows.length > 0) {
     await tx.insert(documentFieldChanges).values(rows);
   }
+}
+
+export async function getDocumentFieldChanges(
+  db: Database,
+  params: { documentId: string; field?: NewDocumentFieldChange["field"]; limit?: number },
+) {
+  return db
+    .select({
+      field: documentFieldChanges.field,
+      customPropertyDefinitionId: documentFieldChanges.customPropertyDefinitionId,
+      oldValue: documentFieldChanges.oldValue,
+      newValue: documentFieldChanges.newValue,
+      source: documentFieldChanges.source,
+      createdAt: documentFieldChanges.createdAt,
+      createdByName: user.name,
+    })
+    .from(documentFieldChanges)
+    .leftJoin(user, eq(documentFieldChanges.createdBy, user.id))
+    .where(
+      and(
+        eq(documentFieldChanges.documentId, params.documentId),
+        params.field ? eq(documentFieldChanges.field, params.field) : undefined,
+      ),
+    )
+    .orderBy(desc(documentFieldChanges.createdAt))
+    .limit(params.limit ?? 50);
 }
 
 export async function getLatestFieldSources(db: Database, params: { documentId: string }) {
