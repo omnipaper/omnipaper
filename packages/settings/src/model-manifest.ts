@@ -1,13 +1,13 @@
 import {
   BUNDLED_MODEL_MANIFEST,
+  MODEL_MANIFEST_URL,
   type ModelManifest,
   manifestUpdatedAtMs,
   modelManifestSchema,
-} from "@omnipaper/shared/ai-models";
+} from "@omnipaper/ai/model-manifest";
 import { z } from "zod";
 import { getSetting, setSetting } from "./settings";
 
-const MANIFEST_URL = "https://docs.omnipaper.app/models/v1.json";
 const TTL_MS = 60 * 60 * 1000;
 const RETRY_MS = 5 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 10_000;
@@ -74,7 +74,7 @@ async function refresh(): Promise<void> {
 
   let json: unknown;
   try {
-    const res = await fetch(MANIFEST_URL, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    const res = await fetch(MODEL_MANIFEST_URL, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) {
       return;
     }

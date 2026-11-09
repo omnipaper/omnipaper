@@ -25,8 +25,8 @@ export function AiModelUpdatesCard() {
           <div className="flex flex-col gap-1">
             <Label htmlFor="ai-model-updates">Fetch model list updates</Label>
             <p className="text-muted-foreground text-xs">
-              Checks docs.omnipaper.app hourly so new models show up without updating Omnipaper.
-              When off, the list only changes with a new release.
+              Checks the Omnipaper GitHub repository hourly so new models show up without updating
+              Omnipaper. When off, the list only changes with a new release.
             </p>
           </div>
           <Switch

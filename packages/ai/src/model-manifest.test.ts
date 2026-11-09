@@ -1,13 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { join } from "node:path";
+import { RECOMMENDED_MODEL } from "@omnipaper/shared/ai-models";
 import {
   type AiProviderCatalog,
   BUNDLED_MODEL_MANIFEST,
   getProviderCatalog,
   modelManifestSchema,
-  RECOMMENDED_MODEL,
   resolveAiModel,
-} from "./ai-models";
+} from "./model-manifest";
 
 const catalog: AiProviderCatalog = {
   defaults: { recommended: "model-b" },
@@ -79,15 +78,5 @@ describe("getProviderCatalog", () => {
     expect(getProviderCatalog(remote, "mistral")).toEqual(
       BUNDLED_MODEL_MANIFEST.providers.mistral as AiProviderCatalog,
     );
-  });
-});
-
-describe("published manifest", () => {
-  it("matches the copy served from the docs site", async () => {
-    const published = await Bun.file(
-      join(import.meta.dir, "../../../apps/docs/public/models/v1.json"),
-    ).json();
-    const bundled = await Bun.file(join(import.meta.dir, "model-manifest.json")).json();
-    expect(published).toEqual(bundled);
   });
 });

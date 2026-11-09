@@ -177,6 +177,7 @@
       "name": "@omnipaper/settings",
       "version": "0.0.0",
       "dependencies": {
+        "@omnipaper/ai": "workspace:*",
         "@omnipaper/database": "workspace:*",
         "@omnipaper/env": "workspace:*",
         "@omnipaper/ocr": "workspace:*",

@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import { getProviderCatalog } from "@omnipaper/ai/model-manifest";
 import { testAiProvider } from "@omnipaper/ai/test";
 import {
   getOcrDefinition,
@@ -46,7 +47,7 @@ import {
   setStorageSettings,
   storageSettingsSchema,
 } from "@omnipaper/settings/storage-settings";
-import { AI_MODEL_PROVIDERS, getProviderCatalog } from "@omnipaper/shared/ai-models";
+import { AI_MODEL_PROVIDERS } from "@omnipaper/shared/ai-models";
 import { redactSecrets } from "@omnipaper/shared/redact";
 import { DEFAULT_STORAGE_ENGINE } from "@omnipaper/storage/registry";
 import { listStorageDefinitions } from "@omnipaper/storage/resolve";

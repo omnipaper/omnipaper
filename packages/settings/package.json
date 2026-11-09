@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@omnipaper/ai": "workspace:*",
     "@omnipaper/database": "workspace:*",
     "@omnipaper/env": "workspace:*",
     "@omnipaper/ocr": "workspace:*",

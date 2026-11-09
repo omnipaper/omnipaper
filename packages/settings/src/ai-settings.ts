@@ -1,9 +1,8 @@
+import { getProviderCatalog, resolveAiModel } from "@omnipaper/ai/model-manifest";
 import {
   AI_MODEL_PROVIDERS,
   type AiModelProvider,
-  getProviderCatalog,
   RECOMMENDED_MODEL,
-  resolveAiModel,
 } from "@omnipaper/shared/ai-models";
 import { z } from "zod";
 import { getModelManifest } from "./model-manifest";

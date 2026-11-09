@@ -15,7 +15,7 @@ Provider APIs are paid and metered.
 
 ## Model list
 
-The models offered in **Settings → AI** come from a list that ships with each release. To show new models without an upgrade, Omnipaper also fetches the latest list from `https://docs.omnipaper.app/models/v1.json` about once an hour. If the fetch fails, the last good list is kept, so an outage never changes your configured model.
+The models offered in **Settings → AI** come from a list that ships with each release. To show new models without an upgrade, Omnipaper also fetches the latest list from `model-manifest.json` from the Omnipaper GitHub repository (`main` branch) about once an hour. If the fetch fails, the last good list is kept, so an outage never changes your configured model.
 
 - **Fetch model list updates** (Settings → AI → Model list) turns the fetch off. With it off, the instance makes no outbound request for the list and only gets new models with a new release.
 - **Use recommended model** (Settings → AI → Advanced) follows the recommended model for the provider. When the recommendation changes, your instance switches to the new model automatically. Turn it off to pin a specific model.
