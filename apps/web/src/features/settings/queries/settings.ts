@@ -10,6 +10,7 @@ export const settingsKeys = {
   storage: () => [...settingsKeys.all, "storage"] as const,
   ocr: () => [...settingsKeys.all, "ocr"] as const,
   ai: () => [...settingsKeys.all, "ai"] as const,
+  aiModelUpdates: () => [...settingsKeys.all, "ai-model-updates"] as const,
   providers: () => [...settingsKeys.all, "providers"] as const,
   registration: () => [...settingsKeys.all, "registration"] as const,
 };
@@ -259,6 +260,40 @@ export function aiSettingsQuery() {
 }
 
 export type AiProviderId = InferRequestType<typeof api.settings.ai.$put>["json"]["provider"];
+
+export function aiModelUpdatesQuery() {
+  return queryOptions({
+    queryKey: settingsKeys.aiModelUpdates(),
+    queryFn: async () => {
+      const res = await api.settings.ai["model-updates"].$get();
+      if (!res.ok) {
+        throw new Error("Failed to load model list settings");
+      }
+      return res.json();
+    },
+  });
+}
+
+export function useSaveAiModelUpdates() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await api.settings.ai["model-updates"].$put({ json: { enabled } });
+      if (!res.ok) {
+        throw new Error("Failed to update model list settings");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, enabled) => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.aiModelUpdates() });
+      queryClient.invalidateQueries({ queryKey: settingsKeys.ai() });
+      toast.success(enabled ? "Model list updates enabled" : "Model list updates disabled");
+    },
+    onError: () => {
+      toast.error("Save failed");
+    },
+  });
+}
 
 export type SaveAiInput = {
   providers: InferRequestType<typeof api.settings.providers.$put>["json"];

@@ -1,56 +1,73 @@
+import { z } from "zod";
+import bundledManifestJson from "./model-manifest.json";
+
 export const AI_MODEL_PROVIDERS = ["openai", "anthropic", "google", "mistral"] as const;
 
 export type AiModelProvider = (typeof AI_MODEL_PROVIDERS)[number];
 
-export type AiModel = { id: string; label: string };
-
 export const RECOMMENDED_MODEL = "recommended" as const;
 
-export const AI_MODELS = {
-  openai: {
-    recommended: "gpt-5.4-mini",
-    models: [
-      { id: "gpt-5.5", label: "GPT-5.5 (most capable)" },
-      { id: "gpt-5.4-mini", label: "GPT-5.4 mini" },
-      { id: "gpt-5.4-nano", label: "GPT-5.4 nano (fastest)" },
-    ],
-  },
-  anthropic: {
-    recommended: "claude-sonnet-5",
-    models: [
-      { id: "claude-opus-4-8", label: "Claude Opus 4.8 (most capable)" },
-      { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
-      { id: "claude-haiku-4-5", label: "Claude Haiku 4.5 (fastest)" },
-    ],
-  },
-  google: {
-    recommended: "gemini-3.5-flash",
-    models: [
-      { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro (most capable)" },
-      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-      { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash (newest)" },
-    ],
-  },
-  mistral: {
-    recommended: "mistral-small-latest",
-    models: [
-      { id: "mistral-large-latest", label: "Mistral Large (most capable)" },
-      { id: "mistral-medium-latest", label: "Mistral Medium" },
-      { id: "mistral-small-latest", label: "Mistral Small" },
-    ],
-  },
-} as const satisfies Record<AiModelProvider, { recommended: string; models: AiModel[] }>;
+const modelSchema = z.object({
+  slug: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  status: z.enum(["current", "legacy"]),
+  releasedAt: z.string().optional(),
+});
 
-// "recommended" sentinel resolves to the provider's current recommended id; a concrete id passes
-// through, falling back to recommended if it's no longer offered.
-export function resolveAiModel(provider: AiModelProvider, model: string): string {
-  const entry = AI_MODELS[provider];
-  if (model === RECOMMENDED_MODEL) {
-    return entry.recommended;
+const providerCatalogSchema = z
+  .object({
+    defaults: z.object({ recommended: z.string().trim().min(1) }),
+    models: z.array(modelSchema).min(1),
+  })
+  .superRefine((catalog, ctx) => {
+    const slugs = new Set<string>();
+    for (const model of catalog.models) {
+      if (slugs.has(model.slug)) {
+        ctx.addIssue({ code: "custom", message: `Duplicate model slug ${model.slug}` });
+      }
+      slugs.add(model.slug);
+    }
+    if (!slugs.has(catalog.defaults.recommended)) {
+      ctx.addIssue({ code: "custom", message: "Recommended model is not in the model list" });
+    }
+  });
+
+// Providers keyed by plain string: an older release must still accept a manifest that lists a
+// provider it doesn't know yet.
+export const modelManifestSchema = z.object({
+  version: z.literal(1),
+  updatedAt: z.iso.datetime(),
+  providers: z.record(z.string(), providerCatalogSchema),
+});
+
+export type AiModel = z.infer<typeof modelSchema>;
+export type AiProviderCatalog = z.infer<typeof providerCatalogSchema>;
+export type ModelManifest = z.infer<typeof modelManifestSchema>;
+
+export const BUNDLED_MODEL_MANIFEST: ModelManifest = modelManifestSchema.parse(bundledManifestJson);
+
+for (const provider of AI_MODEL_PROVIDERS) {
+  if (!BUNDLED_MODEL_MANIFEST.providers[provider]) {
+    throw new Error(`model-manifest.json is missing provider ${provider}`);
   }
-  return entry.models.some((m) => m.id === model) ? model : entry.recommended;
 }
 
-export function isValidModelSetting(provider: AiModelProvider, model: string): boolean {
-  return model === RECOMMENDED_MODEL || AI_MODELS[provider].models.some((m) => m.id === model);
+export function manifestUpdatedAtMs(manifest: ModelManifest): number {
+  return Date.parse(manifest.updatedAt);
+}
+
+export function getProviderCatalog(
+  manifest: ModelManifest,
+  provider: AiModelProvider,
+): AiProviderCatalog {
+  return (
+    manifest.providers[provider] ??
+    (BUNDLED_MODEL_MANIFEST.providers[provider] as AiProviderCatalog)
+  );
+}
+
+// A pinned id passes through untouched even when the catalog no longer lists it: the provider API
+// decides whether it exists, and a stale catalog must never silently swap a paid model.
+export function resolveAiModel(catalog: AiProviderCatalog, model: string): string {
+  return model === RECOMMENDED_MODEL ? catalog.defaults.recommended : model;
 }

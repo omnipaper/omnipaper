@@ -23,6 +23,11 @@ import {
   setEmailIngestAllowInternalHosts,
 } from "@omnipaper/settings/email-settings";
 import {
+  getModelManifest,
+  getModelManifestRemoteUpdates,
+  setModelManifestRemoteUpdates,
+} from "@omnipaper/settings/model-manifest";
+import {
   getOcrSettings,
   ocrSettingsSchema,
   setOcrSettings,
@@ -41,6 +46,7 @@ import {
   setStorageSettings,
   storageSettingsSchema,
 } from "@omnipaper/settings/storage-settings";
+import { AI_MODEL_PROVIDERS, getProviderCatalog } from "@omnipaper/shared/ai-models";
 import { redactSecrets } from "@omnipaper/shared/redact";
 import { DEFAULT_STORAGE_ENGINE } from "@omnipaper/storage/registry";
 import { listStorageDefinitions } from "@omnipaper/storage/resolve";
@@ -181,10 +187,25 @@ const adminSettings = new Hono<{ Variables: Variables }>()
   })
   .get("/ai", async (c) => {
     const ai = await getAiSettings();
-    return c.json({ provider: ai.provider, model: ai.model ?? "" });
+    const manifest = await getModelManifest();
+
+    return c.json({
+      provider: ai.provider,
+      model: ai.model,
+      catalogs: Object.fromEntries(
+        AI_MODEL_PROVIDERS.map((p) => [p, getProviderCatalog(manifest, p)]),
+      ),
+    });
   })
   .put("/ai", zValidator("json", aiSettingsSchema), async (c) => {
     await setAiSettings(c.req.valid("json"));
+    return c.json({ ok: true });
+  })
+  .get("/ai/model-updates", async (c) => {
+    return c.json({ enabled: await getModelManifestRemoteUpdates() });
+  })
+  .put("/ai/model-updates", zValidator("json", z.object({ enabled: z.boolean() })), async (c) => {
+    await setModelManifestRemoteUpdates(c.req.valid("json").enabled);
     return c.json({ ok: true });
   })
   .post("/ai/test", zValidator("json", aiProviderTestSchema), async (c) => {

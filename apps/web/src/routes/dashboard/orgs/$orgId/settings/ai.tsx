@@ -1,6 +1,7 @@
 import { isInstanceAdmin } from "@omnipaper/permissions";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { sessionQueryOptions } from "@/features/auth/queries/session";
+import { AiModelUpdatesCard } from "@/features/settings/components/ai-model-updates-card";
 import { AiSettingsForm } from "@/features/settings/components/ai-settings-form";
 import { queryClient } from "@/lib/query-client";
 
@@ -25,6 +26,7 @@ function AiPage() {
         </p>
       </div>
       <AiSettingsForm />
+      <AiModelUpdatesCard />
     </div>
   );
 }
