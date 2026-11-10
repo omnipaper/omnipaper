@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
 
-
 export const customPropertyKeys = {
   root: ["custom-properties"] as const,
   all: (orgId: string) => [...customPropertyKeys.root, orgId] as const,
