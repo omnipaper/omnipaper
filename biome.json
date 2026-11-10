@@ -36,6 +36,22 @@
       "style": {
         "noNonNullAssertion": "error",
         "useImportType": "error",
+        "noDefaultExport": "error",
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": { "filenameCases": ["kebab-case"] }
+        },
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["drizzle-orm", "drizzle-orm/*"],
+                "message": "Only packages/database imports drizzle. Add a query in packages/database/src/queries/ instead."
+              }
+            ]
+          }
+        },
         "useNamingConvention": {
           "level": "error",
           "options": {
@@ -52,7 +68,8 @@
         "noUnusedVariables": "error"
       },
       "suspicious": {
-        "noExplicitAny": "error"
+        "noExplicitAny": "error",
+        "noConsole": "error"
       },
       "performance": {
         "noBarrelFile": "error"
@@ -63,6 +80,22 @@
     {
       "includes": ["**/*.svg"],
       "linter": { "rules": { "a11y": { "noSvgWithoutTitle": "off" } } }
+    },
+    {
+      "includes": ["**/*.config.ts", "**/*.config.mjs", "apps/docs/**"],
+      "linter": { "rules": { "style": { "noDefaultExport": "off" } } }
+    },
+    {
+      "includes": ["apps/web/src/routes/**"],
+      "linter": { "rules": { "style": { "useFilenamingConvention": "off" } } }
+    },
+    {
+      "includes": ["packages/database/**"],
+      "linter": { "rules": { "style": { "noRestrictedImports": "off" } } }
+    },
+    {
+      "includes": ["apps/api/src/ai/dev.ts"],
+      "linter": { "rules": { "suspicious": { "noConsole": "off" } } }
     }
   ],
   "javascript": {
