@@ -4,6 +4,8 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().min(1),
+    // Max connections per process. Must leave room above the worker's job concurrency (4).
+    DATABASE_POOL_MAX: z.coerce.number().int().min(6).default(20),
     ENCRYPTION_KEY: z.string().min(16, "ENCRYPTION_KEY must be at least 16 characters"),
     AUTH_SECRET: z.string().min(1),
     // NOTE: when transactional email / OAuth lands, APP_URL becomes required in prod (those links

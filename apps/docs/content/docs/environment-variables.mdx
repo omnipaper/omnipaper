@@ -22,3 +22,9 @@ is configured in the UI. See [Installation](/installation) for the minimal set.
 | `APP_URL`               | derived from request | Public URL of your instance. See [Installation](/installation#custom-domain). |
 | `EXTRA_TRUSTED_ORIGINS` | —                    | Comma separated extra origins for CORS and auth.                              |
 | `PORT`                  | `3000`               | Port the app listens on inside the container.                                 |
+
+## Database
+
+| Variable            | Default | Description                                                                                                                                                                    |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_POOL_MAX` | `20`    | Maximum PostgreSQL connections one app process opens. The API and the background worker share this pool. Keep `replicas × DATABASE_POOL_MAX` below Postgres `max_connections`. |
