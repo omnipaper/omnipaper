@@ -26,6 +26,10 @@ COPY . .
 # demo build argument. For build time
 ARG DEMO_MODE
 ENV VITE_DEMO_MODE=$DEMO_MODE
+# OpenPanel web analytics, demo only (see apps/web/src/lib/demo-analytics.ts).
+# Public builds leave it empty, so the SDK is tree-shaken out of the bundle.
+ARG OPENPANEL_CLIENT_ID
+ENV VITE_OPENPANEL_CLIENT_ID=$OPENPANEL_CLIENT_ID
 RUN bun run --cwd apps/web build
 
 # ---- prod-deps: runtime dependencies only (no vite/oxlint/oxfmt/tsc/drizzle-kit) ----

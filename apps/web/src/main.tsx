@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ClientLayout } from "./components/client-layout";
 import { QueryProvider } from "./components/providers/query-provider";
+import { startDemoAnalytics } from "./lib/demo-analytics";
 import { parseSearch, stringifySearch } from "./lib/search-params";
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
@@ -20,6 +21,8 @@ const rootElement = document.getElementById("root");
 if (!rootElement) {
   throw new Error("Root element #root not found");
 }
+
+void startDemoAnalytics();
 
 createRoot(rootElement).render(
   <StrictMode>
