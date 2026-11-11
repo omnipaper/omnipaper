@@ -37,10 +37,12 @@ import {
   TableHeader,
   TableRow,
 } from "@omnipaper/ui/components/table";
+import { Textarea } from "@omnipaper/ui/components/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2Icon, PlusIcon, SearchIcon, XIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
+import { AiDescriptionButton } from "@/components/settings/ai-description-button";
 import { RowActions, TableEmptyRow } from "@/components/settings/settings-table";
 import { AiAssignWorkflowLink } from "@/features/ai-assign/components/ai-assign-workflow-link";
 import { aiAssignQuery, useSetAiAssignField } from "@/features/ai-assign/queries/ai-assign";
@@ -50,6 +52,7 @@ import {
   useAddPropertyOption,
   useDeletePropertyDefinition,
   useDeletePropertyOption,
+  useDescribePropertyDefinition,
   useUpsertPropertyDefinition,
 } from "@/features/custom-properties/queries/custom-properties";
 
@@ -250,6 +253,7 @@ function PropertyDialogBody({
   const [draftOptions, setDraftOptions] = useState<{ label: string; color: string }[]>([]);
 
   const upsert = useUpsertPropertyDefinition(orgId);
+  const describe = useDescribePropertyDefinition(orgId);
   // Option hooks only fire in edit mode (create collects draftOptions locally), so binding them to
   // the editing id — empty otherwise — is safe.
   const addOption = useAddPropertyOption(orgId, editing?.id ?? "");
@@ -345,12 +349,32 @@ function PropertyDialogBody({
           </Select>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="property-description">Description (optional)</Label>
-          <Input
+          <div className="flex items-center justify-between">
+            <Label htmlFor="property-description">Description (optional)</Label>
+            <AiDescriptionButton
+              hasDraft={!!description.trim()}
+              disabled={!name.trim()}
+              pending={describe.isPending}
+              onClick={() =>
+                describe.mutate(
+                  {
+                    id: editing?.id,
+                    name: name.trim(),
+                    description: description.trim() || undefined,
+                    type,
+                  },
+                  { onSuccess: (data) => setDescription(data.description) },
+                )
+              }
+            />
+          </div>
+          <Textarea
             id="property-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={500}
+            rows={3}
+            className="resize-none"
           />
         </div>
 

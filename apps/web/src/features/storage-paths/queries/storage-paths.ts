@@ -152,3 +152,19 @@ export function useCreateStoragePath(orgId: string) {
     onError: (error) => toast.error(error.message),
   });
 }
+
+export function useDescribeStoragePath(orgId: string) {
+  return useMutation({
+    mutationFn: async (input: { id?: string; name: string; description?: string }) => {
+      const res = await api.orgs[":orgId"]["storage-paths"].describe.$post({
+        param: { orgId },
+        json: input,
+      });
+      if (!res.ok) {
+        throw new Error(await readApiError(res, "Failed to write description"));
+      }
+      return res.json();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+}

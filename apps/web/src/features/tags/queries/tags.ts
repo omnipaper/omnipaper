@@ -72,15 +72,12 @@ export function useUpsertTag(orgId: string) {
   });
 }
 
-export function useImproveTagDescription(orgId: string) {
+export function useDescribeTag(orgId: string) {
   return useMutation({
-    mutationFn: async (input: { name: string; description: string }) => {
-      const res = await api.orgs[":orgId"].tags["improve-description"].$post({
-        param: { orgId },
-        json: input,
-      });
+    mutationFn: async (input: { id?: string; name: string; description?: string }) => {
+      const res = await api.orgs[":orgId"].tags.describe.$post({ param: { orgId }, json: input });
       if (!res.ok) {
-        throw new Error(await readApiError(res, "Failed to improve description"));
+        throw new Error(await readApiError(res, "Failed to write description"));
       }
       return res.json();
     },

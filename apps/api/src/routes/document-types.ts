@@ -9,6 +9,7 @@ import {
 } from "@omnipaper/database/queries/document-types";
 import { Hono } from "hono";
 import { z } from "zod";
+import { describeFieldSchema, writeFieldDescription } from "../ai/field-description";
 import type { Variables } from "../context";
 import { errors, onValidationError } from "../errors";
 import { requireOrgPermission } from "../middleware";
@@ -66,6 +67,23 @@ export const documentTypesRoutes = new Hono<{ Variables: Variables }>()
 
         throw err;
       }
+    },
+  )
+  .post(
+    "/describe",
+    requireOrgPermission({ documentTypes: ["update"] }),
+    zValidator("json", describeFieldSchema, onValidationError),
+    async (c) => {
+      const { id, name, description } = c.req.valid("json");
+      const types = await getOrgDocumentTypes(db, { organizationId: c.get("organizationId") });
+      const text = await writeFieldDescription({
+        kind: "documentType",
+        name,
+        description,
+        siblings: types.filter((t) => t.id !== id),
+      });
+
+      return c.json({ description: text });
     },
   )
   .get("/:id", async (c) => {
