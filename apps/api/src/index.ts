@@ -1,9 +1,9 @@
 import "./instrumentation";
+import { serveStatic } from "@hono/bun";
 import { migrate } from "@omnipaper/database/migrate";
 import { waitForDatabase } from "@omnipaper/database/wait";
 import { env } from "@omnipaper/env";
 import { startWorker } from "@omnipaper/queue/worker";
-import { serveStatic } from "hono/bun";
 import { createApp } from "./app";
 import { bootstrapDemoAdmin } from "./demo";
 import { shutdownTracing } from "./instrumentation";
@@ -58,7 +58,7 @@ if (env.SERVICES.includes("worker")) {
       "email-poll": emailPollTask,
       "email-poll-dispatch": emailPollDispatchTask,
     },
-    // Cron scheduling bypasses our JOB_SPECS, so maxAttempts must be set inline (?max=1) —
+    // Cron scheduling bypasses the specs in JOB_DEFINITIONS, so maxAttempts must be set inline (?max=1) —
     // a failed tick shouldn't retry, the next tick 10 minutes later covers it.
     crontab: "*/10 * * * * email-poll-dispatch ?max=1",
   });

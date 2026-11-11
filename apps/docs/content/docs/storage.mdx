@@ -12,14 +12,13 @@ Supported providers: **Cloudflare R2**, **AWS S3**, **MinIO**.
 
 Pick a provider, fill in the fields, **Test connection**, then **Save**:
 
-| Provider | You enter | Example |
-| --- | --- | --- |
+| Provider      | You enter                                              | Example                                         |
+| ------------- | ------------------------------------------------------ | ----------------------------------------------- |
 | Cloudflare R2 | Bucket, **Endpoint**, Access Key ID, Secret Access Key | `https://<account_id>.r2.cloudflarestorage.com` |
-| AWS S3 | Bucket, **Region**, Access Key ID, Secret Access Key | Region `eu-central-1` |
-| MinIO | Bucket, **Endpoint**, Access Key ID, Secret Access Key | `https://minio.example.com` |
+| AWS S3        | Bucket, **Region**, Access Key ID, Secret Access Key   | Region `eu-central-1`                           |
+| MinIO         | Bucket, **Endpoint**, Access Key ID, Secret Access Key | `https://minio.example.com`                     |
 
 Region (S3) and endpoint (R2, MinIO) are the only provider specific fields. **Test connection** does a real round trip to the bucket.
-
 
 ## CORS
 

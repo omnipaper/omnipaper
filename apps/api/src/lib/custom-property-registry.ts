@@ -27,7 +27,7 @@ export type FromDbContext = { options: Map<string, SelectOptionDto> };
 export type CustomPropertyTypeDefinition = {
   type: CustomPropertyType;
   hasOptions: boolean;
-  inputSchema: z.ZodTypeAny;
+  inputSchema: z.ZodType;
   toDb: (value: unknown) => ValueColumns;
   fromDb: (row: ValueColumns, ctx: FromDbContext) => unknown;
 };

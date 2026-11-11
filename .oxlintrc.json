@@ -1,0 +1,103 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "jsPlugins": ["./tools/oxlint-plugin/plugin.ts"],
+  "categories": {
+    "correctness": "error"
+  },
+  "ignorePatterns": [
+    "**/*.generated.ts",
+    "**/*.gen.ts",
+    "**/.generated",
+    "packages/ui/**",
+    "packages/database/migrations/**"
+  ],
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/consistent-type-imports": "error",
+    "eslint/no-unused-vars": "error",
+    "eslint/eqeqeq": [
+      "error",
+      "always",
+      {
+        "null": "ignore"
+      }
+    ],
+    "eslint/no-console": "error",
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["drizzle-orm", "drizzle-orm/*"],
+            "message": "Only packages/database imports drizzle. Add a query in packages/database/src/queries/ instead."
+          }
+        ]
+      }
+    ],
+    "import/no-default-export": "error",
+    "oxc/no-barrel-file": [
+      "error",
+      {
+        "threshold": 0
+      }
+    ],
+    "unicorn/filename-case": [
+      "error",
+      {
+        "case": "kebabCase"
+      }
+    ],
+    "omnipaper/naming-convention": "error",
+    "omnipaper/no-named-reexport": "error",
+    "omnipaper/zvalidator-hook": "error",
+    "omnipaper/max-positional-params": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/no-floating-promises": "off",
+    "typescript/await-thenable": "off",
+    "typescript/unbound-method": "off",
+    "typescript/no-base-to-string": "off",
+    "typescript/no-redundant-type-constituents": "off",
+    "typescript/no-useless-default-assignment": "off",
+    "typescript/restrict-template-expressions": "off"
+  },
+  "overrides": [
+    {
+      "files": ["packages/database/**"],
+      "rules": {
+        "eslint/no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["**/*.config.ts", "**/*.config.mjs", "apps/docs/**"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["apps/web/src/routes/**"],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    },
+    {
+      "files": ["apps/api/src/ai/dev.ts"],
+      "rules": {
+        "eslint/no-console": "off"
+      }
+    },
+    {
+      "files": ["tools/oxlint-plugin/plugin.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["apps/docs/app/**/route.ts"],
+      "rules": {
+        "omnipaper/naming-convention": "off"
+      }
+    }
+  ]
+}

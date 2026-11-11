@@ -159,14 +159,21 @@ type SuggestionTargetDoc = {
   storagePathId: string | null;
 };
 
-async function applySuggestionValue(
-  organizationId: string,
-  doc: SuggestionTargetDoc,
-  field: string,
-  value: AiSuggestionValue,
-  definitionId: string | null,
-  userId: string | null,
-): Promise<void> {
+async function applySuggestionValue({
+  organizationId,
+  doc,
+  field,
+  value,
+  definitionId,
+  userId,
+}: {
+  organizationId: string;
+  doc: SuggestionTargetDoc;
+  field: string;
+  value: AiSuggestionValue;
+  definitionId: string | null;
+  userId: string | null;
+}): Promise<void> {
   const documentId = doc.id;
   const changes: FieldChangeInput[] = [];
 
@@ -704,14 +711,14 @@ export const documentsRoutes = new Hono<{
       if (!suggestion) {
         throw errors.notFound("Suggestion not found");
       }
-      await applySuggestionValue(
+      await applySuggestionValue({
         organizationId,
         doc,
-        suggestion.field,
-        suggestion.suggestedValue,
-        suggestion.customPropertyDefinitionId,
-        c.get("user")?.id ?? null,
-      );
+        field: suggestion.field,
+        value: suggestion.suggestedValue,
+        definitionId: suggestion.customPropertyDefinitionId,
+        userId: c.get("user")?.id ?? null,
+      });
       await setSuggestionStatus(db, {
         id: suggestionId,
         documentId,
@@ -773,15 +780,14 @@ export const documentsRoutes = new Hono<{
           source: "human",
           createdBy: c.get("user")?.id ?? null,
           changes: [
-            ...addedTags.map(
-              (t): FieldChangeInput => ({ field: "tags", newValue: { id: t.id, name: t.name } }),
-            ),
-            ...removedTags.map(
-              (t): FieldChangeInput => ({
-                field: "tags",
-                oldValue: { id: t.id, name: t.name },
-              }),
-            ),
+            ...addedTags.map((t): FieldChangeInput => ({
+              field: "tags",
+              newValue: { id: t.id, name: t.name },
+            })),
+            ...removedTags.map((t): FieldChangeInput => ({
+              field: "tags",
+              oldValue: { id: t.id, name: t.name },
+            })),
           ],
         });
       }

@@ -8,7 +8,7 @@ import {
 } from "@omnipaper/ui/components/dialog";
 import { Input } from "@omnipaper/ui/components/input";
 import { Label } from "@omnipaper/ui/components/label";
-import { type FormEvent, useEffect, useState } from "react";
+import { type SubmitEvent, useEffect, useState } from "react";
 
 // Shared name prompt for creating, forking ("Save as new"), and renaming a view.
 export function SaveViewDialog({
@@ -36,7 +36,7 @@ export function SaveViewDialog({
     }
   }, [open, initialName]);
 
-  function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const trimmed = name.trim();
     if (trimmed) {

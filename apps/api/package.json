@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@better-auth/expo": "catalog:",
+    "@hono/bun": "1.0.1",
     "@hono/zod-validator": "0.9.1",
     "@hyzyla/pdfium": "3.0.0",
     "@omnipaper/ai": "workspace:*",

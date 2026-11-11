@@ -1,7 +1,7 @@
 import { env } from "@omnipaper/env";
 import { withLogContext } from "@omnipaper/logger/context";
 import { type JobHelpers, type Runner, run, type Task, type TaskList } from "graphile-worker";
-import { type JobName, type JobPayload, jobSchemas } from "./jobs";
+import { JOB_DEFINITIONS, type JobName, type JobPayload } from "./jobs";
 import { graphileLogger } from "./logger";
 
 export function defineTask<TName extends JobName>(
@@ -9,7 +9,7 @@ export function defineTask<TName extends JobName>(
   handler: (payload: JobPayload<TName>, helpers: JobHelpers) => Promise<void>,
 ): Task {
   return async (rawPayload, helpers) => {
-    const payload = jobSchemas[name].parse(rawPayload) as JobPayload<TName>;
+    const payload = JOB_DEFINITIONS[name].schema.parse(rawPayload) as JobPayload<TName>;
 
     await withLogContext(
       { jobName: name, jobId: helpers.job.id, attempt: helpers.job.attempts },
