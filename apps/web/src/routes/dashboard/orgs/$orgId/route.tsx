@@ -27,6 +27,7 @@ import {
 } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
+  ActivityIcon,
   Building2Icon,
   FilesIcon,
   FileTypeIcon,
@@ -262,6 +263,17 @@ function OrgLayout() {
                           >
                             <UserPlusIcon />
                             <span>Registration</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === `${settingsBase}/telemetry`}
+                        >
+                          <Link to="/dashboard/orgs/$orgId/settings/telemetry" params={{ orgId }}>
+                            <ActivityIcon />
+                            <span>Telemetry</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

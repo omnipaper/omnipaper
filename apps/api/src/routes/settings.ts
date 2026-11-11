@@ -47,6 +47,11 @@ import {
   setStorageSettings,
   storageSettingsSchema,
 } from "@omnipaper/settings/storage-settings";
+import {
+  getTelemetrySettings,
+  setTelemetrySettings,
+  telemetrySettingsSchema,
+} from "@omnipaper/settings/telemetry-settings";
 import { AI_MODEL_PROVIDERS } from "@omnipaper/shared/ai-models";
 import { redactSecrets } from "@omnipaper/shared/redact";
 import { DEFAULT_STORAGE_ENGINE } from "@omnipaper/storage/registry";
@@ -316,6 +321,13 @@ const adminSettings = new Hono<{ Variables: Variables }>()
       await setRegistrationSettings(c.req.valid("json"));
       return c.json({ ok: true });
     },
-  );
+  )
+  .get("/telemetry", async (c) => {
+    return c.json(await getTelemetrySettings());
+  })
+  .put("/telemetry", zValidator("json", telemetrySettingsSchema, onValidationError), async (c) => {
+    await setTelemetrySettings(c.req.valid("json"));
+    return c.json({ ok: true });
+  });
 
 export const settingsRoutes = adminSettings;

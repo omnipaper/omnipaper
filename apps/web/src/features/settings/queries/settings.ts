@@ -14,6 +14,7 @@ export const settingsKeys = {
   aiModelUpdates: () => [...settingsKeys.all, "ai-model-updates"] as const,
   providers: () => [...settingsKeys.all, "providers"] as const,
   registration: () => [...settingsKeys.all, "registration"] as const,
+  telemetry: () => [...settingsKeys.all, "telemetry"] as const,
 };
 
 export function storageSettingsQuery() {
@@ -64,6 +65,20 @@ export function registrationSettingsQuery() {
       const res = await api.settings.registration.$get();
       if (!res.ok) {
         throw new Error(await readApiError(res, "Failed to load registration settings"));
+      }
+      return res.json();
+    },
+  });
+}
+
+// Telemetry toggle (instance-admin only). On by default.
+export function telemetrySettingsQuery() {
+  return queryOptions({
+    queryKey: settingsKeys.telemetry(),
+    queryFn: async () => {
+      const res = await api.settings.telemetry.$get();
+      if (!res.ok) {
+        throw new Error(await readApiError(res, "Failed to load telemetry settings"));
       }
       return res.json();
     },
@@ -240,6 +255,26 @@ export function useSaveRegistrationSettings() {
     onSuccess: (_data, enabled) => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.registration() });
       toast.success(enabled ? "Registration enabled" : "Registration disabled");
+    },
+    onError: () => {
+      toast.error("Save failed");
+    },
+  });
+}
+
+export function useSaveTelemetrySettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await api.settings.telemetry.$put({ json: { enabled } });
+      if (!res.ok) {
+        throw new Error(await readApiError(res, "Failed to update telemetry"));
+      }
+      return res.json();
+    },
+    onSuccess: (_data, enabled) => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.telemetry() });
+      toast.success(enabled ? "Telemetry enabled" : "Telemetry disabled");
     },
     onError: () => {
       toast.error("Save failed");

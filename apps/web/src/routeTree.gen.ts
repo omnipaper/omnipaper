@@ -37,6 +37,7 @@ import { Route as DashboardOrgsOrgIdSettingsRegistrationRouteImport } from './ro
 import { Route as DashboardOrgsOrgIdSettingsStorageRouteImport } from './routes/dashboard/orgs/$orgId/settings/storage'
 import { Route as DashboardOrgsOrgIdSettingsStoragePathsRouteImport } from './routes/dashboard/orgs/$orgId/settings/storage-paths'
 import { Route as DashboardOrgsOrgIdSettingsTagsRouteImport } from './routes/dashboard/orgs/$orgId/settings/tags'
+import { Route as DashboardOrgsOrgIdSettingsTelemetryRouteImport } from './routes/dashboard/orgs/$orgId/settings/telemetry'
 import { Route as DashboardOrgsOrgIdWorkflowsIndexRouteImport } from './routes/dashboard/orgs/$orgId/workflows/index'
 import { Route as DashboardOrgsOrgIdWorkflowsWorkflowIdRouteImport } from './routes/dashboard/orgs/$orgId/workflows/$workflowId'
 import { Route as DashboardOrgsOrgIdWorkflowsNewRouteImport } from './routes/dashboard/orgs/$orgId/workflows/new'
@@ -198,6 +199,12 @@ const DashboardOrgsOrgIdSettingsTagsRoute =
     path: '/tags',
     getParentRoute: () => DashboardOrgsOrgIdSettingsRouteRoute,
   } as any)
+const DashboardOrgsOrgIdSettingsTelemetryRoute =
+  DashboardOrgsOrgIdSettingsTelemetryRouteImport.update({
+    id: '/telemetry',
+    path: '/telemetry',
+    getParentRoute: () => DashboardOrgsOrgIdSettingsRouteRoute,
+  } as any)
 const DashboardOrgsOrgIdWorkflowsIndexRoute =
   DashboardOrgsOrgIdWorkflowsIndexRouteImport.update({
     id: '/',
@@ -243,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
   '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
+  '/dashboard/orgs/$orgId/settings/telemetry': typeof DashboardOrgsOrgIdSettingsTelemetryRoute
   '/dashboard/orgs/$orgId/workflows/$workflowId': typeof DashboardOrgsOrgIdWorkflowsWorkflowIdRoute
   '/dashboard/orgs/$orgId/workflows/new': typeof DashboardOrgsOrgIdWorkflowsNewRoute
   '/dashboard/orgs/$orgId/documents/': typeof DashboardOrgsOrgIdDocumentsIndexRoute
@@ -271,6 +279,7 @@ export interface FileRoutesByTo {
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
   '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
+  '/dashboard/orgs/$orgId/settings/telemetry': typeof DashboardOrgsOrgIdSettingsTelemetryRoute
   '/dashboard/orgs/$orgId/workflows/$workflowId': typeof DashboardOrgsOrgIdWorkflowsWorkflowIdRoute
   '/dashboard/orgs/$orgId/workflows/new': typeof DashboardOrgsOrgIdWorkflowsNewRoute
   '/dashboard/orgs/$orgId/documents': typeof DashboardOrgsOrgIdDocumentsIndexRoute
@@ -305,6 +314,7 @@ export interface FileRoutesById {
   '/dashboard/orgs/$orgId/settings/storage': typeof DashboardOrgsOrgIdSettingsStorageRoute
   '/dashboard/orgs/$orgId/settings/storage-paths': typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   '/dashboard/orgs/$orgId/settings/tags': typeof DashboardOrgsOrgIdSettingsTagsRoute
+  '/dashboard/orgs/$orgId/settings/telemetry': typeof DashboardOrgsOrgIdSettingsTelemetryRoute
   '/dashboard/orgs/$orgId/workflows/$workflowId': typeof DashboardOrgsOrgIdWorkflowsWorkflowIdRoute
   '/dashboard/orgs/$orgId/workflows/new': typeof DashboardOrgsOrgIdWorkflowsNewRoute
   '/dashboard/orgs/$orgId/documents/': typeof DashboardOrgsOrgIdDocumentsIndexRoute
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/storage'
     | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
+    | '/dashboard/orgs/$orgId/settings/telemetry'
     | '/dashboard/orgs/$orgId/workflows/$workflowId'
     | '/dashboard/orgs/$orgId/workflows/new'
     | '/dashboard/orgs/$orgId/documents/'
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/storage'
     | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
+    | '/dashboard/orgs/$orgId/settings/telemetry'
     | '/dashboard/orgs/$orgId/workflows/$workflowId'
     | '/dashboard/orgs/$orgId/workflows/new'
     | '/dashboard/orgs/$orgId/documents'
@@ -400,6 +412,7 @@ export interface FileRouteTypes {
     | '/dashboard/orgs/$orgId/settings/storage'
     | '/dashboard/orgs/$orgId/settings/storage-paths'
     | '/dashboard/orgs/$orgId/settings/tags'
+    | '/dashboard/orgs/$orgId/settings/telemetry'
     | '/dashboard/orgs/$orgId/workflows/$workflowId'
     | '/dashboard/orgs/$orgId/workflows/new'
     | '/dashboard/orgs/$orgId/documents/'
@@ -611,6 +624,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgsOrgIdSettingsTagsRouteImport
       parentRoute: typeof DashboardOrgsOrgIdSettingsRouteRoute
     }
+    '/dashboard/orgs/$orgId/settings/telemetry': {
+      id: '/dashboard/orgs/$orgId/settings/telemetry'
+      path: '/telemetry'
+      fullPath: '/dashboard/orgs/$orgId/settings/telemetry'
+      preLoaderRoute: typeof DashboardOrgsOrgIdSettingsTelemetryRouteImport
+      parentRoute: typeof DashboardOrgsOrgIdSettingsRouteRoute
+    }
     '/dashboard/orgs/$orgId/workflows/': {
       id: '/dashboard/orgs/$orgId/workflows/'
       path: '/'
@@ -648,6 +668,7 @@ interface DashboardOrgsOrgIdSettingsRouteRouteChildren {
   DashboardOrgsOrgIdSettingsStorageRoute: typeof DashboardOrgsOrgIdSettingsStorageRoute
   DashboardOrgsOrgIdSettingsStoragePathsRoute: typeof DashboardOrgsOrgIdSettingsStoragePathsRoute
   DashboardOrgsOrgIdSettingsTagsRoute: typeof DashboardOrgsOrgIdSettingsTagsRoute
+  DashboardOrgsOrgIdSettingsTelemetryRoute: typeof DashboardOrgsOrgIdSettingsTelemetryRoute
   DashboardOrgsOrgIdSettingsIndexRoute: typeof DashboardOrgsOrgIdSettingsIndexRoute
 }
 
@@ -673,6 +694,8 @@ const DashboardOrgsOrgIdSettingsRouteRouteChildren: DashboardOrgsOrgIdSettingsRo
     DashboardOrgsOrgIdSettingsStoragePathsRoute:
       DashboardOrgsOrgIdSettingsStoragePathsRoute,
     DashboardOrgsOrgIdSettingsTagsRoute: DashboardOrgsOrgIdSettingsTagsRoute,
+    DashboardOrgsOrgIdSettingsTelemetryRoute:
+      DashboardOrgsOrgIdSettingsTelemetryRoute,
     DashboardOrgsOrgIdSettingsIndexRoute: DashboardOrgsOrgIdSettingsIndexRoute,
   }
 

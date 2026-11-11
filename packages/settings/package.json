@@ -13,6 +13,7 @@
     "./provider-settings": "./src/provider-settings.ts",
     "./secret": "./src/secret.ts",
     "./email-settings": "./src/email-settings.ts",
+    "./telemetry-settings": "./src/telemetry-settings.ts",
     "./crypto": "./src/crypto.ts"
   },
   "scripts": {
