@@ -1,4 +1,4 @@
-import { AI_MODELS, RECOMMENDED_MODEL } from "@omnipaper/shared/ai-models";
+import { RECOMMENDED_MODEL } from "@omnipaper/shared/ai-models";
 import { Button } from "@omnipaper/ui/components/button";
 import {
   Card,
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@omnipaper/ui/components/select";
+import { Switch } from "@omnipaper/ui/components/switch";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { type SubmitEvent, useEffect, useState } from "react";
@@ -78,11 +79,20 @@ export function AiSettingsForm() {
     setModel(RECOMMENDED_MODEL);
   }
 
-  function modelLabel(value: string) {
-    if (value === RECOMMENDED_MODEL) {
-      return "Recommended (auto-updated)";
-    }
-    return AI_MODELS[provider].models.find((m) => m.id === value)?.label ?? value;
+  const catalog = aiQuery.data?.catalogs[provider];
+  const followsRecommended = model === RECOMMENDED_MODEL;
+  const recommendedSlug = catalog?.defaults.recommended;
+  const currentModels = catalog?.models.filter((m) => m.status === "current") ?? [];
+  // A pinned id the list no longer offers stays selectable instead of being swapped out.
+  const pinnedUnlisted =
+    !followsRecommended && !currentModels.some((m) => m.slug === model) ? model : null;
+
+  function modelName(slug: string) {
+    return catalog?.models.find((m) => m.slug === slug)?.name ?? slug;
+  }
+
+  function setFollowsRecommended(next: boolean) {
+    setModel(next ? RECOMMENDED_MODEL : (recommendedSlug ?? RECOMMENDED_MODEL));
   }
 
   function handleSubmit(event: SubmitEvent) {
@@ -140,21 +150,45 @@ export function AiSettingsForm() {
               Advanced settings
             </button>
             {showAdvanced ? (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ai-model">Model</Label>
-                <Select value={model} onValueChange={setModel}>
-                  <SelectTrigger id="ai-model" className="w-full">
-                    <SelectValue>{modelLabel(model)}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={RECOMMENDED_MODEL}>Recommended (auto-updated)</SelectItem>
-                    {AI_MODELS[provider].models.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="ai-follow-recommended">Use recommended model</Label>
+                    <p className="text-muted-foreground text-xs">
+                      {recommendedSlug
+                        ? `Currently ${modelName(recommendedSlug)}. Switches automatically when the recommended model changes.`
+                        : "Switches automatically when the recommended model changes."}
+                    </p>
+                  </div>
+                  <Switch
+                    id="ai-follow-recommended"
+                    checked={followsRecommended}
+                    disabled={!catalog}
+                    onCheckedChange={setFollowsRecommended}
+                  />
+                </div>
+                {followsRecommended ? null : (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="ai-model">Model</Label>
+                    <Select value={model} onValueChange={setModel}>
+                      <SelectTrigger id="ai-model" className="w-full">
+                        <SelectValue>{modelName(model)}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentModels.map((m) => (
+                          <SelectItem key={m.slug} value={m.slug}>
+                            {m.name}
+                          </SelectItem>
+                        ))}
+                        {pinnedUnlisted ? (
+                          <SelectItem value={pinnedUnlisted}>
+                            {modelName(pinnedUnlisted)}
+                          </SelectItem>
+                        ) : null}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             ) : null}
           </div>

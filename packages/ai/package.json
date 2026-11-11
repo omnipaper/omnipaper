@@ -6,7 +6,8 @@
   "exports": {
     "./model": "./src/model.ts",
     "./classify": "./src/classify.ts",
-    "./test": "./src/test.ts"
+    "./test": "./src/test.ts",
+    "./model-manifest": "./src/model-manifest.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

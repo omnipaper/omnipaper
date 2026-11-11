@@ -1,11 +1,11 @@
+import { getProviderCatalog, resolveAiModel } from "@omnipaper/ai/model-manifest";
 import {
   AI_MODEL_PROVIDERS,
   type AiModelProvider,
-  isValidModelSetting,
   RECOMMENDED_MODEL,
-  resolveAiModel,
 } from "@omnipaper/shared/ai-models";
 import { z } from "zod";
+import { getModelManifest } from "./model-manifest";
 import { getProviderKeys } from "./provider-settings";
 import { getSetting, setSetting } from "./settings";
 
@@ -13,16 +13,11 @@ import { getSetting, setSetting } from "./settings";
 // `model` is either the "recommended" sentinel (we bump it across releases) or a concrete pinned id.
 export type AiProvider = AiModelProvider;
 
-export const aiSettingsSchema = z
-  .object({
-    provider: z.enum(AI_MODEL_PROVIDERS),
-    model: z.string(),
-  })
-  .superRefine((value, ctx) => {
-    if (!isValidModelSetting(value.provider, value.model)) {
-      ctx.addIssue({ code: "custom", path: ["model"], message: "Unknown model for this provider" });
-    }
-  });
+// Any id is accepted: the model list can lag behind the provider, so the provider API is the judge.
+export const aiSettingsSchema = z.object({
+  provider: z.enum(AI_MODEL_PROVIDERS),
+  model: z.string().trim().min(1),
+});
 
 export type AiSettings = z.infer<typeof aiSettingsSchema>;
 
@@ -66,5 +61,7 @@ export async function getAiRuntimeConfig(): Promise<
     return { ok: false, detail: `missing ${provider} API key` };
   }
 
-  return { ok: true, config: { provider, model: resolveAiModel(provider, model), apiKey } };
+  const catalog = getProviderCatalog(await getModelManifest(), provider);
+
+  return { ok: true, config: { provider, model: resolveAiModel(catalog, model), apiKey } };
 }

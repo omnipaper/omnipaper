@@ -9,9 +9,16 @@ Optional. Fills document metadata (title, date, type, path, tags, custom propert
 ## Setup
 
 1. Add a provider key in **Settings → Providers** (OpenAI, Anthropic, Google, or Mistral). Same Mistral key works for OCR too.
-2. In **Settings → AI**, pick provider and model (**Recommended** or a specific model id), **Test connection**, **Save**.
+2. In **Settings → AI**, pick provider and model (recommended or a pinned model), **Test connection**, **Save**.
 
 Provider APIs are paid and metered.
+
+## Model list
+
+The models offered in **Settings → AI** come from a list that ships with each release. To show new models without an upgrade, Omnipaper also fetches the latest list from `model-manifest.json` from the Omnipaper GitHub repository (`main` branch) about once an hour. If the fetch fails, the last good list is kept, so an outage never changes your configured model.
+
+- **Fetch model list updates** (Settings → AI → Model list) turns the fetch off. With it off, the instance makes no outbound request for the list and only gets new models with a new release.
+- **Use recommended model** (Settings → AI → Advanced) follows the recommended model for the provider. When the recommendation changes, your instance switches to the new model automatically. Turn it off to pin a specific model.
 
 ## Assignment rules
 

@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-09T19:00:00Z",
+  "providers": {
+    "openai": {
+      "defaults": { "recommended": "gpt-6.1-terra" },
+      "models": [
+        { "slug": "gpt-6-astra", "name": "GPT-6 Astra", "status": "current" },
+        { "slug": "gpt-6.1-sol", "name": "GPT-6.1 Sol", "status": "current" },
+        { "slug": "gpt-6.1-terra", "name": "GPT-6.1 Terra", "status": "current" },
+        { "slug": "gpt-6-luna", "name": "GPT-6 Luna", "status": "current" }
+      ]
+    },
+    "anthropic": {
+      "defaults": { "recommended": "claude-sonnet-5-5" },
+      "models": [
+        { "slug": "claude-fable-5-2", "name": "Claude Fable 5.2", "status": "current" },
+        { "slug": "claude-opus-5-5", "name": "Claude Opus 5.5", "status": "current" },
+        { "slug": "claude-sonnet-5-5", "name": "Claude Sonnet 5.5", "status": "current" },
+        { "slug": "claude-haiku-5-5", "name": "Claude Haiku 5.5", "status": "current" }
+      ]
+    },
+    "google": {
+      "defaults": { "recommended": "gemini-3.8-flash" },
+      "models": [
+        { "slug": "gemini-4-argon", "name": "Gemini 4 Argon", "status": "current" },
+        { "slug": "gemini-3.8-flash", "name": "Gemini 3.8 Flash", "status": "current" },
+        { "slug": "gemini-3.5-flash-lite", "name": "Gemini 3.5 Flash-Lite", "status": "current" }
+      ]
+    },
+    "mistral": {
+      "defaults": { "recommended": "mistral-small-latest" },
+      "models": [
+        { "slug": "mistral-large-latest", "name": "Mistral Large", "status": "current" },
+        { "slug": "mistral-small-latest", "name": "Mistral Small", "status": "current" }
+      ]
+    }
+  }
+}
