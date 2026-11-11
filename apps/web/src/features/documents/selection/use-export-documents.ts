@@ -2,6 +2,7 @@ import type { FilterState, SortState } from "@omnipaper/shared/document-filters"
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 export type ExportSelection =
   | { documents: string[] }
@@ -17,7 +18,7 @@ export function useExportDocuments(orgId: string) {
         json: selection,
       });
       if (!res.ok) {
-        throw new Error("Export failed");
+        throw new Error(await readApiError(res, "Export failed"));
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

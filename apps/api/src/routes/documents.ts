@@ -62,7 +62,7 @@ import type { AiSuggestionValue } from "@omnipaper/shared/workflows/ai-assign";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
-import { errors, PasswordProtectedPdfError } from "../errors";
+import { errors, onValidationError, PasswordProtectedPdfError } from "../errors";
 import {
   coerceCustomValue,
   customPropertyRegistry,
@@ -76,6 +76,10 @@ import { requireOrgPermission } from "../middleware";
 import { shapeDocumentProperties } from "../serializers/custom-property";
 import { toDocumentDetailDto, toDocumentListItemDto } from "../serializers/document";
 import { toTagRefDto } from "../serializers/tag";
+
+const uploadDocumentSchema = z.object({
+  file: z.instanceof(File).refine((file) => file.size > 0, "A file is required"),
+});
 
 const listDocumentsQuerySchema = z.object({
   q: z.string().optional(),
@@ -316,57 +320,58 @@ async function applySuggestionValue(
 export const documentsRoutes = new Hono<{
   Variables: Variables;
 }>()
-  .post("/", requireOrgPermission({ documents: ["create"] }), async (c) => {
-    const user = c.get("user");
-    if (!user) {
-      throw errors.unauthorized();
-    }
-    const organizationId = c.get("organizationId");
-    const driver = await getStorageDriver();
-    if (!driver) {
-      throw errors.badRequest("storage_not_configured", "Storage is not configured");
-    }
-    const body = await c.req.parseBody();
-    const file = body.file;
-    if (!(file instanceof File) || file.size === 0) {
-      throw errors.badRequest("file_required", "A file is required");
-    }
-    if (!isUploadAllowed({ filename: file.name, mimeType: file.type })) {
-      throw errors.badRequest(
-        "unsupported_file_type",
-        `Unsupported file type. Accepted formats: ${describeAcceptedFormats()}.`,
-      );
-    }
-    if (file.size > MAX_UPLOAD_BYTES) {
-      throw errors.badRequest(
-        "file_too_large",
-        `File exceeds the ${MAX_UPLOAD_BYTES / 1024 / 1024}MB upload limit`,
-      );
-    }
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    try {
-      const result = await ingestDocument({
-        db,
-        driver,
-        organizationId,
-        createdBy: user.id,
-        bytes,
-        filename: file.name,
-        mimeType: file.type || "application/octet-stream",
-      });
-      return c.json(result);
-    } catch (err) {
-      if (err instanceof PasswordProtectedPdfError) {
+  .post(
+    "/",
+    requireOrgPermission({ documents: ["create"] }),
+    zValidator("form", uploadDocumentSchema, onValidationError),
+    async (c) => {
+      const user = c.get("user");
+      if (!user) {
+        throw errors.unauthorized();
+      }
+      const organizationId = c.get("organizationId");
+      const driver = await getStorageDriver();
+      if (!driver) {
+        throw errors.badRequest("storage_not_configured", "Storage is not configured");
+      }
+      const { file } = c.req.valid("form");
+      if (!isUploadAllowed({ filename: file.name, mimeType: file.type })) {
         throw errors.badRequest(
-          "pdf_password_protected",
-          "This PDF is password protected. Remove the password and upload it again.",
+          "unsupported_file_type",
+          `Unsupported file type. Accepted formats: ${describeAcceptedFormats()}.`,
         );
       }
+      if (file.size > MAX_UPLOAD_BYTES) {
+        throw errors.badRequest(
+          "file_too_large",
+          `File exceeds the ${MAX_UPLOAD_BYTES / 1024 / 1024}MB upload limit`,
+        );
+      }
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      try {
+        const result = await ingestDocument({
+          db,
+          driver,
+          organizationId,
+          createdBy: user.id,
+          bytes,
+          filename: file.name,
+          mimeType: file.type || "application/octet-stream",
+        });
+        return c.json(result);
+      } catch (err) {
+        if (err instanceof PasswordProtectedPdfError) {
+          throw errors.badRequest(
+            "pdf_password_protected",
+            "This PDF is password protected. Remove the password and upload it again.",
+          );
+        }
 
-      throw err;
-    }
-  })
-  .get("/", zValidator("query", listDocumentsQuerySchema), async (c) => {
+        throw err;
+      }
+    },
+  )
+  .get("/", zValidator("query", listDocumentsQuerySchema, onValidationError), async (c) => {
     const organizationId = c.get("organizationId");
     const { q, cursor, filters, sort } = c.req.valid("query");
     const parsedOffset = cursor ? Number.parseInt(cursor, 10) : 0;
@@ -400,7 +405,7 @@ export const documentsRoutes = new Hono<{
       rows.length === DEFAULT_PAGE_SIZE ? String(offset + DEFAULT_PAGE_SIZE) : null;
     return c.json({ documents, nextCursor });
   })
-  .get("/ids", zValidator("query", listDocumentsQuerySchema), async (c) => {
+  .get("/ids", zValidator("query", listDocumentsQuerySchema, onValidationError), async (c) => {
     const organizationId = c.get("organizationId");
     const { q, filters, sort } = c.req.valid("query");
     const customPropertyTypes =
@@ -420,7 +425,7 @@ export const documentsRoutes = new Hono<{
     });
     return c.json({ ids });
   })
-  .post("/export", zValidator("json", exportDocumentsSchema), async (c) => {
+  .post("/export", zValidator("json", exportDocumentsSchema, onValidationError), async (c) => {
     const organizationId = c.get("organizationId");
     const body = c.req.valid("json");
     const driver = await getStorageDriver();
@@ -460,7 +465,7 @@ export const documentsRoutes = new Hono<{
   .post(
     "/delete",
     requireOrgPermission({ documents: ["delete"] }),
-    zValidator("json", deleteDocumentsSchema),
+    zValidator("json", deleteDocumentsSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const { documents: ids } = c.req.valid("json");
@@ -519,7 +524,7 @@ export const documentsRoutes = new Hono<{
   .patch(
     "/:id",
     requireOrgPermission({ documents: ["update"] }),
-    zValidator("json", updateDocumentSchema),
+    zValidator("json", updateDocumentSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const id = c.req.param("id");
@@ -607,7 +612,7 @@ export const documentsRoutes = new Hono<{
   .put(
     "/:id/ocr-text",
     requireOrgPermission({ documents: ["update"] }),
-    zValidator("json", updateOcrTextSchema),
+    zValidator("json", updateOcrTextSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const id = c.req.param("id");
@@ -737,7 +742,7 @@ export const documentsRoutes = new Hono<{
   .put(
     "/:id/tags",
     requireOrgPermission({ documents: ["update"] }),
-    zValidator("json", setDocumentTagsSchema),
+    zValidator("json", setDocumentTagsSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const documentId = c.req.param("id");
@@ -791,7 +796,7 @@ export const documentsRoutes = new Hono<{
   .put(
     "/:id/custom-properties/:definitionId",
     requireOrgPermission({ documents: ["update"] }),
-    zValidator("json", setPropertyValueSchema),
+    zValidator("json", setPropertyValueSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const documentId = c.req.param("id");

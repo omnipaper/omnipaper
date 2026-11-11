@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query
 import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 export const emailIngestKeys = {
   root: ["email-ingest"] as const,
@@ -17,7 +18,7 @@ export function emailIngestAccountsQuery({ orgId }: { orgId: string }) {
     queryFn: async () => {
       const res = await api.orgs[":orgId"]["email-ingest"].$get({ param: { orgId } });
       if (!res.ok) {
-        throw new Error("Failed to load email accounts");
+        throw new Error(await readApiError(res, "Failed to load email accounts"));
       }
       return res.json();
     },
@@ -43,7 +44,7 @@ export function emailIngestProcessedQuery({
         param: { orgId, id: accountId },
       });
       if (!res.ok) {
-        throw new Error("Failed to load processed emails");
+        throw new Error(await readApiError(res, "Failed to load processed emails"));
       }
       return res.json();
     },
@@ -70,11 +71,10 @@ export function useUpsertEmailIngestAccount(orgId: string) {
         : await api.orgs[":orgId"]["email-ingest"].$post({ param: { orgId }, json: body });
       if (!res.ok) {
         throw new Error(
-          res.status === 400
-            ? "An account with this label already exists"
-            : id
-              ? "Failed to update email account"
-              : "Failed to create email account",
+          await readApiError(
+            res,
+            id ? "Failed to update email account" : "Failed to create email account",
+          ),
         );
       }
     },
@@ -95,7 +95,7 @@ export function useSetEmailIngestAccountEnabled(orgId: string) {
         json: { enabled },
       });
       if (!res.ok) {
-        throw new Error("Failed to update email account");
+        throw new Error(await readApiError(res, "Failed to update email account"));
       }
     },
     onMutate: async ({ id, enabled }) => {
@@ -130,7 +130,7 @@ export function useDeleteEmailIngestAccount(orgId: string) {
     mutationFn: async (id: string) => {
       const res = await api.orgs[":orgId"]["email-ingest"][":id"].$delete({ param: { orgId, id } });
       if (!res.ok) {
-        throw new Error("Failed to delete email account");
+        throw new Error(await readApiError(res, "Failed to delete email account"));
       }
     },
     onSuccess: () => {
@@ -153,7 +153,7 @@ export function useTestEmailIngestConnection(orgId: string) {
         json: body,
       });
       if (!res.ok) {
-        throw new Error("Connection test failed");
+        throw new Error(await readApiError(res, "Connection test failed"));
       }
       return res.json();
     },
@@ -176,7 +176,7 @@ export function usePollEmailIngestAccountNow(orgId: string) {
         param: { orgId, id },
       });
       if (!res.ok) {
-        throw new Error("Failed to queue the poll");
+        throw new Error(await readApiError(res, "Failed to queue the poll"));
       }
     },
     onSuccess: () => {

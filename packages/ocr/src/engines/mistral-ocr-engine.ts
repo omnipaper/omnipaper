@@ -1,5 +1,10 @@
+import { z } from "zod";
 import { OcrError } from "../resolve";
 import type { DocumentInput } from "../types";
+
+const mistralResponseSchema = z.object({
+  pages: z.array(z.object({ markdown: z.string() })),
+});
 
 export async function extractWithMistralOcr(
   input: DocumentInput & { apiKey: string; model: string },
@@ -36,8 +41,13 @@ export async function extractWithMistralOcr(
     throw new OcrError(`Mistral OCR failed (${response.status}): ${detail}`, { retryable });
   }
 
-  const payload = (await response.json()) as { pages?: Array<{ markdown?: string }> };
-  return (payload.pages ?? []).map((page) => page.markdown ?? "").join("\n\n");
+  const parsed = mistralResponseSchema.safeParse(await response.json());
+  if (!parsed.success) {
+    throw new OcrError(`Mistral OCR returned an unexpected response: ${parsed.error.message}`, {
+      retryable: false,
+    });
+  }
+  return parsed.data.pages.map((page) => page.markdown).join("\n\n");
 }
 
 export async function testMistralConnection(apiKey: string): Promise<void> {

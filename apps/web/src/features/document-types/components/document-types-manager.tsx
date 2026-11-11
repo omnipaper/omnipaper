@@ -128,11 +128,7 @@ export function DocumentTypesManager({ orgId }: { orgId: string }) {
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <AiAssignMaster
-            orgId={orgId}
-            field="documentType"
-            variant="button"
-          />
+          <AiAssignMaster orgId={orgId} field="documentType" variant="button" />
           <Button onClick={openCreate}>
             <PlusIcon />
             New document type

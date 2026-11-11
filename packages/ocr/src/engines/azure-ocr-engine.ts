@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { OcrError } from "../resolve";
 import type { DocumentInput } from "../types";
 
@@ -7,11 +8,14 @@ const POLL_INTERVAL_MS = 2_000;
 // re-billing the whole analysis on an automatic retry.
 const POLL_TIMEOUT_MS = 5 * 60_000;
 
-type AzureOperation = {
-  status: string;
-  analyzeResult?: { content?: string };
-  error?: { code?: string; message?: string };
-};
+const azureOperationSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.enum(["notStarted", "running"]) }),
+  z.object({ status: z.literal("succeeded"), analyzeResult: z.object({ content: z.string() }) }),
+  z.object({
+    status: z.literal("failed"),
+    error: z.object({ message: z.string().optional() }).optional(),
+  }),
+]);
 
 function baseUrl(endpoint: string): string {
   return endpoint.replace(/\/+$/, "");
@@ -78,10 +82,16 @@ export async function extractWithAzureOcr(
       return failWithResponse(polled);
     }
 
-    const operation = (await polled.json()) as AzureOperation;
+    const parsed = azureOperationSchema.safeParse(await polled.json());
+
+    if (!parsed.success) {
+      throw new OcrError(`Azure OCR returned an unexpected response: ${parsed.error.message}`);
+    }
+
+    const operation = parsed.data;
 
     if (operation.status === "succeeded") {
-      return operation.analyzeResult?.content ?? "";
+      return operation.analyzeResult.content;
     }
 
     if (operation.status === "failed") {

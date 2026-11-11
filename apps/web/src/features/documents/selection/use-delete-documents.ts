@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { removeRecent } from "@/features/documents/recent/recent-documents-store";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 // Explicit ids only — the endpoint deliberately has no "all matching" shape, because deletion here
 // removes the stored objects too and there is no trash to recover from.
@@ -17,7 +18,7 @@ export function useDeleteDocuments(orgId: string) {
       });
 
       if (!res.ok) {
-        throw new Error("Delete failed");
+        throw new Error(await readApiError(res, "Delete failed"));
       }
 
       return res.json();

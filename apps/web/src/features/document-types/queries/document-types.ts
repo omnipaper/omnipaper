@@ -3,6 +3,7 @@ import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 export const documentTypeKeys = {
   root: ["document-types"] as const,
@@ -16,7 +17,7 @@ export function orgDocumentTypesQuery({ orgId }: { orgId: string }) {
     queryFn: async () => {
       const res = await api.orgs[":orgId"]["document-types"].$get({ param: { orgId } });
       if (!res.ok) {
-        throw new Error("Failed to load document types");
+        throw new Error(await readApiError(res, "Failed to load document types"));
       }
       return res.json();
     },
@@ -53,11 +54,10 @@ export function useUpsertDocumentType(orgId: string) {
           });
       if (!res.ok) {
         throw new Error(
-          res.status === 400
-            ? "A document type with this name already exists"
-            : input.id
-              ? "Failed to update document type"
-              : "Failed to create document type",
+          await readApiError(
+            res,
+            input.id ? "Failed to update document type" : "Failed to create document type",
+          ),
         );
       }
     },
@@ -81,7 +81,7 @@ export function useSetDocumentTypeAiEligible(orgId: string) {
         json: { aiEligible },
       });
       if (!res.ok) {
-        throw new Error("Failed to update document type");
+        throw new Error(await readApiError(res, "Failed to update document type"));
       }
     },
     onMutate: async ({ id, aiEligible }) => {
@@ -123,7 +123,7 @@ export function useDeleteDocumentType(orgId: string) {
         param: { orgId, id },
       });
       if (!res.ok) {
-        throw new Error("Failed to delete document type");
+        throw new Error(await readApiError(res, "Failed to delete document type"));
       }
     },
     onSuccess: () => {
@@ -144,11 +144,7 @@ export function useCreateDocumentType(orgId: string) {
         json: { name },
       });
       if (!res.ok) {
-        throw new Error(
-          res.status === 400
-            ? "A document type with this name already exists"
-            : "Failed to create document type",
-        );
+        throw new Error(await readApiError(res, "Failed to create document type"));
       }
       return res.json();
     },

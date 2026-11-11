@@ -16,7 +16,7 @@ import {
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
-import { errors } from "../errors";
+import { errors, onValidationError } from "../errors";
 import { requireOrgPermission } from "../middleware";
 
 const createWorkflowSchema = z.object({
@@ -66,7 +66,7 @@ export const workflowsRoutes = new Hono<{ Variables: Variables }>()
   .post(
     "/",
     requireOrgPermission({ workflows: ["create"] }),
-    zValidator("json", createWorkflowSchema),
+    zValidator("json", createWorkflowSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const { name, enabled, definition } = c.req.valid("json");
@@ -98,7 +98,7 @@ export const workflowsRoutes = new Hono<{ Variables: Variables }>()
   .patch(
     "/:id",
     requireOrgPermission({ workflows: ["update"] }),
-    zValidator("json", updateWorkflowSchema),
+    zValidator("json", updateWorkflowSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const id = c.req.param("id");

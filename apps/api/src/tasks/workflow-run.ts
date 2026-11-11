@@ -84,6 +84,10 @@ async function runAction(
         detail: result.detail,
       };
     }
+    default: {
+      const _exhaustive: never = action;
+      return _exhaustive;
+    }
   }
 }
 

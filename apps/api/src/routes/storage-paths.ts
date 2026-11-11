@@ -11,7 +11,7 @@ import { isValidStoragePath, normalizeStoragePath } from "@omnipaper/shared/stor
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
-import { errors } from "../errors";
+import { errors, onValidationError } from "../errors";
 import { requireOrgPermission } from "../middleware";
 import { toStoragePathDto } from "../serializers/storage-path";
 
@@ -53,7 +53,7 @@ export const storagePathsRoutes = new Hono<{ Variables: Variables }>()
   .post(
     "/",
     requireOrgPermission({ storagePaths: ["create"] }),
-    zValidator("json", createStoragePathSchema),
+    zValidator("json", createStoragePathSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const values = c.req.valid("json");
@@ -87,7 +87,7 @@ export const storagePathsRoutes = new Hono<{ Variables: Variables }>()
   .patch(
     "/:id",
     requireOrgPermission({ storagePaths: ["update"] }),
-    zValidator("json", updateStoragePathSchema),
+    zValidator("json", updateStoragePathSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const id = c.req.param("id");

@@ -78,8 +78,10 @@ describe("extractWithMistralOcr", () => {
     });
   });
 
-  it("returns an empty string when the response has no pages", async () => {
-    fetchSpy.mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }));
+  it("returns an empty string for a blank page", async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(JSON.stringify({ pages: [{ markdown: "" }] }), { status: 200 }),
+    );
 
     const text = await extractWithMistralOcr({
       apiKey: "mistral-test-key",
@@ -89,6 +91,20 @@ describe("extractWithMistralOcr", () => {
     });
 
     expect(text).toBe("");
+  });
+
+  it("rejects a response without pages as a terminal error", async () => {
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }));
+
+    const promise = extractWithMistralOcr({
+      apiKey: "mistral-test-key",
+      model: "mistral-ocr-latest",
+      data: pdfBytes,
+      mimeType: "application/pdf",
+    });
+
+    await expect(promise).rejects.toBeInstanceOf(OcrError);
+    await expect(promise).rejects.toMatchObject({ retryable: false });
   });
 
   it("marks network errors as retryable", async () => {

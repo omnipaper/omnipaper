@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -17,7 +17,9 @@
       "!**/*.generated.ts",
       "!**/*.gen.ts",
       "!**/.generated",
-      "!**/packages/ui"
+      "!**/packages/ui",
+      "!**/packages/database/migrations",
+      "!**/apps/docs/tsconfig.json"
     ]
   },
   "formatter": {
@@ -30,18 +32,47 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "style": {
         "noNonNullAssertion": "error",
         "useImportType": "error",
-        "useNamingConvention": "off"
+        "noDefaultExport": "error",
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": { "filenameCases": ["kebab-case"] }
+        },
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["drizzle-orm", "drizzle-orm/*"],
+                "message": "Only packages/database imports drizzle. Add a query in packages/database/src/queries/ instead."
+              }
+            ]
+          }
+        },
+        "useNamingConvention": {
+          "level": "error",
+          "options": {
+            "strictCase": false,
+            "conventions": [
+              { "selector": { "kind": "objectLiteralMember" }, "match": ".*" },
+              { "selector": { "kind": "typeMember" }, "match": ".*" }
+            ]
+          }
+        }
       },
       "correctness": {
         "noUnusedImports": "error",
         "noUnusedVariables": "error"
       },
       "suspicious": {
-        "noExplicitAny": "error"
+        "noExplicitAny": "error",
+        "noConsole": "error"
+      },
+      "performance": {
+        "noBarrelFile": "error"
       }
     }
   },
@@ -49,6 +80,22 @@
     {
       "includes": ["**/*.svg"],
       "linter": { "rules": { "a11y": { "noSvgWithoutTitle": "off" } } }
+    },
+    {
+      "includes": ["**/*.config.ts", "**/*.config.mjs", "apps/docs/**"],
+      "linter": { "rules": { "style": { "noDefaultExport": "off" } } }
+    },
+    {
+      "includes": ["apps/web/src/routes/**"],
+      "linter": { "rules": { "style": { "useFilenamingConvention": "off" } } }
+    },
+    {
+      "includes": ["packages/database/**"],
+      "linter": { "rules": { "style": { "noRestrictedImports": "off" } } }
+    },
+    {
+      "includes": ["apps/api/src/ai/dev.ts"],
+      "linter": { "rules": { "suspicious": { "noConsole": "off" } } }
     }
   ],
   "javascript": {
