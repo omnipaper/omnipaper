@@ -1,13 +1,8 @@
 import { z } from "zod";
 import { getSetting, setSetting } from "./settings";
 
-// Anonymous usage telemetry from self-hosted instances (e.g. instance count, monthly token usage),
-// to be reported to the Omnipaper project. On by default: an absent row means enabled, so only an
-// explicit "false" opts out. Nothing is collected or sent yet; any future reporter must check
-// isTelemetryEnabled() first.
-//
-// Not to be confused with Langfuse tracing (packages/tracing, apps/api/src/instrumentation.ts),
-// which is a separate developer tool configured by env vars and never exposed to instance admins.
+// An absent row means enabled; only an explicit "false" opts out. Nothing is sent yet, so any
+// future reporter must check isTelemetryEnabled() first. Unrelated to Langfuse (packages/tracing).
 export const telemetrySettingsSchema = z.object({
   enabled: z.boolean(),
 });

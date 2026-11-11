@@ -1,10 +1,6 @@
-// In-browser PDF preview (pdf.js) fetches the file straight from the storage endpoint via a
-// presigned URL, so that one request is cross-origin and subject to bucket CORS. Everything else
-// (upload, thumbnails, download, export) is proxied through the API and needs no CORS.
-//
-// We can't ask the server "can you reach the bucket?" — the server doesn't enforce CORS, so it
-// would always succeed. Instead we send the exact preflight the browser would (an OPTIONS with the
-// caller's Origin) and read the CORS response headers: that mirrors the browser's own decision.
+// Only the pdf.js preview hits the bucket directly (presigned URL); everything else is API-proxied.
+// A server-side fetch ignores CORS, so we replay the browser's OPTIONS preflight with the caller's
+// Origin and read the response headers instead.
 
 export type PreviewCorsResult =
   | { status: "ok" }

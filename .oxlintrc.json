@@ -50,6 +50,7 @@
       }
     ],
     "omnipaper/naming-convention": "error",
+    "omnipaper/no-low-value-comments": "error",
     "omnipaper/no-named-reexport": "error",
     "omnipaper/zvalidator-hook": "error",
     "omnipaper/max-positional-params": "error",

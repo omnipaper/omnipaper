@@ -13,11 +13,8 @@ import { taskLogger } from "../logger";
 
 const THUMBNAIL_WIDTH = 500;
 
-// Render the first page of a PDF to a small PNG and store it next to the original under
-// `<storageKey>.thumb.png` (the key the /thumb endpoint reads). Enqueued from ingestDocument() for
-// PDFs only; other types are marked "unsupported" there and never reach this task. The whole
-// pipeline is pure WASM/JS (pdfium + pngjs) — no native binaries, so it runs the same on bun, Node,
-// and in the Docker image.
+// Writes `<storageKey>.thumb.png`, the key /thumb reads. Only PDFs are enqueued (ingestDocument marks
+// the rest "unsupported"). Pure WASM/JS on purpose: native image libs fail under bun.
 export const thumbnailGenerateTask = defineTask("thumbnail-generate", async ({ documentId }) => {
   const doc = await getDocumentById(db, { id: documentId });
 

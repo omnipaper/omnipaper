@@ -27,12 +27,8 @@ function load(orgId: string): RecentDocument[] {
   return [];
 }
 
-// ── Shared store, so the "opened" effect (in the detail page) and the sidebar list re-render together.
-// Same primitive as useDisplayProperties — a module-level cache read through useSyncExternalStore —
-// but keyed per org. getSnapshot must return a STABLE array reference until THAT org's list actually
-// changes, or useSyncExternalStore loops; so we cache per org in a Map and only swap the mutated org's
-// array. No `storage` event listener here: sessionStorage is per-tab, so there's no other tab sharing
-// this list to sync with — within-tab updates come from the listener set below.
+// getSnapshot must return a stable array per org until that org's list changes, or
+// useSyncExternalStore loops. No `storage` listener: sessionStorage is per-tab, nothing to sync.
 
 const listeners = new Set<() => void>();
 const cache = new Map<string, RecentDocument[]>();
