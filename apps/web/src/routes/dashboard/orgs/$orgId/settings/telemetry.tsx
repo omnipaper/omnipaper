@@ -1,0 +1,31 @@
+import { isInstanceAdmin } from "@omnipaper/permissions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { sessionQueryOptions } from "@/features/auth/queries/session";
+import { TelemetrySettingsForm } from "@/features/settings/components/telemetry-settings-form";
+import { queryClient } from "@/lib/query-client";
+
+export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/telemetry")({
+  beforeLoad: async ({ params }) => {
+    const session = await queryClient.query({ ...sessionQueryOptions, staleTime: "static" });
+    const isAdmin = isInstanceAdmin(session?.user?.role);
+
+    if (!isAdmin) {
+      throw redirect({ to: "/dashboard/orgs/$orgId/settings", params: { orgId: params.orgId } });
+    }
+  },
+  component: TelemetryPage,
+});
+
+function TelemetryPage() {
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+      <div>
+        <h1 className="font-semibold text-2xl">Telemetry</h1>
+        <p className="text-muted-foreground text-sm">
+          Control whether this instance shares anonymous usage statistics. Enabled by default.
+        </p>
+      </div>
+      <TelemetrySettingsForm />
+    </div>
+  );
+}

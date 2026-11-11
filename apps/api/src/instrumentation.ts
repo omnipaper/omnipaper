@@ -1,6 +1,10 @@
 import { env } from "@omnipaper/env";
 import { serverLogger } from "./logger";
 
+// Langfuse tracing of AI calls: a developer/ops tool for instances the maintainers run themselves,
+// enabled only by LANGFUSE_* env vars plus a WITH_TRACING image build. Never meant for production
+// user instances and not exposed in the admin UI. User-facing usage statistics are a separate
+// feature, see @omnipaper/settings/telemetry-settings.
 let shutdown: (() => Promise<void>) | null = null;
 
 if (env.LANGFUSE_PUBLIC_KEY) {
