@@ -31,14 +31,15 @@
   },
   "scripts": {
     "lint": "oxlint",
-    "format": "biome format --write .",
-    "check": "biome check --write .",
+    "format": "oxfmt",
+    "check": "oxfmt && oxlint",
     "typecheck": "bun run --filter='@omnipaper/*' typecheck",
     "test": "bun test"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@types/bun": "catalog:",
+    "oxfmt": "0.76.0",
     "oxlint": "1.92.0",
     "typescript": "catalog:"
   },

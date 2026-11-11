@@ -78,18 +78,16 @@ export async function executeGetDocumentHistory(
   };
 
   const entries: HistoryEntry[] = [
-    ...changes.map(
-      (row): HistoryEntry => ({
-        kind: "change",
-        at: row.createdAt.toISOString(),
-        field: row.field,
-        definition: definitionRef(row.customPropertyDefinitionId, lookups),
-        old: row.oldValue,
-        new: row.newValue,
-        source: row.source,
-        ...(row.createdByName ? { by: row.createdByName } : {}),
-      }),
-    ),
+    ...changes.map((row): HistoryEntry => ({
+      kind: "change",
+      at: row.createdAt.toISOString(),
+      field: row.field,
+      definition: definitionRef(row.customPropertyDefinitionId, lookups),
+      old: row.oldValue,
+      new: row.newValue,
+      source: row.source,
+      ...(row.createdByName ? { by: row.createdByName } : {}),
+    })),
     ...open.flatMap((row) => toSuggestionEntries(row, lookups)),
   ]
     .sort((a, b) => b.at.localeCompare(a.at))

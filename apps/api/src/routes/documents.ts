@@ -773,15 +773,14 @@ export const documentsRoutes = new Hono<{
           source: "human",
           createdBy: c.get("user")?.id ?? null,
           changes: [
-            ...addedTags.map(
-              (t): FieldChangeInput => ({ field: "tags", newValue: { id: t.id, name: t.name } }),
-            ),
-            ...removedTags.map(
-              (t): FieldChangeInput => ({
-                field: "tags",
-                oldValue: { id: t.id, name: t.name },
-              }),
-            ),
+            ...addedTags.map((t): FieldChangeInput => ({
+              field: "tags",
+              newValue: { id: t.id, name: t.name },
+            })),
+            ...removedTags.map((t): FieldChangeInput => ({
+              field: "tags",
+              oldValue: { id: t.id, name: t.name },
+            })),
           ],
         });
       }
