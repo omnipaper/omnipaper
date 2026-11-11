@@ -10,6 +10,7 @@ import {
 import { isValidStoragePath, normalizeStoragePath } from "@omnipaper/shared/storage-paths";
 import { Hono } from "hono";
 import { z } from "zod";
+import { describeFieldSchema, writeFieldDescription } from "../ai/field-description";
 import type { Variables } from "../context";
 import { errors, onValidationError } from "../errors";
 import { requireOrgPermission } from "../middleware";
@@ -72,6 +73,25 @@ export const storagePathsRoutes = new Hono<{ Variables: Variables }>()
 
         throw err;
       }
+    },
+  )
+  .post(
+    "/describe",
+    requireOrgPermission({ storagePaths: ["update"] }),
+    zValidator("json", describeFieldSchema, onValidationError),
+    async (c) => {
+      const { id, name, description } = c.req.valid("json");
+      const paths = await getOrgStoragePaths(db, { organizationId: c.get("organizationId") });
+      const text = await writeFieldDescription({
+        kind: "storagePath",
+        name,
+        description,
+        siblings: paths
+          .filter((p) => p.id !== id)
+          .map((p) => ({ name: p.path, description: p.description })),
+      });
+
+      return c.json({ description: text });
     },
   )
   .get("/:id", async (c) => {

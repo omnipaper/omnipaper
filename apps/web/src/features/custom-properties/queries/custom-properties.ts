@@ -149,3 +149,24 @@ export function useDeletePropertyOption(orgId: string, definitionId: string) {
     onError: (error) => toast.error(error.message),
   });
 }
+
+export function useDescribePropertyDefinition(orgId: string) {
+  return useMutation({
+    mutationFn: async (input: {
+      id?: string;
+      name: string;
+      description?: string;
+      type: PropertyDefinition["type"];
+    }) => {
+      const res = await api.orgs[":orgId"]["custom-properties"].describe.$post({
+        param: { orgId },
+        json: input,
+      });
+      if (!res.ok) {
+        throw new Error(await readApiError(res, "Failed to write description"));
+      }
+      return res.json();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+}

@@ -12,6 +12,7 @@ import {
 import { customPropertyTypeEnum } from "@omnipaper/database/schema";
 import { Hono } from "hono";
 import { z } from "zod";
+import { describeFieldSchema, writeFieldDescription } from "../ai/field-description";
 import type { Variables } from "../context";
 import { errors, onValidationError } from "../errors";
 import { getPropertyTypeDefinition, propertyKeyFromName } from "../lib/custom-property-registry";
@@ -95,6 +96,33 @@ export const customPropertiesRoutes = new Hono<{ Variables: Variables }>()
 
         throw err;
       }
+    },
+  )
+  .post(
+    "/describe",
+    requireOrgPermission({ properties: ["update"] }),
+    zValidator(
+      "json",
+      describeFieldSchema.extend({ type: z.enum(customPropertyTypeEnum.enumValues) }),
+      onValidationError,
+    ),
+    async (c) => {
+      const { id, name, description, type } = c.req.valid("json");
+      const definitions = await getOrgPropertyDefinitions(db, {
+        organizationId: c.get("organizationId"),
+      });
+      const text = await writeFieldDescription({
+        kind: "customProperty",
+        name,
+        description,
+        details: `Value type: ${type}`,
+        siblings: definitions
+          .map((r) => r.definition)
+          .filter((d) => d.id !== id)
+          .map((d) => ({ name: `${d.name} (${d.type})`, description: d.description })),
+      });
+
+      return c.json({ description: text });
     },
   )
   .get("/:id", async (c) => {
