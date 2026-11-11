@@ -12,6 +12,7 @@ export default async function Page(props: PageParams) {
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
+  // oxlint-disable-next-line omnipaper/naming-convention -- MDX is the conventional name for the compiled MDX component
   const MDX = page.data.body;
 
   return (

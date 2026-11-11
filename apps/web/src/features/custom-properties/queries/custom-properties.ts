@@ -3,7 +3,7 @@ import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
-
+import { readApiError } from "@/lib/api-error";
 
 export const customPropertyKeys = {
   root: ["custom-properties"] as const,
@@ -17,7 +17,7 @@ export function orgPropertyDefinitionsQuery({ orgId }: { orgId: string }) {
     queryFn: async () => {
       const res = await api.orgs[":orgId"]["custom-properties"].$get({ param: { orgId } });
       if (!res.ok) {
-        throw new Error("Failed to load properties");
+        throw new Error(await readApiError(res, "Failed to load properties"));
       }
       return res.json();
     },
@@ -69,11 +69,10 @@ export function useUpsertPropertyDefinition(orgId: string) {
           });
       if (!res.ok) {
         throw new Error(
-          res.status === 400
-            ? "A property with this name already exists"
-            : input.id
-              ? "Failed to update property"
-              : "Failed to create property",
+          await readApiError(
+            res,
+            input.id ? "Failed to update property" : "Failed to create property",
+          ),
         );
       }
     },
@@ -95,7 +94,7 @@ export function useDeletePropertyDefinition(orgId: string) {
         param: { orgId, id },
       });
       if (!res.ok) {
-        throw new Error("Failed to delete property");
+        throw new Error(await readApiError(res, "Failed to delete property"));
       }
     },
     onSuccess: () => {
@@ -118,9 +117,7 @@ export function useAddPropertyOption(orgId: string, definitionId: string) {
         json: { label: vars.label, color: vars.color },
       });
       if (!res.ok) {
-        throw new Error(
-          res.status === 400 ? "An option with this label already exists" : "Failed to add option",
-        );
+        throw new Error(await readApiError(res, "Failed to add option"));
       }
     },
     onSuccess: () => {
@@ -142,7 +139,7 @@ export function useDeletePropertyOption(orgId: string, definitionId: string) {
         },
       );
       if (!res.ok) {
-        throw new Error("Failed to remove option");
+        throw new Error(await readApiError(res, "Failed to remove option"));
       }
     },
     onSuccess: () => {

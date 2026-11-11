@@ -13,7 +13,7 @@ import { customPropertyTypeEnum } from "@omnipaper/database/schema";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
-import { errors } from "../errors";
+import { errors, onValidationError } from "../errors";
 import { getPropertyTypeDefinition, propertyKeyFromName } from "../lib/custom-property-registry";
 import { removeCustomFieldFromWorkflows } from "../lib/system-ai-workflow";
 import { requireOrgPermission } from "../middleware";
@@ -63,7 +63,7 @@ export const customPropertiesRoutes = new Hono<{ Variables: Variables }>()
   .post(
     "/",
     requireOrgPermission({ properties: ["create"] }),
-    zValidator("json", createDefinitionSchema),
+    zValidator("json", createDefinitionSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const values = c.req.valid("json");
@@ -110,7 +110,7 @@ export const customPropertiesRoutes = new Hono<{ Variables: Variables }>()
   .patch(
     "/:id",
     requireOrgPermission({ properties: ["update"] }),
-    zValidator("json", updateDefinitionSchema),
+    zValidator("json", updateDefinitionSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const id = c.req.param("id");
@@ -156,7 +156,7 @@ export const customPropertiesRoutes = new Hono<{ Variables: Variables }>()
   .post(
     "/:id/options",
     requireOrgPermission({ properties: ["update"] }),
-    zValidator("json", optionInputSchema),
+    zValidator("json", optionInputSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const id = c.req.param("id");

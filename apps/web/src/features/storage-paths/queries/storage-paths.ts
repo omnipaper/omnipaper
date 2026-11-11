@@ -3,6 +3,7 @@ import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 export const storagePathKeys = {
   root: ["storage-paths"] as const,
@@ -16,7 +17,7 @@ export function orgStoragePathsQuery({ orgId }: { orgId: string }) {
     queryFn: async () => {
       const res = await api.orgs[":orgId"]["storage-paths"].$get({ param: { orgId } });
       if (!res.ok) {
-        throw new Error("Failed to load storage paths");
+        throw new Error(await readApiError(res, "Failed to load storage paths"));
       }
       return res.json();
     },
@@ -53,11 +54,10 @@ export function useUpsertStoragePath(orgId: string) {
           });
       if (!res.ok) {
         throw new Error(
-          res.status === 400
-            ? "Invalid path, or a storage path with this value already exists"
-            : input.id
-              ? "Failed to update storage path"
-              : "Failed to create storage path",
+          await readApiError(
+            res,
+            input.id ? "Failed to update storage path" : "Failed to create storage path",
+          ),
         );
       }
     },
@@ -81,7 +81,7 @@ export function useSetStoragePathAiEligible(orgId: string) {
         json: { aiEligible },
       });
       if (!res.ok) {
-        throw new Error("Failed to update storage path");
+        throw new Error(await readApiError(res, "Failed to update storage path"));
       }
     },
     onMutate: async ({ id, aiEligible }) => {
@@ -121,7 +121,7 @@ export function useDeleteStoragePath(orgId: string) {
         param: { orgId, id },
       });
       if (!res.ok) {
-        throw new Error("Failed to delete storage path");
+        throw new Error(await readApiError(res, "Failed to delete storage path"));
       }
     },
     onSuccess: () => {
@@ -142,11 +142,7 @@ export function useCreateStoragePath(orgId: string) {
         json: { path },
       });
       if (!res.ok) {
-        throw new Error(
-          res.status === 400
-            ? "Invalid path, or a storage path with this value already exists"
-            : "Failed to create storage path",
-        );
+        throw new Error(await readApiError(res, "Failed to create storage path"));
       }
       return res.json();
     },

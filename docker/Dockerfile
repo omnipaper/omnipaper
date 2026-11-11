@@ -28,7 +28,7 @@ ARG DEMO_MODE
 ENV VITE_DEMO_MODE=$DEMO_MODE
 RUN bun run --cwd apps/web build
 
-# ---- prod-deps: runtime dependencies only (no vite/biome/tsc/drizzle-kit) ----
+# ---- prod-deps: runtime dependencies only (no vite/oxlint/oxfmt/tsc/drizzle-kit) ----
 FROM base AS prod-deps
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/

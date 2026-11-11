@@ -55,6 +55,7 @@ import { createS3Driver } from "@omnipaper/storage/s3";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
+import { onValidationError } from "../errors";
 import { type BucketPrivacy, probeBucketPrivacy } from "../lib/bucket-privacy";
 import { probePreviewCors } from "../lib/preview-cors";
 import { requireAdmin } from "../middleware";
@@ -83,7 +84,7 @@ const adminSettings = new Hono<{ Variables: Variables }>()
       })),
     });
   })
-  .put("/storage", zValidator("json", storageSettingsSchema), async (c) => {
+  .put("/storage", zValidator("json", storageSettingsSchema, onValidationError), async (c) => {
     const incoming = c.req.valid("json");
     const stored = await getStorageSettings();
 
@@ -96,72 +97,80 @@ const adminSettings = new Hono<{ Variables: Variables }>()
 
     return c.json({ ok: true });
   })
-  .post("/storage/test", zValidator("json", storageSettingsSchema), async (c) => {
-    const incoming = c.req.valid("json");
-    const stored = await getStorageSettings();
+  .post(
+    "/storage/test",
+    zValidator("json", storageSettingsSchema, onValidationError),
+    async (c) => {
+      const incoming = c.req.valid("json");
+      const stored = await getStorageSettings();
 
-    // One-off driver from the admin-submitted config — destroy it after the probe so its keep-alive
-    // agent doesn't linger (this is NOT the shared cached client from lib/storage.ts).
-    const driver = createS3Driver(
-      resolveStorageConfig({
-        ...incoming,
-        accessKeyId: unmaskSecret(incoming.accessKeyId, stored?.accessKeyId),
-        secretAccessKey: unmaskSecret(incoming.secretAccessKey, stored?.secretAccessKey),
-      }),
-    );
+      // One-off driver from the admin-submitted config — destroy it after the probe so its keep-alive
+      // agent doesn't linger (this is NOT the shared cached client from lib/storage.ts).
+      const driver = createS3Driver(
+        resolveStorageConfig({
+          ...incoming,
+          accessKeyId: unmaskSecret(incoming.accessKeyId, stored?.accessKeyId),
+          secretAccessKey: unmaskSecret(incoming.secretAccessKey, stored?.secretAccessKey),
+        }),
+      );
 
-    try {
       try {
-        await driver.testConnection();
-      } catch (error) {
-        return c.json({
-          ok: false,
-          error: error instanceof Error ? error.message : "Connection failed",
-          privacy: "unknown" as BucketPrivacy,
-        });
-      }
+        try {
+          await driver.testConnection();
+        } catch (error) {
+          return c.json({
+            ok: false,
+            error: error instanceof Error ? error.message : "Connection failed",
+            privacy: "unknown" as BucketPrivacy,
+          });
+        }
 
-      let privacy: BucketPrivacy = "unknown";
+        let privacy: BucketPrivacy = "unknown";
+        try {
+          const { url } = await driver.createDownloadUrl({ key: "__omnipaper_connection_test__" });
+          privacy = await probeBucketPrivacy({ url });
+        } catch {
+          privacy = "unknown";
+        }
+
+        return c.json({ ok: true, error: null, privacy });
+      } finally {
+        driver.destroy();
+      }
+    },
+  )
+  .post(
+    "/storage/cors-check",
+    zValidator("json", storageSettingsSchema, onValidationError),
+    async (c) => {
+      const incoming = c.req.valid("json");
+      const stored = await getStorageSettings();
+
+      const driver = createS3Driver(
+        resolveStorageConfig({
+          ...incoming,
+          accessKeyId: unmaskSecret(incoming.accessKeyId, stored?.accessKeyId),
+          secretAccessKey: unmaskSecret(incoming.secretAccessKey, stored?.secretAccessKey),
+        }),
+      );
+
+      // The origin the browser would preview from — sent by the SPA on this POST; fall back to the
+      // forwarded host (same logic as auth) for setups where the Origin header is absent.
+      const origin =
+        c.req.header("origin") ??
+        (() => {
+          const host = c.req.header("x-forwarded-host") ?? c.req.header("host");
+          return host ? `${c.req.header("x-forwarded-proto") ?? "https"}://${host}` : undefined;
+        })();
+
       try {
-        const { url } = await driver.createDownloadUrl({ key: "__omnipaper_connection_test__" });
-        privacy = await probeBucketPrivacy({ url });
-      } catch {
-        privacy = "unknown";
+        const { url } = await driver.createDownloadUrl({ key: "__omnipaper_cors_probe__" });
+        return c.json(await probePreviewCors({ url, origin }));
+      } finally {
+        driver.destroy();
       }
-
-      return c.json({ ok: true, error: null, privacy });
-    } finally {
-      driver.destroy();
-    }
-  })
-  .post("/storage/cors-check", zValidator("json", storageSettingsSchema), async (c) => {
-    const incoming = c.req.valid("json");
-    const stored = await getStorageSettings();
-
-    const driver = createS3Driver(
-      resolveStorageConfig({
-        ...incoming,
-        accessKeyId: unmaskSecret(incoming.accessKeyId, stored?.accessKeyId),
-        secretAccessKey: unmaskSecret(incoming.secretAccessKey, stored?.secretAccessKey),
-      }),
-    );
-
-    // The origin the browser would preview from — sent by the SPA on this POST; fall back to the
-    // forwarded host (same logic as auth) for setups where the Origin header is absent.
-    const origin =
-      c.req.header("origin") ??
-      (() => {
-        const host = c.req.header("x-forwarded-host") ?? c.req.header("host");
-        return host ? `${c.req.header("x-forwarded-proto") ?? "https"}://${host}` : undefined;
-      })();
-
-    try {
-      const { url } = await driver.createDownloadUrl({ key: "__omnipaper_cors_probe__" });
-      return c.json(await probePreviewCors({ url, origin }));
-    } finally {
-      driver.destroy();
-    }
-  })
+    },
+  )
   .get("/ocr", async (c) => {
     const ocr = await getOcrSettings();
     const keys = await getProviderKeys();
@@ -182,7 +191,7 @@ const adminSettings = new Hono<{ Variables: Variables }>()
       })),
     });
   })
-  .put("/ocr", zValidator("json", ocrSettingsSchema), async (c) => {
+  .put("/ocr", zValidator("json", ocrSettingsSchema, onValidationError), async (c) => {
     await setOcrSettings(c.req.valid("json"));
     return c.json({ ok: true });
   })
@@ -198,18 +207,22 @@ const adminSettings = new Hono<{ Variables: Variables }>()
       ),
     });
   })
-  .put("/ai", zValidator("json", aiSettingsSchema), async (c) => {
+  .put("/ai", zValidator("json", aiSettingsSchema, onValidationError), async (c) => {
     await setAiSettings(c.req.valid("json"));
     return c.json({ ok: true });
   })
   .get("/ai/model-updates", async (c) => {
     return c.json({ enabled: await getModelManifestRemoteUpdates() });
   })
-  .put("/ai/model-updates", zValidator("json", z.object({ enabled: z.boolean() })), async (c) => {
-    await setModelManifestRemoteUpdates(c.req.valid("json").enabled);
-    return c.json({ ok: true });
-  })
-  .post("/ai/test", zValidator("json", aiProviderTestSchema), async (c) => {
+  .put(
+    "/ai/model-updates",
+    zValidator("json", z.object({ enabled: z.boolean() }), onValidationError),
+    async (c) => {
+      await setModelManifestRemoteUpdates(c.req.valid("json").enabled);
+      return c.json({ ok: true });
+    },
+  )
+  .post("/ai/test", zValidator("json", aiProviderTestSchema, onValidationError), async (c) => {
     const { provider, apiKey } = c.req.valid("json");
     const stored = await getProviderKeys();
     const key = unmaskSecret(apiKey, stored[provider]);
@@ -234,29 +247,36 @@ const adminSettings = new Hono<{ Variables: Variables }>()
       azureEndpoint: (await getAzureEndpoint()) ?? null,
     });
   })
-  .put("/providers", zValidator("json", providerSettingsUpdateSchema), async (c) => {
-    const incoming = c.req.valid("json");
-    const stored = await getProviderKeys();
+  .put(
+    "/providers",
+    zValidator("json", providerSettingsUpdateSchema, onValidationError),
+    async (c) => {
+      const incoming = c.req.valid("json");
+      const stored = await getProviderKeys();
 
-    // A key left as SECRET_MASK means the admin didn't change it → keep the stored value.
-    await setProviderSettings({
-      mistral:
-        incoming.mistral === undefined ? undefined : unmaskSecret(incoming.mistral, stored.mistral),
-      google:
-        incoming.google === undefined ? undefined : unmaskSecret(incoming.google, stored.google),
-      openai:
-        incoming.openai === undefined ? undefined : unmaskSecret(incoming.openai, stored.openai),
-      anthropic:
-        incoming.anthropic === undefined
-          ? undefined
-          : unmaskSecret(incoming.anthropic, stored.anthropic),
-      azure: incoming.azure === undefined ? undefined : unmaskSecret(incoming.azure, stored.azure),
-      azureEndpoint: incoming.azureEndpoint,
-    });
+      // A key left as SECRET_MASK means the admin didn't change it → keep the stored value.
+      await setProviderSettings({
+        mistral:
+          incoming.mistral === undefined
+            ? undefined
+            : unmaskSecret(incoming.mistral, stored.mistral),
+        google:
+          incoming.google === undefined ? undefined : unmaskSecret(incoming.google, stored.google),
+        openai:
+          incoming.openai === undefined ? undefined : unmaskSecret(incoming.openai, stored.openai),
+        anthropic:
+          incoming.anthropic === undefined
+            ? undefined
+            : unmaskSecret(incoming.anthropic, stored.anthropic),
+        azure:
+          incoming.azure === undefined ? undefined : unmaskSecret(incoming.azure, stored.azure),
+        azureEndpoint: incoming.azureEndpoint,
+      });
 
-    return c.json({ ok: true });
-  })
-  .post("/providers/test", zValidator("json", providerTestSchema), async (c) => {
+      return c.json({ ok: true });
+    },
+  )
+  .post("/providers/test", zValidator("json", providerTestSchema, onValidationError), async (c) => {
     const { provider, apiKey, endpoint } = c.req.valid("json");
     const stored = await getProviderKeys();
     const key = unmaskSecret(apiKey, stored[provider]);
@@ -278,16 +298,24 @@ const adminSettings = new Hono<{ Variables: Variables }>()
   .get("/email", async (c) => {
     return c.json({ allowInternalHosts: await getEmailIngestAllowInternalHosts() });
   })
-  .put("/email", zValidator("json", z.object({ allowInternalHosts: z.boolean() })), async (c) => {
-    await setEmailIngestAllowInternalHosts(c.req.valid("json").allowInternalHosts);
-    return c.json({ ok: true });
-  })
+  .put(
+    "/email",
+    zValidator("json", z.object({ allowInternalHosts: z.boolean() }), onValidationError),
+    async (c) => {
+      await setEmailIngestAllowInternalHosts(c.req.valid("json").allowInternalHosts);
+      return c.json({ ok: true });
+    },
+  )
   .get("/registration", async (c) => {
     return c.json(await getRegistrationSettings());
   })
-  .put("/registration", zValidator("json", registrationSettingsSchema), async (c) => {
-    await setRegistrationSettings(c.req.valid("json"));
-    return c.json({ ok: true });
-  });
+  .put(
+    "/registration",
+    zValidator("json", registrationSettingsSchema, onValidationError),
+    async (c) => {
+      await setRegistrationSettings(c.req.valid("json"));
+      return c.json({ ok: true });
+    },
+  );
 
 export const settingsRoutes = adminSettings;

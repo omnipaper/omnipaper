@@ -7,7 +7,7 @@ import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/ai")({
   beforeLoad: async ({ params }) => {
-    const session = await queryClient.ensureQueryData(sessionQueryOptions);
+    const session = await queryClient.query({ ...sessionQueryOptions, staleTime: "static" });
 
     if (!isInstanceAdmin(session?.user?.role)) {
       throw redirect({ to: "/dashboard/orgs/$orgId/settings", params: { orgId: params.orgId } });

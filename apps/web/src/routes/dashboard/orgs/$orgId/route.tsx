@@ -64,7 +64,7 @@ export const Route = createFileRoute("/dashboard/orgs/$orgId")({
   beforeLoad: async ({ params }) => {
     // Ensure the orgId in the URL is used to load the organization data and redirect users who are not members.
     try {
-      await queryClient.ensureQueryData(fullOrganizationQuery(params.orgId));
+      await queryClient.query({ ...fullOrganizationQuery(params.orgId), staleTime: "static" });
     } catch {
       throw redirect({ to: "/dashboard" });
     }

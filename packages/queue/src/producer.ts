@@ -1,18 +1,6 @@
 import { env } from "@omnipaper/env";
-import { makeWorkerUtils, runMigrations, type TaskSpec, type WorkerUtils } from "graphile-worker";
-import { type JobName, type JobPayload, jobSchemas } from "./jobs";
-
-const JOB_SPECS: Record<JobName, TaskSpec> = {
-  "ocr-extract": { maxAttempts: 5, queueName: "ocr" },
-  "text-extract": { maxAttempts: 10 },
-  "thumbnail-generate": { maxAttempts: 10 },
-  "workflow-dispatch": { maxAttempts: 5 },
-  "workflow-run": { maxAttempts: 3, queueName: "ai" },
-  // No retry for the dispatcher (the next cron tick is the retry); polls share one serial queue so
-  // the same mailbox is never polled concurrently.
-  "email-poll-dispatch": { maxAttempts: 1 },
-  "email-poll": { maxAttempts: 3, queueName: "email" },
-};
+import { makeWorkerUtils, runMigrations, type WorkerUtils } from "graphile-worker";
+import { JOB_DEFINITIONS, type JobName, type JobPayload } from "./jobs";
 
 let utilsPromise: Promise<WorkerUtils> | null = null;
 
@@ -31,8 +19,9 @@ export async function enqueue<TName extends JobName>(
   name: TName,
   payload: JobPayload<TName>,
 ): Promise<void> {
-  const validated = jobSchemas[name].parse(payload);
+  const { schema, spec } = JOB_DEFINITIONS[name];
+  const validated = schema.parse(payload);
   const utils = await getUtils();
 
-  await utils.addJob(name, validated as never, JOB_SPECS[name]);
+  await utils.addJob(name, validated as never, spec);
 }

@@ -11,7 +11,7 @@ import { savedViewStateSchema } from "@omnipaper/shared/saved-views";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
-import { errors } from "../errors";
+import { errors, onValidationError } from "../errors";
 import { requireOrgPermission } from "../middleware";
 import { toSavedViewDto } from "../serializers/saved-view";
 
@@ -48,7 +48,7 @@ export const savedViewsRoutes = new Hono<{ Variables: Variables }>()
   .post(
     "/",
     requireOrgPermission({ savedViews: ["create"] }),
-    zValidator("json", createSavedViewSchema),
+    zValidator("json", createSavedViewSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const values = c.req.valid("json");
@@ -79,7 +79,7 @@ export const savedViewsRoutes = new Hono<{ Variables: Variables }>()
   .patch(
     "/:id",
     requireOrgPermission({ savedViews: ["update"] }),
-    zValidator("json", updateSavedViewSchema),
+    zValidator("json", updateSavedViewSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const id = c.req.param("id");

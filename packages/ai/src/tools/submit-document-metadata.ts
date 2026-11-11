@@ -6,7 +6,7 @@ const TITLE_MAX = 200;
 
 function buildSchema(input: ClassifyInput) {
   const { fields, candidates } = input;
-  const shape: Record<string, z.ZodTypeAny> = {};
+  const shape: Record<string, z.ZodType> = {};
 
   if (fields.documentType && candidates.documentTypes.length > 0) {
     const names = candidates.documentTypes.map((t) => t.name) as [string, ...string[]];

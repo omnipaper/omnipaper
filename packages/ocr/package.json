@@ -14,7 +14,8 @@
   "dependencies": {
     "@omnipaper/ai": "workspace:*",
     "@omnipaper/shared": "workspace:*",
-    "ai": "catalog:"
+    "ai": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

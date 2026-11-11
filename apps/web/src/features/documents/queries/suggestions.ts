@@ -3,6 +3,7 @@ import type { InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 export type DocumentSuggestion = InferResponseType<
   (typeof api.orgs)[":orgId"]["documents"][":id"]["suggestions"]["$get"],
@@ -28,7 +29,7 @@ export function documentSuggestionsQuery({
         param: { orgId, id: documentId },
       });
       if (!res.ok) {
-        throw new Error("Failed to load suggestions");
+        throw new Error(await readApiError(res, "Failed to load suggestions"));
       }
       return res.json();
     },
@@ -43,7 +44,7 @@ export function useAcceptSuggestion(orgId: string, documentId: string) {
         ":suggestionId"
       ].accept.$post({ param: { orgId, id: documentId, suggestionId } });
       if (!res.ok) {
-        throw new Error("Failed to apply suggestion");
+        throw new Error(await readApiError(res, "Failed to apply suggestion"));
       }
       return res.json();
     },
@@ -65,7 +66,7 @@ export function useDismissSuggestion(orgId: string, documentId: string) {
         ":suggestionId"
       ].dismiss.$post({ param: { orgId, id: documentId, suggestionId } });
       if (!res.ok) {
-        throw new Error("Failed to dismiss suggestion");
+        throw new Error(await readApiError(res, "Failed to dismiss suggestion"));
       }
       return res.json();
     },

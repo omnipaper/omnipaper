@@ -5,7 +5,7 @@ import type { AiAssignParams } from "@omnipaper/shared/workflows/ai-assign";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
-import { errors } from "../errors";
+import { errors, onValidationError } from "../errors";
 import {
   getSystemAiAssign,
   setSystemAiAssign,
@@ -35,7 +35,7 @@ export const aiAssignRoutes = new Hono<{ Variables: Variables }>()
   .patch(
     "/",
     requireOrgPermission({ workflows: ["update"] }),
-    zValidator("json", patchSchema),
+    zValidator("json", patchSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const input = c.req.valid("json");

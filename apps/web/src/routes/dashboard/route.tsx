@@ -6,7 +6,7 @@ import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
-    let session = await queryClient.ensureQueryData(sessionQueryOptions);
+    let session = await queryClient.query({ ...sessionQueryOptions, staleTime: "static" });
 
     // In a public demo, "no session" means first visit — auto-log into the shared demo account
     // instead of bouncing to sign-in. If the bootstrap fails we fall through to the redirect, so
@@ -14,9 +14,9 @@ export const Route = createFileRoute("/dashboard")({
     if (!session && DEMO_MODE) {
       await bootstrapDemoSession();
       // removeQueries, NOT invalidateQueries: the cached `null` has no active observers here, so
-      // invalidate doesn't refetch and ensureQueryData would return the stale null from cache.
+      // invalidate doesn't refetch and a static-staleTime query would return the stale null from cache.
       queryClient.removeQueries({ queryKey: sessionKeys.all });
-      session = await queryClient.ensureQueryData(sessionQueryOptions);
+      session = await queryClient.query({ ...sessionQueryOptions, staleTime: "static" });
     }
 
     if (!session) {

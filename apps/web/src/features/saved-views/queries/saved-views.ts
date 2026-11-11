@@ -3,6 +3,7 @@ import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query
 import type { InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 // Query-key factory + query/mutation factories for saved views. Org-scoped; mirrors tagKeys. Each
 // write owns its own list invalidation.
@@ -18,7 +19,7 @@ export function orgSavedViewsQuery({ orgId }: { orgId: string }) {
     queryFn: async () => {
       const res = await api.orgs[":orgId"]["saved-views"].$get({ param: { orgId } });
       if (!res.ok) {
-        throw new Error("Failed to load saved views");
+        throw new Error(await readApiError(res, "Failed to load saved views"));
       }
       return res.json();
     },
@@ -39,9 +40,7 @@ export function useCreateSavedView(orgId: string) {
         json: input,
       });
       if (!res.ok) {
-        throw new Error(
-          res.status === 400 ? "A view with this name already exists" : "Failed to save view",
-        );
+        throw new Error(await readApiError(res, "Failed to save view"));
       }
       return res.json();
     },
@@ -63,9 +62,7 @@ export function useUpdateSavedView(orgId: string) {
         json: patch,
       });
       if (!res.ok) {
-        throw new Error(
-          res.status === 400 ? "A view with this name already exists" : "Failed to update view",
-        );
+        throw new Error(await readApiError(res, "Failed to update view"));
       }
       return res.json();
     },
@@ -84,7 +81,7 @@ export function useDeleteSavedView(orgId: string) {
         param: { orgId, id },
       });
       if (!res.ok) {
-        throw new Error("Failed to delete view");
+        throw new Error(await readApiError(res, "Failed to delete view"));
       }
     },
     onSuccess: () => {

@@ -59,7 +59,7 @@ async function extractWithDefinition(
     return extractWithMistralOcr({ ...document, apiKey, model });
   }
 
-  return extractWithLlm(definition, model, apiKey, document);
+  return extractWithLlm({ ...document, definition, model, apiKey });
 }
 
 export async function extractText(input: ExtractTextInput): Promise<ExtractTextResult> {

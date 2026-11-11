@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query
 import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 export const workflowKeys = {
   root: ["workflows"] as const,
@@ -15,7 +16,7 @@ export function orgWorkflowsQuery({ orgId }: { orgId: string }) {
     queryFn: async () => {
       const res = await api.orgs[":orgId"].workflows.$get({ param: { orgId } });
       if (!res.ok) {
-        throw new Error("Failed to load workflows");
+        throw new Error(await readApiError(res, "Failed to load workflows"));
       }
       return res.json();
     },
@@ -41,7 +42,7 @@ export function useCreateWorkflow(orgId: string) {
     mutationFn: async (body: CreateWorkflowBody) => {
       const res = await api.orgs[":orgId"].workflows.$post({ param: { orgId }, json: body });
       if (!res.ok) {
-        throw new Error("Failed to create workflow");
+        throw new Error(await readApiError(res, "Failed to create workflow"));
       }
     },
     onSuccess: () => {
@@ -61,7 +62,7 @@ export function useUpdateWorkflow(orgId: string) {
         json: vars.body,
       });
       if (!res.ok) {
-        throw new Error("Failed to update workflow");
+        throw new Error(await readApiError(res, "Failed to update workflow"));
       }
     },
     onSuccess: () => {
@@ -77,7 +78,7 @@ export function useDeleteWorkflow(orgId: string) {
     mutationFn: async (id: string) => {
       const res = await api.orgs[":orgId"].workflows[":id"].$delete({ param: { orgId, id } });
       if (!res.ok) {
-        throw new Error("Failed to delete workflow");
+        throw new Error(await readApiError(res, "Failed to delete workflow"));
       }
     },
     onSuccess: () => {

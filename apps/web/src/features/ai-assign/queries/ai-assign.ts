@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query
 import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 export const aiAssignKeys = {
   root: ["ai-assign"] as const,
@@ -14,7 +15,7 @@ export function aiAssignQuery({ orgId }: { orgId: string }) {
     queryFn: async () => {
       const res = await api.orgs[":orgId"]["ai-assign"].$get({ param: { orgId } });
       if (!res.ok) {
-        throw new Error("Failed to load AI assignment settings");
+        throw new Error(await readApiError(res, "Failed to load AI assignment settings"));
       }
       return res.json();
     },
@@ -35,7 +36,7 @@ export function useSetAiAssignField(orgId: string) {
     mutationFn: async (input: PatchBody) => {
       const res = await api.orgs[":orgId"]["ai-assign"].$patch({ param: { orgId }, json: input });
       if (!res.ok) {
-        throw new Error("Failed to update AI settings");
+        throw new Error(await readApiError(res, "Failed to update AI settings"));
       }
       return res.json();
     },

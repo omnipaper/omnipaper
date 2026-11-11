@@ -30,9 +30,9 @@ export function HomeView({ orgId }: { orgId: string }) {
   const { data, isPending, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useInfiniteQuery(documentsListQuery({ orgId, query, filters }));
 
-  const PINNED_FILTER_KEYS = ["documentType", "path", "tags", "createdAt"];
-  const pinnedFields = fields.filter((f) => PINNED_FILTER_KEYS.includes(f.key));
-  const menuFields = fields.filter((f) => !PINNED_FILTER_KEYS.includes(f.key));
+  const pinnedFilterKeys = ["documentType", "path", "tags", "createdAt"];
+  const pinnedFields = fields.filter((f) => pinnedFilterKeys.includes(f.key));
+  const menuFields = fields.filter((f) => !pinnedFilterKeys.includes(f.key));
   const menuFieldByKey = new Map(menuFields.map((f) => [f.key, f]));
   const activeEntries = Object.entries(filters);
   const documents = data?.pages.flatMap((p) => p.documents) ?? [];
