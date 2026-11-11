@@ -36,6 +36,7 @@ import {
 import { pushRecent, removeRecent } from "@/features/documents/recent/recent-documents-store";
 import { useOrgMember } from "@/features/organization/queries/organization";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 import { fileTypeLabel } from "@/lib/format";
 
 export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
@@ -84,7 +85,7 @@ export function DocumentDetail({ orgId, id }: { orgId: string; id: string }) {
   async function handleDownload() {
     const res = await api.orgs[":orgId"].documents[":id"].download.$get({ param: { orgId, id } });
     if (!res.ok) {
-      toast.error("Download failed");
+      toast.error(await readApiError(res, "Download failed"));
       return;
     }
     const { downloadUrl } = await res.json();

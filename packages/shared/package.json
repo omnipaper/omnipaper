@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./api-error": "./src/api-error.ts",
     "./redact": "./src/redact.ts",
     "./provider": "./src/provider.ts",
     "./formats": "./src/formats.ts",

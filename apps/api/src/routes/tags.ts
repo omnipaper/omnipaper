@@ -12,7 +12,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { improveFieldDescription } from "../ai/improve-field-description";
 import type { Variables } from "../context";
-import { errors } from "../errors";
+import { errors, onValidationError } from "../errors";
 import { requireOrgPermission } from "../middleware";
 import { toTagDto } from "../serializers/tag";
 
@@ -53,7 +53,7 @@ export const tagsRoutes = new Hono<{ Variables: Variables }>()
   .post(
     "/",
     requireOrgPermission({ tags: ["create"] }),
-    zValidator("json", createTagSchema),
+    zValidator("json", createTagSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const values = c.req.valid("json");
@@ -80,6 +80,7 @@ export const tagsRoutes = new Hono<{ Variables: Variables }>()
         name: z.string().trim().min(1).max(50),
         description: z.string().trim().min(1).max(500),
       }),
+      onValidationError,
     ),
     async (c) => {
       const { name, description } = c.req.valid("json");
@@ -111,7 +112,7 @@ export const tagsRoutes = new Hono<{ Variables: Variables }>()
   .patch(
     "/:id",
     requireOrgPermission({ tags: ["update"] }),
-    zValidator("json", updateTagSchema),
+    zValidator("json", updateTagSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const id = c.req.param("id");

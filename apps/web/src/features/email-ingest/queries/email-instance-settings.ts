@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 // Instance-wide (admin-only) email settings — the SSRF guard toggle, not org data.
 export const emailInstanceSettingsKeys = {
@@ -13,7 +14,7 @@ export function emailInstanceSettingsQuery() {
     queryFn: async () => {
       const res = await api.settings.email.$get();
       if (!res.ok) {
-        throw new Error("Failed to load email settings");
+        throw new Error(await readApiError(res, "Failed to load email settings"));
       }
       return res.json();
     },
@@ -26,7 +27,7 @@ export function useSaveEmailInstanceSettings() {
     mutationFn: async (input: { allowInternalHosts: boolean }) => {
       const res = await api.settings.email.$put({ json: input });
       if (!res.ok) {
-        throw new Error("Failed to save email settings");
+        throw new Error(await readApiError(res, "Failed to save email settings"));
       }
     },
     onSuccess: () => {

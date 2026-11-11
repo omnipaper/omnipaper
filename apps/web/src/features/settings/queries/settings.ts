@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query
 import type { InferRequestType } from "hono/client";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 // Query-key factory + query factories for the settings domain (storage + OCR config).
 // Settings are global (admin-level), not org-scoped — the factories take no arguments.
@@ -20,7 +21,7 @@ export function storageSettingsQuery() {
     queryFn: async () => {
       const res = await api.settings.storage.$get();
       if (!res.ok) {
-        throw new Error("Failed to load settings");
+        throw new Error(await readApiError(res, "Failed to load settings"));
       }
       return res.json();
     },
@@ -33,7 +34,7 @@ export function ocrSettingsQuery() {
     queryFn: async () => {
       const res = await api.settings.ocr.$get();
       if (!res.ok) {
-        throw new Error("Failed to load OCR settings");
+        throw new Error(await readApiError(res, "Failed to load OCR settings"));
       }
       return res.json();
     },
@@ -47,7 +48,7 @@ export function providerSettingsQuery() {
     queryFn: async () => {
       const res = await api.settings.providers.$get();
       if (!res.ok) {
-        throw new Error("Failed to load provider settings");
+        throw new Error(await readApiError(res, "Failed to load provider settings"));
       }
       return res.json();
     },
@@ -61,7 +62,7 @@ export function registrationSettingsQuery() {
     queryFn: async () => {
       const res = await api.settings.registration.$get();
       if (!res.ok) {
-        throw new Error("Failed to load registration settings");
+        throw new Error(await readApiError(res, "Failed to load registration settings"));
       }
       return res.json();
     },
@@ -82,7 +83,7 @@ export function useSaveStorageSettings() {
     mutationFn: async (input: SaveStorageInput) => {
       const res = await api.settings.storage.$put({ json: input });
       if (!res.ok) {
-        throw new Error("Failed to save settings");
+        throw new Error(await readApiError(res, "Failed to save settings"));
       }
       return res.json();
     },
@@ -103,7 +104,7 @@ export function useTestStorageConnection() {
     mutationFn: async (input: TestStorageInput) => {
       const res = await api.settings.storage.test.$post({ json: input });
       if (!res.ok) {
-        throw new Error("Test failed");
+        throw new Error(await readApiError(res, "Test failed"));
       }
       return res.json();
     },
@@ -134,7 +135,7 @@ export function useCheckStorageCors() {
     mutationFn: async (input: TestStorageInput) => {
       const res = await api.settings.storage["cors-check"].$post({ json: input });
       if (!res.ok) {
-        throw new Error("Check failed");
+        throw new Error(await readApiError(res, "Check failed"));
       }
       return res.json();
     },
@@ -207,7 +208,7 @@ export function useTestProviderConnection() {
     mutationFn: async (input: TestProviderInput) => {
       const res = await api.settings.providers.test.$post({ json: input });
       if (!res.ok) {
-        throw new Error("Test failed");
+        throw new Error(await readApiError(res, "Test failed"));
       }
       return res.json();
     },
@@ -231,7 +232,7 @@ export function useSaveRegistrationSettings() {
     mutationFn: async (enabled: boolean) => {
       const res = await api.settings.registration.$put({ json: { enabled } });
       if (!res.ok) {
-        throw new Error("Failed to update registration");
+        throw new Error(await readApiError(res, "Failed to update registration"));
       }
       return res.json();
     },
@@ -251,7 +252,7 @@ export function aiSettingsQuery() {
     queryFn: async () => {
       const res = await api.settings.ai.$get();
       if (!res.ok) {
-        throw new Error("Failed to load AI settings");
+        throw new Error(await readApiError(res, "Failed to load AI settings"));
       }
       return res.json();
     },
@@ -301,7 +302,7 @@ export function useTestAiConnection() {
     mutationFn: async (input: TestAiInput) => {
       const res = await api.settings.ai.test.$post({ json: input });
       if (!res.ok) {
-        throw new Error("Test failed");
+        throw new Error(await readApiError(res, "Test failed"));
       }
       return res.json();
     },

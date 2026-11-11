@@ -3,6 +3,7 @@ import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { documentKeys } from "@/features/documents/queries/documents";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 
 export const tagKeys = {
   root: ["tags"] as const,
@@ -16,7 +17,7 @@ export function orgTagsQuery({ orgId }: { orgId: string }) {
     queryFn: async () => {
       const res = await api.orgs[":orgId"].tags.$get({ param: { orgId } });
       if (!res.ok) {
-        throw new Error("Failed to load tags");
+        throw new Error(await readApiError(res, "Failed to load tags"));
       }
       return res.json();
     },
@@ -56,11 +57,7 @@ export function useUpsertTag(orgId: string) {
           });
       if (!res.ok) {
         throw new Error(
-          res.status === 400
-            ? "A tag with this name already exists"
-            : input.id
-              ? "Failed to update tag"
-              : "Failed to create tag",
+          await readApiError(res, input.id ? "Failed to update tag" : "Failed to create tag"),
         );
       }
     },
@@ -83,8 +80,7 @@ export function useImproveTagDescription(orgId: string) {
         json: input,
       });
       if (!res.ok) {
-        const body = (await res.json()) as { error?: { message?: string } };
-        throw new Error(body.error?.message ?? "Failed to improve description");
+        throw new Error(await readApiError(res, "Failed to improve description"));
       }
       return res.json();
     },
@@ -101,7 +97,7 @@ export function useSetTagAiEligible(orgId: string) {
         json: { aiEligible },
       });
       if (!res.ok) {
-        throw new Error("Failed to update tag");
+        throw new Error(await readApiError(res, "Failed to update tag"));
       }
     },
     onMutate: async ({ id, aiEligible }) => {
@@ -130,7 +126,7 @@ export function useDeleteTag(orgId: string) {
     mutationFn: async (id: string) => {
       const res = await api.orgs[":orgId"].tags[":id"].$delete({ param: { orgId, id } });
       if (!res.ok) {
-        throw new Error("Failed to delete tag");
+        throw new Error(await readApiError(res, "Failed to delete tag"));
       }
     },
     onSuccess: () => {
@@ -148,7 +144,7 @@ export function useCreateTag(orgId: string) {
     mutationFn: async (name: string) => {
       const res = await api.orgs[":orgId"].tags.$post({ param: { orgId }, json: { name } });
       if (!res.ok) {
-        throw new Error("Failed to create tag");
+        throw new Error(await readApiError(res, "Failed to create tag"));
       }
       return res.json();
     },

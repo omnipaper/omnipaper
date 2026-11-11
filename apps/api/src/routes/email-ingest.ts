@@ -15,7 +15,7 @@ import { SECRET_MASK } from "@omnipaper/settings/secret";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
-import { errors } from "../errors";
+import { errors, onValidationError } from "../errors";
 import { testImapConnection } from "../lib/email-ingest";
 import { requireOrgPermission } from "../middleware";
 
@@ -99,7 +99,7 @@ export const emailIngestRoutes = new Hono<{ Variables: Variables }>()
   .post(
     "/",
     requireOrgPermission({ emailIngest: ["create"] }),
-    zValidator("json", createAccountSchema),
+    zValidator("json", createAccountSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const user = c.get("user");
@@ -130,7 +130,7 @@ export const emailIngestRoutes = new Hono<{ Variables: Variables }>()
   .patch(
     "/:id",
     requireOrgPermission({ emailIngest: ["update"] }),
-    zValidator("json", updateAccountSchema),
+    zValidator("json", updateAccountSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const id = c.req.param("id");
@@ -177,7 +177,7 @@ export const emailIngestRoutes = new Hono<{ Variables: Variables }>()
   .post(
     "/test",
     requireOrgPermission({ emailIngest: ["create"] }),
-    zValidator("json", testConnectionSchema),
+    zValidator("json", testConnectionSchema, onValidationError),
     async (c) => {
       const organizationId = c.get("organizationId");
       const { accountId, ...params } = c.req.valid("json");

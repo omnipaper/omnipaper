@@ -14,6 +14,7 @@ import type { InferRequestType, InferResponseType } from "hono/client";
 import { toast } from "sonner";
 import { removeRecent } from "@/features/documents/recent/recent-documents-store";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 export type DocumentRow = InferResponseType<
   (typeof api.orgs)[":orgId"]["documents"]["$get"],
   200
@@ -80,7 +81,7 @@ export function documentsListQuery({ orgId, query = "", filters, sort }: Documen
         },
       });
       if (!res.ok) {
-        throw new Error("Failed to load documents");
+        throw new Error(await readApiError(res, "Failed to load documents"));
       }
       return res.json();
     },
@@ -125,7 +126,7 @@ export function documentNavigationIdsQuery({
         },
       });
       if (!res.ok) {
-        throw new Error("Failed to load document ids");
+        throw new Error(await readApiError(res, "Failed to load document ids"));
       }
       return (await res.json()).ids;
     },
@@ -145,7 +146,7 @@ export function documentDetailQuery({ orgId, id }: DocumentRef) {
         throw new DocumentNotFoundError("Document not found");
       }
       if (!res.ok) {
-        throw new Error("Failed to load document");
+        throw new Error(await readApiError(res, "Failed to load document"));
       }
       return res.json();
     },
@@ -162,7 +163,7 @@ export function documentDownloadQuery({ orgId, id }: DocumentRef) {
     queryFn: async () => {
       const res = await api.orgs[":orgId"].documents[":id"].download.$get({ param: { orgId, id } });
       if (!res.ok) {
-        throw new Error("Failed to prepare preview");
+        throw new Error(await readApiError(res, "Failed to prepare preview"));
       }
       return res.json();
     },
@@ -175,7 +176,7 @@ export function documentActivityQuery({ orgId, id }: DocumentRef) {
     queryFn: async () => {
       const res = await api.orgs[":orgId"].documents[":id"].activity.$get({ param: { orgId, id } });
       if (!res.ok) {
-        throw new Error("Failed to load activity");
+        throw new Error(await readApiError(res, "Failed to load activity"));
       }
       return res.json();
     },
@@ -200,7 +201,7 @@ export function useUpdateDocumentMetadata(orgId: string, documentId: string) {
         json: body,
       });
       if (!res.ok) {
-        throw new Error("Failed to update document");
+        throw new Error(await readApiError(res, "Failed to update document"));
       }
     },
     onMutate: async ({ optimistic }) => {
@@ -237,7 +238,7 @@ export function useUpdateOcrText(orgId: string, documentId: string) {
         json: { ocrText },
       });
       if (!res.ok) {
-        throw new Error("Failed to save text");
+        throw new Error(await readApiError(res, "Failed to save text"));
       }
     },
     onSuccess: () => {
@@ -259,7 +260,7 @@ export function useReprocessDocument(orgId: string, documentId: string) {
         param: { orgId, id: documentId },
       });
       if (!res.ok) {
-        throw new Error("Failed to re-run OCR");
+        throw new Error(await readApiError(res, "Failed to re-run OCR"));
       }
     },
     onSuccess: () => {
@@ -279,7 +280,7 @@ export function useDeleteDocument(orgId: string) {
     mutationFn: async (id: string) => {
       const res = await api.orgs[":orgId"].documents[":id"].$delete({ param: { orgId, id } });
       if (!res.ok) {
-        throw new Error("Delete failed");
+        throw new Error(await readApiError(res, "Delete failed"));
       }
     },
     onSuccess: (_data, id) => {
@@ -302,7 +303,7 @@ export function useSetDocumentTags(orgId: string, documentId: string) {
         json: { tagIds: nextTags.map((t) => t.id) },
       });
       if (!res.ok) {
-        throw new Error("Failed to update tags");
+        throw new Error(await readApiError(res, "Failed to update tags"));
       }
       return res.json();
     },
@@ -378,7 +379,7 @@ export function useSetDocumentPropertyValue(orgId: string, documentId: string) {
         json: { value },
       });
       if (!res.ok) {
-        throw new Error("Failed to save property");
+        throw new Error(await readApiError(res, "Failed to save property"));
       }
     },
     onMutate: async ({ definitionId, optimisticValue }) => {
@@ -414,7 +415,7 @@ export function useClearDocumentPropertyValue(orgId: string, documentId: string)
         ":definitionId"
       ].$delete({ param: { orgId, id: documentId, definitionId } });
       if (!res.ok) {
-        throw new Error("Failed to clear property");
+        throw new Error(await readApiError(res, "Failed to clear property"));
       }
     },
     onMutate: async (definitionId) => {

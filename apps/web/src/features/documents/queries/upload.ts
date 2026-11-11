@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { readApiError } from "@/lib/api-error";
 import { documentKeys } from "./documents";
 
 // How many files one upload may contain. Enforced in JS — neither <input type="file"> nor a
@@ -13,23 +14,15 @@ export const MAX_FILES = 100;
 // one-at-a-time.
 const UPLOAD_CONCURRENCY = 4;
 
-type UploadOutcome = "created" | "duplicate";
-
-// Raw fetch (not the typed client) — the body is multipart, not JSON; $url keeps the path typed.
 // The server hashes + dedupes; the browser just buckets the outcome.
-async function uploadFile(orgId: string, file: File): Promise<UploadOutcome> {
-  const url = api.orgs[":orgId"].documents.$url({ param: { orgId } });
-
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const res = await fetch(url, { method: "POST", body: formData, credentials: "include" });
+async function uploadFile(orgId: string, file: File) {
+  const res = await api.orgs[":orgId"].documents.$post({ param: { orgId }, form: { file } });
 
   if (!res.ok) {
-    throw new Error("Upload failed");
+    throw new Error(await readApiError(res, "Upload failed"));
   }
 
-  const { status } = (await res.json()) as { status: UploadOutcome };
+  const { status } = await res.json();
   return status;
 }
 
