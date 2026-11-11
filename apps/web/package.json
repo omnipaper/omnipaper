@@ -10,11 +10,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@t3-oss/env-core": "catalog:",
     "@omnipaper/api": "workspace:*",
     "@omnipaper/permissions": "workspace:*",
     "@omnipaper/shared": "workspace:*",
     "@omnipaper/ui": "workspace:*",
+    "@openpanel/web": "1.4.4",
+    "@t3-oss/env-core": "catalog:",
     "@tanstack/react-query": "5.107.1",
     "@tanstack/react-router": "1.170.46",
     "better-auth": "catalog:",
