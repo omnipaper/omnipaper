@@ -30,9 +30,9 @@
     "zod": "4.6.7"
   },
   "scripts": {
-    "lint": "oxlint",
+    "lint": "oxlint --type-aware",
     "format": "oxfmt",
-    "check": "oxfmt && oxlint",
+    "check": "oxfmt && oxlint --type-aware",
     "typecheck": "bun run --filter='@omnipaper/*' typecheck",
     "test": "bun test"
   },
@@ -40,6 +40,7 @@
     "@types/bun": "catalog:",
     "oxfmt": "0.76.0",
     "oxlint": "1.92.0",
+    "oxlint-tsgolint": "7.0.2006",
     "typescript": "catalog:"
   },
   "engines": {

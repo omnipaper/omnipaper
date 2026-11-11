@@ -5,7 +5,7 @@ import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/_auth/sign-in")({
   beforeLoad: async () => {
-    if (await queryClient.ensureQueryData(sessionQueryOptions)) {
+    if (await queryClient.query({ ...sessionQueryOptions, staleTime: "static" })) {
       throw redirect({ to: "/dashboard" });
     }
   },

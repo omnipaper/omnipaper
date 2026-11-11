@@ -45,8 +45,8 @@ export function useOrgMember(organizationId: string | undefined) {
 // Reads through the same cached query, so the layout + all settings guards share one fetch.
 export async function ensureOrgRole(organizationId: string) {
   const [org, session] = await Promise.all([
-    queryClient.ensureQueryData(fullOrganizationQuery(organizationId)),
-    queryClient.ensureQueryData(sessionQueryOptions),
+    queryClient.query({ ...fullOrganizationQuery(organizationId), staleTime: "static" }),
+    queryClient.query({ ...sessionQueryOptions, staleTime: "static" }),
   ]);
   return org?.members.find((member) => member.userId === session?.user?.id)?.role;
 }

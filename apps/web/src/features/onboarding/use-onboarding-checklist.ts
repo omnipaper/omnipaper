@@ -1,6 +1,7 @@
 import { isInstanceAdmin } from "@omnipaper/permissions";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { z } from "zod";
 import { sessionQueryOptions } from "@/features/auth/queries/session";
 import { documentsListQuery } from "@/features/documents/queries/documents";
 import { ocrSettingsQuery, storageSettingsQuery } from "@/features/settings/queries/settings";
@@ -12,14 +13,22 @@ import { ocrSettingsQuery, storageSettingsQuery } from "@/features/settings/quer
 
 const STORAGE_KEY = "omnipaper.onboarding.admin";
 
-type Prefs = { dismissed: boolean; collapsed: boolean };
+// Defaults let a value saved by an older version with fewer fields keep the fields it has.
+const prefsSchema = z.object({
+  dismissed: z.boolean().default(false),
+  collapsed: z.boolean().default(false),
+});
+
+type Prefs = z.infer<typeof prefsSchema>;
+
+const DEFAULT_PREFS: Prefs = { dismissed: false, collapsed: false };
 
 function loadPrefs(): Prefs {
   try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "");
-    return { dismissed: Boolean(parsed?.dismissed), collapsed: Boolean(parsed?.collapsed) };
+    const parsed = prefsSchema.safeParse(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? ""));
+    return parsed.success ? parsed.data : DEFAULT_PREFS;
   } catch {
-    return { dismissed: false, collapsed: false };
+    return DEFAULT_PREFS;
   }
 }
 

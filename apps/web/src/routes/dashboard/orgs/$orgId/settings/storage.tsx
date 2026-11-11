@@ -6,7 +6,7 @@ import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/dashboard/orgs/$orgId/settings/storage")({
   beforeLoad: async ({ params }) => {
-    const session = await queryClient.ensureQueryData(sessionQueryOptions);
+    const session = await queryClient.query({ ...sessionQueryOptions, staleTime: "static" });
     const isAdmin = isInstanceAdmin(session?.user?.role);
 
     if (!isAdmin) {

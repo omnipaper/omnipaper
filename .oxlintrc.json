@@ -51,7 +51,16 @@
     ],
     "omnipaper/naming-convention": "error",
     "omnipaper/no-named-reexport": "error",
-    "omnipaper/zvalidator-hook": "error"
+    "omnipaper/zvalidator-hook": "error",
+    "omnipaper/max-positional-params": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/no-floating-promises": "off",
+    "typescript/await-thenable": "off",
+    "typescript/unbound-method": "off",
+    "typescript/no-base-to-string": "off",
+    "typescript/no-redundant-type-constituents": "off",
+    "typescript/no-useless-default-assignment": "off",
+    "typescript/restrict-template-expressions": "off"
   },
   "overrides": [
     {

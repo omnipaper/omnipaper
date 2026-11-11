@@ -19,11 +19,9 @@ function llmProvider(provider: Provider): AiProvider {
 }
 
 export async function extractWithLlm(
-  definition: OcrDefinition,
-  model: string,
-  apiKey: string,
-  input: DocumentInput,
+  input: DocumentInput & { definition: OcrDefinition; model: string; apiKey: string },
 ): Promise<string> {
+  const { definition, model, apiKey } = input;
   const result = await generateText({
     model: resolveModel(llmProvider(definition.provider), model, apiKey),
     temperature: 0.1,

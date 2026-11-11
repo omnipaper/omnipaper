@@ -58,8 +58,9 @@ export function useDocumentNavigation({
     if (!nextId) {
       return;
     }
-    queryClient.prefetchQuery(documentDetailQuery({ orgId, id: nextId }));
-    queryClient.prefetchQuery(documentDownloadQuery({ orgId, id: nextId }));
+    // Prefetch is best effort: a failure surfaces only if the user actually opens the next document.
+    queryClient.query(documentDetailQuery({ orgId, id: nextId })).catch(() => {});
+    queryClient.query(documentDownloadQuery({ orgId, id: nextId })).catch(() => {});
   }, [queryClient, orgId, nextId]);
 
   return { previousId, nextId, known };
