@@ -37,7 +37,6 @@
     "test": "bun test"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
     "@types/bun": "catalog:",
     "oxfmt": "0.76.0",
     "oxlint": "1.92.0",
