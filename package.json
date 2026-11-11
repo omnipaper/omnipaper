@@ -7,7 +7,8 @@
   "workspaces": [
     "apps/api",
     "apps/web",
-    "packages/*"
+    "packages/*",
+    "tools/*"
   ],
   "catalog": {
     "@better-auth/expo": "1.7.10",
@@ -29,7 +30,7 @@
     "zod": "4.6.7"
   },
   "scripts": {
-    "lint": "biome lint .",
+    "lint": "oxlint",
     "format": "biome format --write .",
     "check": "biome check --write .",
     "typecheck": "bun run --filter='@omnipaper/*' typecheck",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@types/bun": "catalog:",
+    "oxlint": "1.92.0",
     "typescript": "catalog:"
   },
   "engines": {

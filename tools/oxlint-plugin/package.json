@@ -1,0 +1,17 @@
+{
+  "name": "@omnipaper/oxlint-plugin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "zod": "catalog:"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "1.92.0"
+  }
+}
