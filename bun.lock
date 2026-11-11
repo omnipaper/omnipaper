@@ -167,7 +167,7 @@
       "name": "@omnipaper/queue",
       "version": "0.0.0",
       "dependencies": {
-        "@omnipaper/env": "workspace:*",
+        "@omnipaper/database": "workspace:*",
         "@omnipaper/logger": "workspace:*",
         "graphile-worker": "0.18.0",
         "zod": "catalog:",

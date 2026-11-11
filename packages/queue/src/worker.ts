@@ -1,4 +1,4 @@
-import { env } from "@omnipaper/env";
+import { pool } from "@omnipaper/database/client";
 import { withLogContext } from "@omnipaper/logger/context";
 import { type JobHelpers, type Runner, run, type Task, type TaskList } from "graphile-worker";
 import { JOB_DEFINITIONS, type JobName, type JobPayload } from "./jobs";
@@ -24,7 +24,7 @@ export function startWorker(options: {
   concurrency?: number;
 }): Promise<Runner> {
   return run({
-    connectionString: env.DATABASE_URL,
+    pgPool: pool,
     concurrency: options.concurrency ?? 4,
     taskList: options.taskList,
     crontab: options.crontab,
