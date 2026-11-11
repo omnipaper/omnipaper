@@ -52,12 +52,8 @@ function load(): Set<DisplayPropertyKey> {
   return new Set(DEFAULT_ENABLED);
 }
 
-// ── Shared store, so a toggle re-renders every reader ────────────────────────
-// Plain useState would give the Display panel and the list rows each their OWN copy of this Set — so
-// toggling in the panel wouldn't update the list (and a localStorage write doesn't notify the same
-// tab). An external store read via useSyncExternalStore is one source of truth: every reader
-// subscribes and a toggle notifies them all at once; the `storage` event also syncs other tabs.
-// (This is the low-level primitive that state libraries like zustand/jotai are built on.)
+// External store so the Display panel and list rows share one Set: a localStorage write doesn't
+// notify the same tab. The `storage` event syncs other tabs.
 
 const enabledListeners = new Set<() => void>();
 // Cache the Set so getSnapshot returns a STABLE reference until a real change — handing

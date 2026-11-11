@@ -47,28 +47,8 @@ export const OCR_DEFINITIONS = {
     modelEditable: true,
     mimeTypes: AZURE_DOCUMENT_MIMES,
   },
-  // v0.0.1 ships Mistral OCR ONLY. The LLM lanes below stay here, commented, to re-enable in 0.2.0 —
-  // uncomment to restore them in the engine dropdown. Everything they need is still in place and
-  // dormant: the runner's "llm" lane (runner.ts / llm-text-engine.ts), the Google provider, and the
-  // Google API-key plumbing in provider-settings. No other code change is required to bring them back.
-  // "mistral-llm": {
-  //   id: "mistral-llm",
-  //   label: "Mistral (LLM)",
-  //   lane: "llm",
-  //   provider: "mistral",
-  //   defaultModel: "mistral-small-latest",
-  //   modelEditable: true,
-  //   mimeTypes: DOCUMENT_MIMES,
-  // },
-  // "google-llm": {
-  //   id: "google-llm",
-  //   label: "Google Gemini (LLM)",
-  //   lane: "llm",
-  //   provider: "google",
-  //   defaultModel: "gemini-2.5-flash",
-  //   modelEditable: true,
-  //   mimeTypes: DOCUMENT_MIMES,
-  // },
+  // LLM lanes are hidden for now. The runner's "llm" lane and the Google provider are still wired,
+  // so re-adding a `lane: "llm"` entry here is enough to bring one back.
 } as const satisfies Record<string, OcrDefinition>;
 
 export type OcrDefinitionId = keyof typeof OCR_DEFINITIONS;

@@ -3,8 +3,7 @@ import { authClient } from "@/features/auth/auth-client";
 
 export const Route = createFileRoute("/dashboard/")({
   beforeLoad: async () => {
-    // No org in the URL yet — send the user into their default org (the first they belong to).
-    // TODO: prefer the last-active org once we track it.
+    // No org in the URL yet, so send the user into the first org they belong to.
     const { data: organizations } = await authClient.organization.list();
     const orgId = organizations?.[0]?.id;
 

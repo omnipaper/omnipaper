@@ -6,7 +6,7 @@ import {
 } from "@omnipaper/database/queries/settings";
 import { decryptSecret, encryptSecret } from "./crypto";
 
-// TODO: TTL is useful for separate instances. In production scale the cache should in redis
+// Per-process cache: with several API instances, a write reaches the others within TTL_MS.
 const TTL_MS = 30_000;
 
 type Entry = { value: string | null; at: number };
