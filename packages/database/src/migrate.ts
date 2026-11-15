@@ -9,8 +9,7 @@ import { waitForDatabase } from "./wait";
 const MIGRATION_LOCK_ID = 4_242_424_242;
 
 export async function migrate(): Promise<void> {
-  // The lock needs its own session: it belongs to a connection, and pooled queries land on whichever
-  // is free. end() releases it, as does a dropped TCP connection. A killed pod can't strand it.
+  // Advisory locks belong to a connection, so this needs its own client, not a pooled query.
   const lock = new Client({ connectionString: env.DATABASE_URL });
   await lock.connect();
 
@@ -24,15 +23,12 @@ export async function migrate(): Promise<void> {
   }
 }
 
-// Run this file directly to migrate as its own step — a Kubernetes Job, a CI stage, a one-off
-// container. The API still migrates on boot for single-container deploys that have nobody to run
-// this for them; the advisory lock above is what makes the two safe to combine.
+// Run directly to migrate as its own step; the lock makes it safe next to migrate-on-boot.
 if (import.meta.main) {
   await waitForDatabase();
   await migrate();
 
   logger.info("migrations applied");
-  // Idle pool connections hold the event loop for idleTimeoutMillis (10s) past the last query, and
-  // this runs on a deploy's critical path — a pre-upgrade hook blocks the rollout until it exits.
+  // Idle pool connections would keep the process alive 10s, blocking a pre-upgrade hook.
   process.exit(0);
 }

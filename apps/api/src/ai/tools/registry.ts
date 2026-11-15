@@ -9,8 +9,7 @@ export const aiTools = {
   get_document_history: getDocumentHistoryTool,
 };
 
-// generateText's toolsContext is keyed by tool name. Every tool takes the same context, so fan the
-// caller's context out to each one; a missing key here is a compile error at the call site.
+// toolsContext is keyed by tool name; fan the shared context out so a missing key fails to compile.
 export function aiToolsContext(ctx: AiToolContext) {
   return {
     get_document: ctx,

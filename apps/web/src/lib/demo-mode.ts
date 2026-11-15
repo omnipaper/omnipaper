@@ -1,10 +1,7 @@
 import { useSyncExternalStore } from "react";
 
-/*
-  DEMO_MODE is a BUILD-TIME constant read straight from import.meta.env (NOT via lib/env-client,
-  which validates at runtime) so the bundler can fold the literal and tree-shake every demo-only branch
-  out of normal builds — self-hosters ship no demo code.
-*/
+// Read straight from import.meta.env (not lib/env-client) so the bundler folds the literal and
+// tree-shakes demo-only branches out of self-hosted builds.
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
 const MUTATING_METHODS = /^(POST|PUT|PATCH|DELETE)$/i;
@@ -45,8 +42,7 @@ export class DemoReadOnlyError extends Error {
   }
 }
 
-// Client-side fetch wrapper that instantly rejects mutating requests in demo mode (except export
-// and the curator's session), only active when DEMO_MODE is true.
+// Rejects mutating requests in demo mode, except export and the curator's session.
 export function withDemoGuard(baseFetch: typeof fetch): typeof fetch {
   return (input, init) => {
     const method = init?.method ?? (input instanceof Request ? input.method : "GET");

@@ -1,16 +1,13 @@
 import { env } from "@omnipaper/env";
 import { serverLogger } from "./logger";
 
-// Langfuse tracing of AI calls: a developer/ops tool for instances the maintainers run themselves,
-// enabled only by LANGFUSE_* env vars plus a WITH_TRACING image build. Never meant for production
-// user instances and not exposed in the admin UI. User-facing usage statistics are a separate
-// feature, see @omnipaper/settings/telemetry-settings.
+// Langfuse tracing for maintainer-run instances only: needs LANGFUSE_* env and a WITH_TRACING
+// build. User-facing stats are @omnipaper/settings/telemetry-settings.
 let shutdown: (() => Promise<void>) | null = null;
 
 if (env.LANGFUSE_PUBLIC_KEY) {
   try {
-    // Deliberately not in this workspace's dependencies: the image only carries
-    // @omnipaper/tracing when built with WITH_TRACING=true (see docker/Dockerfile).
+    // Not a dependency: the image carries @omnipaper/tracing only when built WITH_TRACING=true.
     const { startTracing } = await import("@omnipaper/tracing/start");
     const tracing = startTracing({
       publicKey: env.LANGFUSE_PUBLIC_KEY,

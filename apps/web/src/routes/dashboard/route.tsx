@@ -8,13 +8,11 @@ export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
     let session = await queryClient.query({ ...sessionQueryOptions, staleTime: "static" });
 
-    // In a public demo, "no session" means first visit — auto-log into the shared demo account
-    // instead of bouncing to sign-in. If the bootstrap fails we fall through to the redirect, so
-    // a misconfigured demo lands on /sign-in rather than looping.
+    // In the demo, no session means a first visit: log into the shared account. On failure fall
+    // through to the redirect, so a broken demo lands on /sign-in instead of looping.
     if (!session && DEMO_MODE) {
       await bootstrapDemoSession();
-      // removeQueries, NOT invalidateQueries: the cached `null` has no active observers here, so
-      // invalidate doesn't refetch and a static-staleTime query would return the stale null from cache.
+      // removeQueries: the cached null has no observers, so invalidate wouldn't refetch it.
       queryClient.removeQueries({ queryKey: sessionKeys.all });
       session = await queryClient.query({ ...sessionQueryOptions, staleTime: "static" });
     }

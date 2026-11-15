@@ -51,9 +51,8 @@ export const thumbnailGenerateTask = defineTask("thumbnail-generate", async ({ d
 
     await markDocumentThumbnailCompleted(db, { id: documentId });
   } catch (err) {
-    // Mark "failed" so the document leaves "processing" and the card falls back to the generic
-    // icon. Swallow rather than rethrow: a render failure is deterministic (e.g. a corrupt PDF), so
-    // graphile-worker's default 25 retries would just churn. Re-run is a future explicit action.
+    // Swallow and mark failed: render failures are deterministic (e.g. a corrupt PDF), so retries
+    // would only churn. The card falls back to the generic icon.
     await markDocumentThumbnailFailed(db, { id: documentId });
     taskLogger.error({ err, documentId }, "thumbnail render failed");
   }
@@ -68,13 +67,11 @@ async function renderFirstPagePng(pdfBytes: Uint8Array): Promise<Uint8Array> {
     // separate resize step — which is why we don't need sharp/libvips at all.
     const bitmap = await document.getPage(0).render({ width: THUMBNAIL_WIDTH, render: "bitmap" });
 
-    // pdfium's "bitmap" engine already returns RGBA (verified: a pure-red page renders to bytes
-    // [255,0,0,255]), so the buffer feeds straight into pngjs — no channel swap needed.
+    // pdfium's bitmap is already RGBA, so it feeds pngjs without a channel swap.
     const png = new PNG({ width: bitmap.width, height: bitmap.height });
     png.data = Buffer.from(bitmap.data);
     return new Uint8Array(PNG.sync.write(png));
   } finally {
-    // Frees this document's memory inside the shared heap; the heap itself stays put for reuse.
     document.destroy();
   }
 }
