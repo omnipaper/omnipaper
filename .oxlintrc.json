@@ -54,6 +54,7 @@
     "omnipaper/no-named-reexport": "error",
     "omnipaper/zvalidator-hook": "error",
     "omnipaper/max-positional-params": "error",
+    "omnipaper/max-comment-density": "error",
     "typescript/no-deprecated": "error",
     "typescript/no-floating-promises": "off",
     "typescript/await-thenable": "off",

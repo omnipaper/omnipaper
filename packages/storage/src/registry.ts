@@ -1,16 +1,11 @@
-// Storage "engines" are all the same S3 protocol — the difference is purely how the S3 client is
-// configured. So unlike the OCR registry (which encodes real per-lane behaviour), a StorageDefinition
-// is a *preset*: it derives forcePathStyle and shapes which fields the settings form shows, so the
-// admin never has to know low-level S3 quirks (path-style, the "auto" region, etc.).
+// All engines speak S3; a definition is a preset that derives forcePathStyle and shapes the
+// settings form, so the admin never deals with path-style or the "auto" region.
 export type StorageDefinition = {
   id: string;
   label: string;
-  // Derived from the engine, never chosen by the admin.
   forcePathStyle: boolean;
-  // How the settings form treats the endpoint field for this engine.
   endpoint: { shown: boolean; required: boolean; placeholder: string | null };
-  // How the settings form treats the region field. When hidden, fixedValue is used as the
-  // effective region (R2 ignores it but the SDK requires a value; MinIO accepts anything).
+  // When hidden, fixedValue is the effective region (R2 ignores it but the SDK requires one).
   region: { shown: boolean; fixedValue: string | null; placeholder: string | null };
 };
 

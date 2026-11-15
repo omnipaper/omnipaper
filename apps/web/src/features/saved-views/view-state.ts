@@ -1,8 +1,7 @@
 import type { SavedViewState } from "@omnipaper/shared/saved-views";
 import type { DocumentSearch } from "@/features/documents/filters/types";
 
-// Pull the persistable view state out of the live URL search, dropping the `savedView` pointer and
-// any empty/default bits. This is what gets stored in a saved view and what a saved view applies.
+// What a saved view stores and applies: the URL search minus `savedView` and empty/default bits.
 export function extractViewState(search: DocumentSearch): SavedViewState {
   const state: SavedViewState = {};
 

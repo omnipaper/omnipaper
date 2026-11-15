@@ -1,10 +1,7 @@
 import { DEMO_MODE } from "@/lib/demo-mode";
 
-/*
-  OpenPanel web analytics for the hosted demo only. Like DEMO_MODE, the client id and API URL are
-  BUILD-TIME constants read straight from import.meta.env: in public builds they are unset, the bundler
-  folds the check below to false and drops the dynamic import, so self-hosted images ship no analytics code.
-*/
+// Demo-only analytics. Build-time constants: unset in public builds, so the bundler drops the
+// import below and self-hosted images ship no analytics code.
 const OPENPANEL_CLIENT_ID: string | undefined = import.meta.env.VITE_OPENPANEL_CLIENT_ID;
 const OPENPANEL_API_URL: string | undefined = import.meta.env.VITE_OPENPANEL_API_URL;
 

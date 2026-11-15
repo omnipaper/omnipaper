@@ -7,9 +7,8 @@ import { documentSearchSchema } from "@/features/documents/filters/search-schema
 import { clearNavigationSet } from "@/features/documents/navigation/navigation-set";
 import { DocumentSelectionProvider } from "@/features/documents/selection/use-document-selection";
 
-// The documents page. `view` (list/gallery) + folder scope (filters.path) + q/filters/sort all live
-// in the URL via documentSearchSchema, so switching layout or folder never drops state. Sibling of
-// documents.$id.tsx (the detail) — collection at /documents, resource at /documents/:id.
+// `view`, folder scope (filters.path) and q/filters/sort all live in the URL via
+// documentSearchSchema, so switching layout or folder never drops state.
 export const Route = createFileRoute("/dashboard/orgs/$orgId/documents/")({
   validateSearch: documentSearchSchema,
   component: DocumentsView,

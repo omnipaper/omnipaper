@@ -1,7 +1,6 @@
 import { PDFiumLibrary } from "@hyzyla/pdfium";
 
-// Init once per process: each init() allocates a ~18MB WASM heap that destroy() can't release, so
-// per-call init grows RSS until restart. Callers load and destroy their own document handles.
+// Init once per process: each init() allocates a ~18MB WASM heap that destroy() can't free.
 let pdfiumLibraryPromise: Promise<PDFiumLibrary> | null = null;
 
 export function getPdfiumLibrary(): Promise<PDFiumLibrary> {
@@ -9,9 +8,7 @@ export function getPdfiumLibrary(): Promise<PDFiumLibrary> {
   return pdfiumLibraryPromise;
 }
 
-// True only when the file cannot be opened at all without a password. PDFs carrying just an owner
-// password (the "no printing" kind) open fine and are deliberately not reported here — scanning the
-// bytes for /Encrypt would wrongly reject those, since both kinds carry that marker.
+// Owner-password-only PDFs open fine and are accepted; /Encrypt alone can't tell the two apart.
 export async function isPasswordProtectedPdf(bytes: Uint8Array): Promise<boolean> {
   const library = await getPdfiumLibrary();
 
@@ -20,8 +17,7 @@ export async function isPasswordProtectedPdf(bytes: Uint8Array): Promise<boolean
     document.destroy();
     return false;
   } catch (err) {
-    // pdfium maps its PASSWORD error code to this message and to no other; a wording change upstream
-    // would degrade to today's behaviour (the file is accepted) rather than reject valid uploads.
+    // Only pdfium's PASSWORD error uses this wording; if it changes, files get accepted.
     return err instanceof Error && /password/i.test(err.message);
   }
 }

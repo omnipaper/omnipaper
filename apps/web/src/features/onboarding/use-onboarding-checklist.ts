@@ -6,10 +6,8 @@ import { sessionQueryOptions } from "@/features/auth/queries/session";
 import { documentsListQuery } from "@/features/documents/queries/documents";
 import { ocrSettingsQuery, storageSettingsQuery } from "@/features/settings/queries/settings";
 
-// Admin getting-started checklist. Deliberately NO database table (MVP): every step is DERIVED from
-// the real state we already query (settings `configured` flags + whether any document exists), so
-// the list auto-checks as the admin completes each action and can never drift. Only the "dismiss /
-// collapse" preference is persisted — client-side, per browser, in localStorage.
+// Every step is derived from state we already query, so there is no table and the list can't
+// drift. Only the dismiss/collapse preference is persisted, in localStorage.
 
 const STORAGE_KEY = "omnipaper.onboarding.admin";
 
@@ -62,8 +60,7 @@ export function useOnboardingChecklist(orgId: string): OnboardingChecklist {
       return next;
     });
 
-  // Only run the admin-only settings queries while the checklist is actually live (instance admin,
-  // not dismissed) — a dismissed/done admin shouldn't refetch settings on every page navigation.
+  // A dismissed checklist shouldn't refetch admin settings on every navigation.
   const active = isAdmin && !prefs.dismissed;
   const storage = useQuery({ ...storageSettingsQuery(), enabled: active });
   const ocr = useQuery({ ...ocrSettingsQuery(), enabled: active });
@@ -79,8 +76,7 @@ export function useOnboardingChecklist(orgId: string): OnboardingChecklist {
   });
   const hasDocuments = (documents.data?.pages[0]?.documents.length ?? 0) > 0;
 
-  // Done = storage connected + a first document + OCR set up. Once all three are done the checklist
-  // retires for good (and won't reappear if a document is later deleted).
+  // Once all three are done the checklist retires for good, even if a document is later deleted.
   const requiredDone = storageConfigured && hasDocuments && ocrConfigured;
   useEffect(() => {
     if (active && requiredDone) {

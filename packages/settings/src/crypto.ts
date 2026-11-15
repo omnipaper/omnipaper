@@ -1,9 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { env } from "@omnipaper/env";
 
-// Derive the 32-byte AES-256 key from ENCRYPTION_KEY with SHA-256, so the env var can be any
-// sufficiently-long random string (length floor enforced in @omnipaper/env) instead of a
-// pre-encoded 32-byte value. Deterministic, so already-encrypted data stays decryptable.
+// SHA-256 of ENCRYPTION_KEY, so the env var can be any long random string, not a raw 32-byte key.
 function getKey(): Buffer {
   return createHash("sha256").update(env.ENCRYPTION_KEY, "utf8").digest();
 }
@@ -22,8 +20,7 @@ export function decryptSecret(encoded: string): string {
   const ivB64 = parts[0];
   const tagB64 = parts[1];
 
-  // dataB64 may legitimately be empty (the ciphertext of an empty string), so validate the
-  // structure — 3 parts with iv + tag present — rather than the truthiness of the data segment.
+  // An empty string encrypts to empty data, so check the structure, not the data segment.
   if (parts.length !== 3 || !ivB64 || !tagB64) {
     throw new Error("Invalid ciphertext format");
   }

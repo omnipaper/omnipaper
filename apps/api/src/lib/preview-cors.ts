@@ -1,6 +1,5 @@
-// Only the pdf.js preview hits the bucket directly (presigned URL); everything else is API-proxied.
-// A server-side fetch ignores CORS, so we replay the browser's OPTIONS preflight with the caller's
-// Origin and read the response headers instead.
+// Only the pdf.js preview hits the bucket directly. A server-side fetch ignores CORS, so we replay
+// the browser's preflight with the caller's Origin and read the response headers.
 
 export type PreviewCorsResult =
   | { status: "ok" }
