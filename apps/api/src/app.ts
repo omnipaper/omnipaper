@@ -2,6 +2,7 @@ import { env } from "@omnipaper/env";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
+import { secureHeaders } from "hono/secure-headers";
 import { auth } from "./auth";
 import type { Variables } from "./context";
 import { demoReadOnly, demoRoutes } from "./demo";
@@ -44,6 +45,9 @@ export function createApp() {
     // matching handler, so this keeps probes off the session lookup.
     .route("/health", healthRoutes)
     .use("/api/*", requestLogger)
+    // HSTS is left to the reverse proxy: self-hosters on plain HTTP or with HTTP subdomains would
+    // otherwise get locked out.
+    .use("*", secureHeaders({ strictTransportSecurity: false }))
     .use(
       "*",
       cors({

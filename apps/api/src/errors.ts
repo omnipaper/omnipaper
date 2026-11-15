@@ -37,3 +37,11 @@ export class PasswordProtectedPdfError extends Error {
     this.name = "PasswordProtectedPdfError";
   }
 }
+
+// Declared type is off the allow-list, or the bytes don't match the format it claims.
+export class UnsupportedFileTypeError extends Error {
+  constructor() {
+    super("Unsupported file type");
+    this.name = "UnsupportedFileTypeError";
+  }
+}
