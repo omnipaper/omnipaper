@@ -52,16 +52,73 @@ function extensionOf(filename: string): string {
   return dot > 0 && dot < filename.length - 1 ? filename.slice(dot).toLowerCase() : "";
 }
 
-// Use the file extension to check format when available; fall back to MIME type if not. This only filters by declared type, not actual file contents.
-export function isUploadAllowed(input: { filename?: string; mimeType?: string }): boolean {
+// Canonical MIME type from the allow-list: the extension wins when there is one, the declared MIME is
+// only a fallback. Never returns the caller's raw value, so a spoofed type (e.g. image/svg+xml on a
+// .png) cannot reach storage or the response headers.
+export function resolveUploadMimeType(input: {
+  filename?: string;
+  mimeType?: string;
+}): string | undefined {
   const ext = input.filename ? extensionOf(input.filename) : "";
 
   if (ext) {
-    return ACCEPTED_EXTENSIONS.has(ext);
+    return UPLOAD_FORMATS.find((format) => format.extensions.some((candidate) => candidate === ext))
+      ?.mimeTypes[0];
   }
 
-  return input.mimeType ? ACCEPTED_MIME_TYPES.has(normalizeMimeType(input.mimeType)) : false;
+  const declared = input.mimeType ? normalizeMimeType(input.mimeType) : "";
+
+  return ACCEPTED_MIME_TYPES.has(declared) ? declared : undefined;
 }
+
+export function isUploadAllowed(input: { filename?: string; mimeType?: string }): boolean {
+  return resolveUploadMimeType(input) !== undefined;
+}
+
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
+// PDF readers accept the header anywhere in the first 1 KiB.
+const PDF_HEADER_WINDOW = 1024;
+
+function startsWith(bytes: Uint8Array, signature: readonly number[], offset = 0): boolean {
+  return signature.every((byte, i) => bytes[offset + i] === byte);
+}
+
+// Checks the leading bytes against the format the MIME type claims. Plain text has no signature.
+export function matchesFileSignature(mimeType: string, bytes: Uint8Array): boolean {
+  switch (normalizeMimeType(mimeType)) {
+    case "application/pdf": {
+      const last = Math.min(bytes.length - PDF_MAGIC.length, PDF_HEADER_WINDOW);
+      for (let offset = 0; offset <= last; offset++) {
+        if (startsWith(bytes, PDF_MAGIC, offset)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    case "image/jpeg":
+      return startsWith(bytes, [0xff, 0xd8, 0xff]);
+    case "image/png":
+      return startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    case "image/webp":
+      return (
+        startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) &&
+        startsWith(bytes, [0x57, 0x45, 0x42, 0x50], 8)
+      );
+    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      return startsWith(bytes, [0x50, 0x4b, 0x03, 0x04]);
+    case "text/plain":
+      return true;
+    default:
+      return false;
+  }
+}
+
+// Image types whose original bytes are safe to serve inline as their own thumbnail.
+export const INLINE_IMAGE_MIME_TYPES: ReadonlySet<string> = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 // One ceiling for every ingest path (HTTP upload, email attachments).
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;

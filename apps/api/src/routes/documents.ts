@@ -54,6 +54,7 @@ import {
 } from "@omnipaper/shared/document-filters";
 import {
   describeAcceptedFormats,
+  INLINE_IMAGE_MIME_TYPES,
   isUploadAllowed,
   MAX_UPLOAD_BYTES,
 } from "@omnipaper/shared/formats";
@@ -62,7 +63,12 @@ import type { AiSuggestionValue } from "@omnipaper/shared/workflows/ai-assign";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Variables } from "../context";
-import { errors, onValidationError, PasswordProtectedPdfError } from "../errors";
+import {
+  errors,
+  onValidationError,
+  PasswordProtectedPdfError,
+  UnsupportedFileTypeError,
+} from "../errors";
 import {
   coerceCustomValue,
   customPropertyRegistry,
@@ -373,6 +379,12 @@ export const documentsRoutes = new Hono<{
             "This PDF is password protected. Remove the password and upload it again.",
           );
         }
+        if (err instanceof UnsupportedFileTypeError) {
+          throw errors.badRequest(
+            "unsupported_file_type",
+            `File contents do not match an accepted format: ${describeAcceptedFormats()}.`,
+          );
+        }
 
         throw err;
       }
@@ -665,7 +677,11 @@ export const documentsRoutes = new Hono<{
     if (!driver) {
       throw errors.badRequest("storage_not_configured", "Storage is not configured");
     }
-    const key = doc.mimeType.startsWith("image/") ? doc.storageKey : `${doc.storageKey}.thumb.png`;
+    // Only raster types from the allow-list are served as their own preview. The Content-Type comes
+    // from that list, not from the stored object, and the sandbox CSP keeps anything that slips
+    // through from running script on the app origin.
+    const isInlineImage = INLINE_IMAGE_MIME_TYPES.has(doc.mimeType);
+    const key = isInlineImage ? doc.storageKey : `${doc.storageKey}.thumb.png`;
     const object = await driver.getObject({ key });
     if (!object) {
       throw errors.notFound("Thumbnail not available");
@@ -673,7 +689,9 @@ export const documentsRoutes = new Hono<{
     return new Response(object.body, {
       status: 200,
       headers: {
-        "Content-Type": object.contentType ?? "image/png",
+        "Content-Type": isInlineImage ? doc.mimeType : "image/png",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
+        "X-Content-Type-Options": "nosniff",
         "Cache-Control": cacheControl,
         ETag: etag,
       },

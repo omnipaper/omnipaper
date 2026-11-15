@@ -15,7 +15,7 @@ import { getEmailIngestAllowInternalHosts } from "@omnipaper/settings/email-sett
 import { isUploadAllowed, MAX_UPLOAD_BYTES } from "@omnipaper/shared/formats";
 import { ImapFlow } from "imapflow";
 import { type Attachment, simpleParser } from "mailparser";
-import { PasswordProtectedPdfError } from "../errors";
+import { PasswordProtectedPdfError, UnsupportedFileTypeError } from "../errors";
 import { emailIngestLogger } from "../logger";
 import { type IngestResult, ingestDocument } from "./ingest";
 import { getStorageDriver } from "./storage";
@@ -343,6 +343,7 @@ async function processMessage(
     const documentIds: string[] = [];
     const duplicates: { id: string; filename: string }[] = [];
     const rejected: string[] = [];
+    const mismatched: string[] = [];
 
     for (const attachment of parsed.attachments) {
       if (!isDocumentAttachment(attachment)) {
@@ -387,6 +388,10 @@ async function processMessage(
           rejected.push(filename);
           continue;
         }
+        if (err instanceof UnsupportedFileTypeError) {
+          mismatched.push(filename);
+          continue;
+        }
 
         throw err;
       }
@@ -410,6 +415,9 @@ async function processMessage(
 
     if (rejected.length > 0) {
       notes.push(`Password-protected, skipped: ${rejected.join(", ")}`);
+    }
+    if (mismatched.length > 0) {
+      notes.push(`Contents do not match the file type, skipped: ${mismatched.join(", ")}`);
     }
     if (duplicates.length > 0) {
       notes.push(

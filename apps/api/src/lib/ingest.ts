@@ -11,9 +11,9 @@ import {
 import { supportsMime } from "@omnipaper/ocr/resolve";
 import { enqueue } from "@omnipaper/queue/producer";
 import { getOcrSettings } from "@omnipaper/settings/ocr-settings";
-import { normalizeMimeType } from "@omnipaper/shared/formats";
+import { matchesFileSignature, resolveUploadMimeType } from "@omnipaper/shared/formats";
 import type { StorageDriver } from "@omnipaper/storage/driver";
-import { PasswordProtectedPdfError } from "../errors";
+import { PasswordProtectedPdfError, UnsupportedFileTypeError } from "../errors";
 import { isPasswordProtectedPdf } from "./pdfium";
 import { isTextExtractable } from "./text-extract";
 
@@ -38,7 +38,13 @@ export type IngestDocumentInput = {
 
 export async function ingestDocument(input: IngestDocumentInput): Promise<IngestResult> {
   const { db, driver, organizationId, createdBy, bytes, filename } = input;
-  const mimeType = normalizeMimeType(input.mimeType);
+  // Every ingest path stores this value and /thumb serves it, so it must come from the allow-list and
+  // agree with the bytes, never from the client or the email's Content-Type.
+  const mimeType = resolveUploadMimeType({ filename, mimeType: input.mimeType });
+
+  if (!mimeType || !matchesFileSignature(mimeType, bytes)) {
+    throw new UnsupportedFileTypeError();
+  }
 
   if (mimeType === "application/pdf" && (await isPasswordProtectedPdf(bytes))) {
     throw new PasswordProtectedPdfError();
