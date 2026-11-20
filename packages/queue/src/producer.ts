@@ -1,4 +1,4 @@
-import { env } from "@omnipaper/env";
+import { pool } from "@omnipaper/database/client";
 import { makeWorkerUtils, runMigrations, type WorkerUtils } from "graphile-worker";
 import { JOB_DEFINITIONS, type JobName, type JobPayload } from "./jobs";
 
@@ -7,8 +7,8 @@ let utilsPromise: Promise<WorkerUtils> | null = null;
 function getUtils(): Promise<WorkerUtils> {
   if (!utilsPromise) {
     utilsPromise = (async () => {
-      await runMigrations({ connectionString: env.DATABASE_URL });
-      return makeWorkerUtils({ connectionString: env.DATABASE_URL });
+      await runMigrations({ pgPool: pool });
+      return makeWorkerUtils({ pgPool: pool });
     })();
   }
 
