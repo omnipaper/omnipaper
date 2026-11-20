@@ -20,9 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from "@omnipaper/ui/components/table";
+import { Textarea } from "@omnipaper/ui/components/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { CircleHelpIcon, Loader2Icon, PlusIcon, SearchIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { AiDescriptionButton } from "@/components/settings/ai-description-button";
 import { RowActions, TableEmptyRow } from "@/components/settings/settings-table";
 import { AiAssignMaster } from "@/features/ai-assign/components/ai-assign-master";
 import { aiAssignQuery } from "@/features/ai-assign/queries/ai-assign";
@@ -31,6 +33,7 @@ import {
   orgStoragePathsQuery,
   useDeleteStoragePath,
   useSetStoragePathAiEligible,
+  useDescribeStoragePath,
   useUpsertStoragePath,
 } from "@/features/storage-paths/queries/storage-paths";
 
@@ -199,6 +202,7 @@ function StoragePathDialogBody({
   const showPathError = trimmedPath.length > 0 && !pathValid;
 
   const upsert = useUpsertStoragePath(orgId);
+  const describe = useDescribeStoragePath(orgId);
 
   return (
     <>
@@ -242,12 +246,31 @@ function StoragePathDialogBody({
           </p>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="path-description">Description (optional)</Label>
-          <Input
+          <div className="flex items-center justify-between">
+            <Label htmlFor="path-description">Description (optional)</Label>
+            <AiDescriptionButton
+              hasDraft={!!description.trim()}
+              disabled={!pathValid}
+              pending={describe.isPending}
+              onClick={() =>
+                describe.mutate(
+                  {
+                    id: editing?.id,
+                    name: trimmedPath,
+                    description: description.trim() || undefined,
+                  },
+                  { onSuccess: (data) => setDescription(data.description) },
+                )
+              }
+            />
+          </div>
+          <Textarea
             id="path-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={500}
+            rows={3}
+            className="resize-none"
             placeholder="What gets filed here?"
           />
         </div>

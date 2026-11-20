@@ -7,10 +7,9 @@ import {
   getOrgTags,
   updateTag,
 } from "@omnipaper/database/queries/tags";
-import { getAiRuntimeConfig } from "@omnipaper/settings/ai-settings";
 import { Hono } from "hono";
 import { z } from "zod";
-import { improveFieldDescription } from "../ai/improve-field-description";
+import { describeFieldSchema, writeFieldDescription } from "../ai/field-description";
 import type { Variables } from "../context";
 import { errors, onValidationError } from "../errors";
 import { requireOrgPermission } from "../middleware";
@@ -72,31 +71,20 @@ export const tagsRoutes = new Hono<{ Variables: Variables }>()
     },
   )
   .post(
-    "/improve-description",
+    "/describe",
     requireOrgPermission({ tags: ["update"] }),
-    zValidator(
-      "json",
-      z.object({
-        name: z.string().trim().min(1).max(50),
-        description: z.string().trim().min(1).max(500),
-      }),
-      onValidationError,
-    ),
+    zValidator("json", describeFieldSchema, onValidationError),
     async (c) => {
-      const { name, description } = c.req.valid("json");
-      const runtime = await getAiRuntimeConfig();
-      if (!runtime.ok) {
-        throw errors.conflict("ai_not_configured", runtime.detail);
-      }
-
-      const improved = await improveFieldDescription({
+      const { id, name, description } = c.req.valid("json");
+      const tags = await getOrgTags(db, { organizationId: c.get("organizationId") });
+      const text = await writeFieldDescription({
         kind: "tag",
         name,
         description,
-        config: runtime.config,
+        siblings: tags.filter((t) => t.id !== id),
       });
 
-      return c.json({ description: improved });
+      return c.json({ description: text });
     },
   )
   .get("/:id", async (c) => {
