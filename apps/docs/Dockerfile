@@ -11,7 +11,7 @@ COPY . .
 RUN bun run build
 
 # ---- runtime: unprivileged nginx, listens on 8080 ----
-FROM nginxinc/nginx-unprivileged:1.31-alpine
+FROM nginx/nginx-unprivileged:1.31.9-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/out /usr/share/nginx/html
 EXPOSE 8080
